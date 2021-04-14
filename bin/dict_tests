@@ -1,0 +1,284 @@
+#!/bin/sh
+
+echo "====================================================="
+echo ">>>>>>>>>>>>>>>>>> DICT TESTS <<<<<<<<<<<<<<<<<<<<<<<"
+echo "====================================================="
+
+build_realpath() {
+  local path="$1"
+  echo $(realpath "${path}") || {
+    echo "No realpath; falling back to setting EXEC_DIR with cd ${path} && pwd -P." >&2
+    echo $(cd ${path} && pwd -P)
+  }
+}
+
+EXEC_DIR=$(build_realpath $(dirname "$0"))
+WORK_DIR=$(build_realpath "${EXEC_DIR}/..")
+
+BUILD_DIR="${WORK_DIR}/build"
+SHARED_DIR="${WORK_DIR}/shared"
+
+. ${SHARED_DIR}/dict
+
+print_dict()
+{
+  local dict="${1}"
+  echo "${dict}" | tr "${FS}${GS}${RS}${US}" '\\]^_'
+}
+
+flag_report_always=true
+testfn="__main__"
+passed=0
+failed=0
+tests=0
+
+print_report() {
+  local test_result="${1}"
+  local test_variant="${2}"
+  local test_expression="${3}"
+  local test_state="FAILURE"
+
+  if ${test_result}; then 
+    local test_state="SUCCESS"
+  fi
+  echo "${test_state}: ${testfn} ${test_variant} ${test_expression} is ${test_result}."
+}
+update_passed() {
+  local test_variant="${1}"
+  local test_expression="${2}"
+  passed=$(( ${passed} + 1 ))
+  tests=$(( ${tests} + 1 ))
+  if ${flag_report_always}; then
+    print_report "true" "${test_variant}" "${test_expression}"
+  fi
+}
+update_failed() {
+  local test_variant="${1}"
+  local test_expression="${2}"
+  failed=$(( ${failed} + 1 ))
+  tests=$(( ${tests} + 1 ))
+  print_report "false" "${test_variant}" "${test_expression}"
+}
+show_counts() {
+  echo "Performed ${tests} tests. Passed ${passed}. Failed ${failed}."
+}
+
+__assert__() {
+  local test_variant="${1}"
+  shift
+  if [ $# = 2 ]; then
+    local test="${1}"
+    local actual="${2}"
+    local expression="${test} \"${actual}\""
+    if [ "${test}" "${actual}" ]; then
+      local result=true
+    else
+      local result=false
+    fi
+    local expected=''
+  elif [ $# -ge 3 ]; then
+    local actual="${1}"
+    local test="${2}"
+    local expected="${3}"
+    local expression="\"${actual}\" ${test} \"${expected}\""
+    if [ "${actual}" ${test} "${expected}" ]; then
+      local result=true
+    else
+      local result=false
+    fi
+    if [ $# -gt 3 ]; then
+      echo "WARNING: ${test_variant} passed too many arguments: need 2 or 3, $# provided. Extra ignored." >&2
+    fi
+  else
+    echo "ERROR: ${test_variant} passed too few arguments: need 2 or 3, $# provided." >&2
+    local result=false
+    test_variant="REQUIRE"
+  fi
+  if ${result}; then
+    update_passed "${test_variant}" "${expression}"
+  else
+    update_failed "${test_variant}" "${expression}"
+  #  echo "FAILURE: ${testfn} ${test_variant} ${expression} is false."
+    if [ "${test_variant}" = "REQUIRE" ]; then
+      show_counts
+      exit 1
+    fi
+  fi
+}
+
+REQUIRE() {
+  __assert__ "REQUIRE" "$@"
+}
+
+CHECK() {
+  __assert__ "CHECK" "$@"
+}
+
+TEST() {
+  local prev_test="${testfn}"
+  testfn="${1}"
+  ${testfn}
+  testfn="${prev_testfn}"
+}
+
+dict_get_returns_empty_value_for_any_key_from_empty_dict() {
+  local dict=''
+  CHECK "$(dict_get "${dict}" 'some_key')x" = "x"
+}
+
+dict_get_only_returns_value_associated_with_only_key_added_to_dict_by_dict_set_passed_inline() {
+  local expected='value 1'
+  local key='key1'
+  local dict="$(dict_set '' "${key}" "${expected}")"
+
+# Pass dict_get result directly inline with call to CHECK
+  CHECK "$(dict_get "${dict}" "${key}")i" = "${expected}i"
+
+  CHECK "$(dict_get "${dict}" 'some_key')x" = "x"
+}
+
+dict_get_only_returns_value_associated_with_only_key_added_to_dict_by_dict_set_passed_via_variable() {
+  local expected='value 1'
+  local key='key1'
+  local dict="$(dict_set '' "${key}" "${expected}")"
+
+# Pass dict_get result via intermediate variable to call to CHECK
+  local actual="$(dict_get "${dict}" "${key}")"
+  CHECK "${actual}v" = "${expected}v"
+
+  CHECK "$(dict_get "${dict}" 'some_key')x" = "x"
+}
+
+dict_get_only_returns_values_only_associated_with_keys_added_to_dict_by_dict_set() {
+  local expected1='value 1'
+  local expected2='value 2'
+  local expected3='value 3'
+  local key1='key1'
+  local key2='key2'
+  local key3='key3'
+  local dict=''
+  dict="$(dict_set "${dict}" "${key1}" "${expected1}")"
+  dict="$(dict_set "${dict}" "${key2}" "${expected2}")"
+  dict="$(dict_set "${dict}" "${key3}" "${expected3}")"
+
+  CHECK "$(dict_get "${dict}" "${key1}")A" = "${expected1}A"
+  CHECK "$(dict_get "${dict}" "${key2}")B" = "${expected2}B"
+  CHECK "$(dict_get "${dict}" "${key3}")C" = "${expected3}C"
+
+  CHECK "$(dict_get "${dict}" 'some_key')x" = "x"
+}
+
+dict_get_correctly_returns_value_associated_with_key_within_values() {
+  local key1='key1'
+  local key2='key2'
+  local key3='key3'
+  local dict=''
+  dict="$(dict_set "${dict}" "${key1}" "${key2}before")"
+  dict="$(dict_set "${dict}" "${key2}" "${key2}")"
+  dict="$(dict_set "${dict}" "${key3}" "${key2}after")"
+  CHECK "$(dict_get "${dict}" "${key2}")B" = "${key2}B"
+}
+
+dict_set_replaces_values_for_existing_key_value_entries() {
+  local unexpected1='value 1'
+  local unexpected2='value 2'
+  local unexpected3='value 3'
+  local expected1='value !'
+  local expected2='value "'
+  local expected3='value #'
+  local key1='key1'
+  local key2='key2'
+  local key3='key3'
+  local dict=''
+  dict="$(dict_set "${dict}" "${key1}" "${unexpected1}")"
+  dict="$(dict_set "${dict}" "${key2}" "${unexpected2}")"
+  dict="$(dict_set "${dict}" "${key3}" "${unexpected3}")"
+  REQUIRE "$(dict_get "${dict}" "${key1}")A" = "${unexpected1}A"
+  REQUIRE "$(dict_get "${dict}" "${key2}")B" = "${unexpected2}B"
+  REQUIRE "$(dict_get "${dict}" "${key3}")C" = "${unexpected3}C"
+
+  dict="$(dict_set "${dict}" "${key1}" "${expected1}")"
+  dict="$(dict_set "${dict}" "${key2}" "${expected2}")"
+  dict="$(dict_set "${dict}" "${key3}" "${expected3}")"
+  CHECK "$(dict_get "${dict}" "${key1}")A" = "${expected1}A"
+  CHECK "$(dict_get "${dict}" "${key2}")B" = "${expected2}B"
+  CHECK "$(dict_get "${dict}" "${key3}")C" = "${expected3}C"
+}
+
+dict_remove_removes_the_key_value_entry_specified_by_key() {
+  local expected1='value 1'
+  local expected2='value 2'
+  local expected3='value 3'
+  local key1='key1'
+  local key2='key2'
+  local key3='key3'
+  local dict=''
+  dict="$(dict_set "${dict}" "${key1}" "${expected1}")"
+  dict="$(dict_set "${dict}" "${key2}" "${expected2}")"
+  dict="$(dict_set "${dict}" "${key3}" "${expected3}")"
+
+  REQUIRE "$(dict_get "${dict}" "${key1}")A" = "${expected1}A"
+  REQUIRE "$(dict_get "${dict}" "${key2}")B" = "${expected2}B"
+  REQUIRE "$(dict_get "${dict}" "${key3}")C" = "${expected3}C"
+
+  dict="$(dict_remove "${dict}" "${key2}")"
+  CHECK "$(dict_get "${dict}" "${key1}")A" = "${expected1}A"
+  CHECK "$(dict_get "${dict}" "${key2}")B" = "B"
+  CHECK "$(dict_get "${dict}" "${key3}")C" = "${expected3}C"
+
+  dict="$(dict_remove "${dict}" "${key3}")"
+  CHECK "$(dict_get "${dict}" "${key1}")A" = "${expected1}A"
+  CHECK "$(dict_get "${dict}" "${key2}")B" = "B"
+  CHECK "$(dict_get "${dict}" "${key3}")C" = "C"
+
+  dict="$(dict_remove "${dict}" "${key1}")"
+  CHECK "$(dict_get "${dict}" "${key1}")A" = "A"
+  CHECK "$(dict_get "${dict}" "${key2}")B" = "B"
+  CHECK "$(dict_get "${dict}" "${key3}")C" = "C"
+}
+
+dict_to_vars_creates_variable_of_key_name_with_associated_value_for_each_dict_entry() {
+  local expected1='value 1'
+  local expected2='value 2'
+  local expected3='value 3'
+  local key1='__key1__'
+  local key2='__key2__'
+  local key3='__key3__'
+  local dict=''
+  dict="$(dict_set "${dict}" "${key1}" "${expected1}")"
+  dict="$(dict_set "${dict}" "${key2}" "${expected2}")"
+  dict="$(dict_set "${dict}" "${key3}" "${expected3}")"
+
+  REQUIRE "$(dict_get "${dict}" "${key1}")A" = "${expected1}A"
+  REQUIRE "$(dict_get "${dict}" "${key2}")B" = "${expected2}B"
+  REQUIRE "$(dict_get "${dict}" "${key3}")C" = "${expected3}C"
+  # Check we do not have variables defined already
+  REQUIRE -z "${__key1__:+x}"
+  REQUIRE -z "${__key2__:+x}"
+  REQUIRE -z "${__key3__:+x}"
+
+  dict_to_vars "${dict}"
+
+  REQUIRE -n "${__key1__:+x}"
+  REQUIRE -n "${__key2__:+x}"
+  REQUIRE -n "${__key3__:+x}"
+  CHECK "${__key1__}A" = "${expected1}A"
+  CHECK "${__key2__}B" = "${expected2}B"
+  CHECK "${__key3__}C" = "${expected3}C"
+  unset __key1__
+  unset __key2__
+  unset __key3__
+}
+
+#set -x
+TEST dict_get_returns_empty_value_for_any_key_from_empty_dict
+TEST dict_get_only_returns_value_associated_with_only_key_added_to_dict_by_dict_set_passed_inline
+TEST dict_get_only_returns_value_associated_with_only_key_added_to_dict_by_dict_set_passed_via_variable
+TEST dict_get_only_returns_values_only_associated_with_keys_added_to_dict_by_dict_set
+TEST dict_get_correctly_returns_value_associated_with_key_within_values
+TEST dict_set_replaces_values_for_existing_key_value_entries
+TEST dict_remove_removes_the_key_value_entry_specified_by_key
+TEST dict_to_vars_creates_variable_of_key_name_with_associated_value_for_each_dict_entry
+show_counts
+
+exit 0
