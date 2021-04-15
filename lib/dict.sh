@@ -17,53 +17,51 @@
 # dict_to_vars  to convert each key,value in a dict to a variable
 
 
-FS=$(echo '@' | tr '@' '\034')
-GS=$(echo '@' | tr '@' '\035')
-RS=$(echo '@' | tr '@' '\036')
-US=$(echo '@' | tr '@' '\037')
+__DICT_FS__=$(echo '@' | tr '@' '\034')
+__DICT_GS__=$(echo '@' | tr '@' '\035')
+__DICT_RS__=$(echo '@' | tr '@' '\036')
+__DICT_US__=$(echo '@' | tr '@' '\037')
+
+__DICT_RECORD_SEPERATOR__="${__DICT_RS__}"
+__DICT_FIELD_SEPERATOR__="${__DICT_US__}"
+__DICT_NESTING_PREFIX__="${__DICT_GS__}"
 
 dict_set() {
     local dict="${1}"
-    local rec_delimiter="${RS}"
-    local key_delimiter="${US}"
-    local key="${2}${key_delimiter}"
+    local key="${2}${__DICT_FIELD_SEPERATOR__}"
     local value="${3}"
     local value_plus="${dict#*${key}}"
     if [ "${value_plus}" != "${dict}" ]; then
-        suffix_entries="${value_plus#*${rec_delimiter}}"
+        suffix_entries="${value_plus#*${__DICT_RECORD_SEPERATOR__}}"
         if [ "${suffix_entries}" = "${value_plus}" ]; then
             suffix_entries=''
         fi
         cat << EOF
-${dict%${key}*}${key}${value}${key_delimiter}${rec_delimiter}${suffix_entries}
+${dict%${key}*}${key}${value}${__DICT_FIELD_SEPERATOR__}${__DICT_RECORD_SEPERATOR__}${suffix_entries}
 EOF
     else
         cat << EOF
-${dict%}${key}${value}${key_delimiter}${rec_delimiter}
+${dict%}${key}${value}${__DICT_FIELD_SEPERATOR__}${__DICT_RECORD_SEPERATOR__}
 EOF
     fi
 }
 
 dict_get() {
     local dict="${1}"
-    local rec_delimiter="${RS}"
-    local key_delimiter="${US}"
-    local key="${2}${key_delimiter}"
+    local key="${2}${__DICT_FIELD_SEPERATOR__}"
     local value_plus="${dict#*${key}}"
     if [ "${value_plus}" != "${dict}" ]; then
-        echo ${value_plus%%${key_delimiter}${rec_delimiter}*}
+        echo ${value_plus%%${__DICT_FIELD_SEPERATOR__}${__DICT_RECORD_SEPERATOR__}*}
     fi
 }
 
 dict_remove() {
     local dict="${1}"
-    local rec_delimiter="${RS}"
-    local key_delimiter="${US}"
-    local key="${2}${key_delimiter}"
+    local key="${2}${__DICT_FIELD_SEPERATOR__}"
     local value="${3}"
     local value_plus="${dict#*${key}}"
     if [ "${value_plus}" != "${dict}" ]; then
-        suffix_entries="${value_plus#*${key_delimiter}${rec_delimiter}}"
+        suffix_entries="${value_plus#*${__DICT_FIELD_SEPERATOR__}${__DICT_RECORD_SEPERATOR__}}"
         if [ "${suffix_entries}" = "${value_plus}" ]; then
             suffix_entries=''
         fi
@@ -77,14 +75,12 @@ EOF
 # variables will then not be available to calling context.
 dict_to_vars() {
     local dict="${1}"
-    local rec_delimiter="${RS}"
-    local key_delimiter="${US}"
     while [ -n "${dict}" ]; do
-        local record="${dict%%${key_delimiter}${rec_delimiter}*}"
-        local key="${record%${key_delimiter}*}"
-        local value="${record#*${key_delimiter}}"
-        local dict="${dict#*${rec_delimiter}}"
-#        echo "dict:\"${dict}\" record:\"${record}\" key:\"${key}\" value:\"${value}\"" | tr "${RS}${US}" '^_' >&2
+        local record="${dict%%${__DICT_FIELD_SEPERATOR__}${__DICT_RECORD_SEPERATOR__}*}"
+        local key="${record%${__DICT_FIELD_SEPERATOR__}*}"
+        local value="${record#*${__DICT_FIELD_SEPERATOR__}}"
+        local dict="${dict#*${__DICT_RECORD_SEPERATOR__}}"
+#        echo "dict:\"${dict}\" record:\"${record}\" key:\"${key}\" value:\"${value}\"" | tr "${__DICT_RS__}${DICT___DICT_US__}" '^_' >&2
         read ${key} << EOF 
 ${value}
 EOF
