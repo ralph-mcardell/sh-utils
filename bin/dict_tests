@@ -232,6 +232,79 @@ dict_remove_removes_the_key_value_entry_specified_by_key() {
   CHECK "$(dict_get "${dict}" "${key3}")C" = "C"
 }
 
+dict_values_in_dict_can_be_retrieved_correctly() {
+  local expected1='value 1'
+  local expected2='value 2'
+  local expected3='value 3'
+  local key1='key1'
+  local key2='key2'
+  local key3='key3'
+
+  local dict_2_1=''
+  dict_2_1="$(dict_set "${dict_2_1}" "${key1}2_1" "${expected1}2_1")"
+  dict_2_1="$(dict_set "${dict_2_1}" "${key2}2_1" "${expected2}2_1")"
+  dict_2_1="$(dict_set "${dict_2_1}" "${key3}2_1" "${expected3}2_1")"
+  local dict_2_2=''
+  dict_2_2="$(dict_set "${dict_2_2}" "${key1}2_2" "${expected1}2_2")"
+  dict_2_2="$(dict_set "${dict_2_2}" "${key2}2_2" "${expected2}2_2")"
+  dict_2_2="$(dict_set "${dict_2_2}" "${key3}2_2" "${expected3}2_2")"
+  local dict_2_3=''
+  dict_2_3="$(dict_set "${dict_2_3}" "${key1}2_3" "${expected1}2_3")"
+  dict_2_3="$(dict_set "${dict_2_3}" "${key2}2_3" "${expected2}2_3")"
+  dict_2_3="$(dict_set "${dict_2_3}" "${key3}2_3" "${expected3}2_3")"
+
+  local dict_1_1=''
+  dict_1_1="$(dict_set "${dict_1_1}" "${key1}1_1" "${expected1}1_1")"
+  dict_1_1="$(dict_set "${dict_1_1}" "${key2}1_1" "${expected2}1_1")"
+  dict_1_1="$(dict_set "${dict_1_1}" "${key3}1_1" "${expected3}1_1")"
+  local dict_1_2=''
+  dict_1_2="$(dict_set "${dict_1_2}" "${key1}1_2" "${expected1}1_2")"
+  dict_1_2="$(dict_set "${dict_1_2}" "${key2}1_2" "${expected2}1_2")"
+  dict_1_2="$(dict_set "${dict_1_2}" "${key3}1_2" "${expected3}1_2")"
+  local dict_1_3=''
+  dict_1_3="$(dict_set "${dict_1_3}" "${key1}1_3" "${dict_2_1}")"
+  dict_1_3="$(dict_set "${dict_1_3}" "${key2}1_3" "${dict_2_2}")"
+  dict_1_3="$(dict_set "${dict_1_3}" "${key3}1_3" "${dict_2_3}")"
+
+  local dict=''
+  dict="$(dict_set "${dict}" "${key1}" "${dict_1_1}")"
+  dict="$(dict_set "${dict}" "${key2}" "${dict_1_2}")"
+  dict="$(dict_set "${dict}" "${key3}" "${dict_1_3}")"
+
+  v="$(dict_get "${dict}" "${key1}")"
+  REQUIRE -n "${v}"
+  CHECK "$(dict_get "${v}" "${key1}1_1")A" = "${expected1}1_1A"
+  CHECK "$(dict_get "${v}" "${key2}1_1")A" = "${expected2}1_1A"
+  CHECK "$(dict_get "${v}" "${key3}1_1")A" = "${expected3}1_1A"
+
+  v="$(dict_get "${dict}" "${key2}")"
+  REQUIRE -n "${v}"
+  CHECK "$(dict_get "${v}" "${key1}1_2")A" = "${expected1}1_2A"
+  CHECK "$(dict_get "${v}" "${key2}1_2")A" = "${expected2}1_2A"
+  CHECK "$(dict_get "${v}" "${key3}1_2")A" = "${expected3}1_2A"
+
+  v="$(dict_get "${dict}" "${key3}")"
+  REQUIRE -n "${v}"
+
+  vv="$(dict_get "${v}" "${key1}1_3")"
+  REQUIRE -n "${vv}"
+  CHECK "$(dict_get "${vv}" "${key1}2_1")A" = "${expected1}2_1A"
+  CHECK "$(dict_get "${vv}" "${key2}2_1")A" = "${expected2}2_1A"
+  CHECK "$(dict_get "${vv}" "${key3}2_1")A" = "${expected3}2_1A"
+
+  vv="$(dict_get "${v}" "${key2}1_3")"
+  REQUIRE -n "${vv}"
+  CHECK "$(dict_get "${vv}" "${key1}2_2")A" = "${expected1}2_2A"
+  CHECK "$(dict_get "${vv}" "${key2}2_2")A" = "${expected2}2_2A"
+  CHECK "$(dict_get "${vv}" "${key3}2_2")A" = "${expected3}2_2A"
+
+  vv="$(dict_get "${v}" "${key3}1_3")"
+  REQUIRE -n "${vv}"
+  CHECK "$(dict_get "${vv}" "${key1}2_3")A" = "${expected1}2_3A"
+  CHECK "$(dict_get "${vv}" "${key2}2_3")A" = "${expected2}2_3A"
+  CHECK "$(dict_get "${vv}" "${key3}2_3")A" = "${expected3}2_3A"
+}
+
 dict_to_vars_creates_variable_of_key_name_with_associated_value_for_each_dict_entry() {
   local expected1='value 1'
   local expected2='value 2'
@@ -273,6 +346,7 @@ TEST dict_get_only_returns_values_only_associated_with_keys_added_to_dict_by_dic
 TEST dict_get_correctly_returns_value_associated_with_key_within_values
 TEST dict_set_replaces_values_for_existing_key_value_entries
 TEST dict_remove_removes_the_key_value_entry_specified_by_key
+TEST dict_values_in_dict_can_be_retrieved_correctly
 TEST dict_to_vars_creates_variable_of_key_name_with_associated_value_for_each_dict_entry
 show_counts
 

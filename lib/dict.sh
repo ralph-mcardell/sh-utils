@@ -84,6 +84,20 @@ EOF
     fi
 }
 
+__dict_prepare_value_for_nesting__() {
+    local value="${1}"
+    sed "s/${__DICT_US__}/${__DICT_GS__}${__DICT_US__}/g; s/${__DICT_RS__}/${__DICT_GS__}${__DICT_RS__}/g" << EOF
+${value}
+EOF
+}
+
+__dict_prepare_value_for_unnesting__() {
+    local value="${1}"
+    sed "s/${__DICT_GS__}${__DICT_US__}/${__DICT_US__}/g; s/${__DICT_GS__}${__DICT_RS__}/${__DICT_RS__}/g" << EOF
+${value}
+EOF
+}
+
 dict_print_raw()
 {
   local dict="${1}"
@@ -94,8 +108,7 @@ dict_print_raw()
   echo "${dict}" | tr "${__DICT_US__}${__DICT_RS__}${__DICT_GS__}${__DICT_FS__}" "${us_rs_gs_fs_translation}" 
 }
 
-
-dict_set() {
+sdict_set() {
     local dict="${1}"
     local dkey="$(__dict_decorated_key__ "${2}")"
     local value="${3}"
@@ -104,7 +117,7 @@ $(__dict_prefix_entries__ "${dict}" "${dkey}")$(__dict_new_entry__ "${dkey}" "${
 EOF
 }
 
-dict_get() {
+sdict_get() {
     local dict="${1}"
     local dkey="$(__dict_decorated_key__ "${2}")"
     cat << EOF
@@ -112,7 +125,7 @@ $(__dict_value__ "${dict}" "${dkey}")
 EOF
 }
 
-dict_remove() {
+sdict_remove() {
     local dict="${1}"
     local dkey="$(__dict_decorated_key__ "${2}")"
     cat << EOF
@@ -122,7 +135,7 @@ EOF
 
 # Do not execute in subshell to calling context as created
 # variables will then not be available to calling context.
-dict_to_vars() {
+sdict_to_vars() {
     local dict="${1}"
     while [ -n "${dict}" ]; do
         local record="${dict%%${__DICT_ENTRY_SEPERATOR__}*}"
@@ -134,4 +147,30 @@ dict_to_vars() {
 ${value}
 EOF
     done
+}
+
+dict_set() {
+    local value="$(__dict_prepare_value_for_nesting__ "${3}")"
+    cat << EOF
+$(sdict_set "${1}" "${2}" "${value}")
+EOF
+}
+
+dict_get() {
+    local value="$(sdict_get "${1}" "${2}")"
+    cat << EOF
+$(__dict_prepare_value_for_unnesting__ "${value}")
+EOF
+}
+
+dict_remove() {
+    cat << EOF
+$(sdict_remove "${1}" "${2}")
+EOF
+}
+
+# Do not execute in subshell to calling context as created
+# variables will then not be available to calling context.
+dict_to_vars() {
+    sdict_to_vars "${1}"
 }
