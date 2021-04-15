@@ -20,12 +20,6 @@ SHARED_DIR="${WORK_DIR}/shared"
 
 . ${SHARED_DIR}/dict
 
-print_dict()
-{
-  local dict="${1}"
-  echo "${dict}" | tr "${FS}${GS}${RS}${US}" '\\]^_'
-}
-
 flag_report_always=true
 testfn="__main__"
 passed=0
@@ -59,6 +53,7 @@ update_failed() {
   tests=$(( ${tests} + 1 ))
   print_report "false" "${test_variant}" "${test_expression}"
 }
+
 show_counts() {
   echo "Performed ${tests} tests. Passed ${passed}. Failed ${failed}."
 }
