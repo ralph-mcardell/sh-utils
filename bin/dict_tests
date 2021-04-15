@@ -19,102 +19,7 @@ BUILD_DIR="${WORK_DIR}/build"
 SHARED_DIR="${WORK_DIR}/shared"
 
 . ${SHARED_DIR}/dict
-
-flag_report_always=true
-testfn="__main__"
-passed=0
-failed=0
-tests=0
-
-print_report() {
-  local test_result="${1}"
-  local test_variant="${2}"
-  local test_expression="${3}"
-  local test_state="FAILURE"
-
-  if ${test_result}; then 
-    local test_state="SUCCESS"
-  fi
-  echo "${test_state}: ${testfn} ${test_variant} ${test_expression} is ${test_result}."
-}
-update_passed() {
-  local test_variant="${1}"
-  local test_expression="${2}"
-  passed=$(( ${passed} + 1 ))
-  tests=$(( ${tests} + 1 ))
-  if ${flag_report_always}; then
-    print_report "true" "${test_variant}" "${test_expression}"
-  fi
-}
-update_failed() {
-  local test_variant="${1}"
-  local test_expression="${2}"
-  failed=$(( ${failed} + 1 ))
-  tests=$(( ${tests} + 1 ))
-  print_report "false" "${test_variant}" "${test_expression}"
-}
-
-show_counts() {
-  echo "Performed ${tests} tests. Passed ${passed}. Failed ${failed}."
-}
-
-__assert__() {
-  local test_variant="${1}"
-  shift
-  if [ $# = 2 ]; then
-    local test="${1}"
-    local actual="${2}"
-    local expression="${test} \"${actual}\""
-    if [ "${test}" "${actual}" ]; then
-      local result=true
-    else
-      local result=false
-    fi
-    local expected=''
-  elif [ $# -ge 3 ]; then
-    local actual="${1}"
-    local test="${2}"
-    local expected="${3}"
-    local expression="\"${actual}\" ${test} \"${expected}\""
-    if [ "${actual}" ${test} "${expected}" ]; then
-      local result=true
-    else
-      local result=false
-    fi
-    if [ $# -gt 3 ]; then
-      echo "WARNING: ${test_variant} passed too many arguments: need 2 or 3, $# provided. Extra ignored." >&2
-    fi
-  else
-    echo "ERROR: ${test_variant} passed too few arguments: need 2 or 3, $# provided." >&2
-    local result=false
-    test_variant="REQUIRE"
-  fi
-  if ${result}; then
-    update_passed "${test_variant}" "${expression}"
-  else
-    update_failed "${test_variant}" "${expression}"
-  #  echo "FAILURE: ${testfn} ${test_variant} ${expression} is false."
-    if [ "${test_variant}" = "REQUIRE" ]; then
-      show_counts
-      exit 1
-    fi
-  fi
-}
-
-REQUIRE() {
-  __assert__ "REQUIRE" "$@"
-}
-
-CHECK() {
-  __assert__ "CHECK" "$@"
-}
-
-TEST() {
-  local prev_test="${testfn}"
-  testfn="${1}"
-  ${testfn}
-  testfn="${prev_testfn}"
-}
+. ${EXEC_DIR}/sh-test
 
 dict_get_returns_empty_value_for_any_key_from_empty_dict() {
   local dict=''
@@ -152,7 +57,7 @@ dict_get_only_returns_values_only_associated_with_keys_added_to_dict_by_dict_set
   local key2='key2'
   local key3='key3'
   local dict=''
-  dict="$(dict_set "${dict}" "${key1}" "${expected1}")"
+  dict="$(dict_set "${dict}" "${key1}" "${expected1}x")"
   dict="$(dict_set "${dict}" "${key2}" "${expected2}")"
   dict="$(dict_set "${dict}" "${key3}" "${expected3}")"
 
@@ -408,6 +313,6 @@ TEST dict_remove_removes_the_key_value_entry_specified_by_key
 TEST dict_values_in_dict_can_be_retrieved_correctly
 TEST dict_values_in_dict_can_be_removed_correctly
 TEST dict_to_vars_creates_variable_of_key_name_with_associated_value_for_each_dict_entry
-show_counts
+PRINT_TEST_COUNTS
 
 exit 0
