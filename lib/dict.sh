@@ -46,6 +46,8 @@ __DICT_FIELD_SEPARATOR__="${__DICT_US__}"
 __DICT_NESTING_PREFIX__="${__DICT_GS__}"
 
 __DICT_ENTRY_SEPARATOR__="${__DICT_FIELD_SEPARATOR__}${__DICT_RECORD_SEPARATOR__}"
+__DICT_TYPE_VALUE__="${__DICT_GS__}DiCt${__DICT_GS__}"
+__DICT_TYPE_RECORD__="${__DICT_TYPE_VALUE__}${__DICT_ENTRY_SEPARATOR__}"
 
 __dict_decorated_key__() {
     cat << EOF 
@@ -64,8 +66,17 @@ EOF
 __dict_prefix_entries__() {
     local dict="${1}"
     local decorated_key="${2}"
+  # Must match on key prefixed by entry separator and terminated by field
+  # seprarator to prevent key-strings in values looking like keys
+  # However if we are not appending (in which case whole dict string is
+  # value of prefix) then the entry separator removed by pattern match
+  # removal has to be replaced by appending back onto the prefix string
+    local prefix="${dict%${__DICT_ENTRY_SEPARATOR__}${decorated_key}*}"
+    if [ "${prefix}" != "${dict}" ]; then
+        local prefix="${prefix}${__DICT_ENTRY_SEPARATOR__}"
+    fi
     cat << EOF
-${dict%${decorated_key}*}
+${prefix}
 EOF
 }
 
@@ -73,7 +84,7 @@ __dict_value_and_suffix_entries__() {
     local dict="${1}"
     local decorated_key="${2}"
     cat << EOF
-${dict#*${decorated_key}}
+${dict#*${__DICT_ENTRY_SEPARATOR__}${decorated_key}}
 EOF
 }
 
@@ -103,6 +114,22 @@ EOF
     fi
 }
 
+__dict_strip_header__() {
+    local dict="${1}"
+    local all="${2}"
+    if "${all}"; then
+        local stripped="${__DICT_TYPE_RECORD__}"
+    else
+        local stripped="${__DICT_TYPE_VALUE__}"
+    fi
+    local entries="${dict#${stripped}}"
+    if [ "${entries}" != "${dict}" ]; then
+    cat << EOF
+${entries}
+EOF
+    fi
+}
+
 __dict_prepare_value_for_nesting__() {
     local value="${1}"
     sed "s/${__DICT_US__}/${__DICT_GS__}${__DICT_US__}/g; s/${__DICT_RS__}/${__DICT_GS__}${__DICT_RS__}/g" << EOF
@@ -117,6 +144,13 @@ ${value}
 EOF
 }
 
+__dict_abort_if_not_dict__() {
+    if ! dict_is_dict "${1}"; then
+        echo "Oops! First argument passed to ${2} is not a dict(ionary) type. Quitting current (sub-)shell." >&2
+        exit 1
+    fi
+}
+
 dict_print_raw()
 {
   local dict="${1}"
@@ -128,16 +162,18 @@ dict_print_raw()
 }
 
 sdict_set() {
-    local dict="${1}"
+    __dict_abort_if_not_dict__ "${1}" "sdict_set"
+    local dict="$(__dict_strip_header__ "${1}" "false")"
     local dkey="$(__dict_decorated_key__ "${2}")"
     local value="${3}"
     cat << EOF
-$(__dict_prefix_entries__ "${dict}" "${dkey}")$(__dict_new_entry__ "${dkey}" "${value}")$(__dict_suffix_entries__ "${dict}" "${dkey}")
+${__DICT_TYPE_VALUE__}$(__dict_prefix_entries__ "${dict}" "${dkey}")$(__dict_new_entry__ "${dkey}" "${value}")$(__dict_suffix_entries__ "${dict}" "${dkey}")
 EOF
 }
 
 sdict_get() {
-    local dict="${1}"
+    __dict_abort_if_not_dict__ "${1}" "sdict_get"
+    local dict="$(__dict_strip_header__ "${1}" "false")"
     local dkey="$(__dict_decorated_key__ "${2}")"
     cat << EOF
 $(__dict_value__ "${dict}" "${dkey}")
@@ -145,30 +181,57 @@ EOF
 }
 
 sdict_remove() {
-    local dict="${1}"
+    __dict_abort_if_not_dict__ "${1}" "sdict_remove"
+    local dict="$(__dict_strip_header__ "${1}" "false")"
     local dkey="$(__dict_decorated_key__ "${2}")"
     cat << EOF
-$(__dict_prefix_entries__ "${dict}" "${dkey}")$(__dict_suffix_entries__ "${dict}" "${dkey}")
+${__DICT_TYPE_RECORD__}$(__dict_prefix_entries__ "${dict}" "${dkey}")$(__dict_suffix_entries__ "${dict}" "${dkey}")
 EOF
 }
 
 # Do not execute in subshell to calling context as created
 # variables will then not be available to calling context.
 sdict_to_vars() {
-    local dict="${1}"
+    __dict_abort_if_not_dict__ "${1}" "sdict_remove"
+    local dict="$(__dict_strip_header__ "${1}" "true")"
     while [ -n "${dict}" ]; do
         local record="${dict%%${__DICT_ENTRY_SEPARATOR__}*}"
         local key="${record%${__DICT_FIELD_SEPARATOR__}*}"
         local value="${record#*${__DICT_FIELD_SEPARATOR__}}"
         local dict="${dict#*${__DICT_ENTRY_SEPARATOR__}}"
-#        echo "dict:\"${dict}\" record:\"${record}\" key:\"${key}\" value:\"${value}\"" | tr "${__DICT_RS__}${DICT___DICT_US__}" '^_' >&2
+    #    echo "dict:\"${dict}\" record:\"${record}\" key:\"${key}\" value:\"${value}\"" | tr "${__DICT_RS__}${DICT___DICT_US__}" '^_' >&2
         read ${key} << EOF 
 ${value}
 EOF
     done
 }
 
+dict_is_dict() {
+    if [ "${1%%${__DICT_ENTRY_SEPARATOR__}*}X" = "${__DICT_TYPE_VALUE__}X" ]; then
+        true; return
+    else
+        false; return
+    fi
+}
+
+dict_declare() {
+    local dict="${__DICT_TYPE_RECORD__}"
+    while [ $# -gt 1 ]; do
+        local dkey="$(__dict_decorated_key__ "${2}")"
+        local value="${3}"
+        dict="${dict}$(__dict_new_entry__ "${dkey}" "${value}")"
+        shift 2
+    done
+    if [ $# -gt 0 ]; then
+        echo "WARNING: incomplete key, value pair passed to dict_declare: ${1} left over." >&2
+    fi
+    cat << EOF
+${dict}
+EOF
+}
+
 dict_set() {
+    __dict_abort_if_not_dict__ "${1}" "dict_set"
     local value="$(__dict_prepare_value_for_nesting__ "${3}")"
     cat << EOF
 $(sdict_set "${1}" "${2}" "${value}")
@@ -176,6 +239,7 @@ EOF
 }
 
 dict_get() {
+    __dict_abort_if_not_dict__ "${1}" "dict_get"
     local value="$(sdict_get "${1}" "${2}")"
     cat << EOF
 $(__dict_prepare_value_for_unnesting__ "${value}")
@@ -183,6 +247,7 @@ EOF
 }
 
 dict_remove() {
+    __dict_abort_if_not_dict__ "${1}" "dict_remove"
     cat << EOF
 $(sdict_remove "${1}" "${2}")
 EOF
@@ -191,5 +256,6 @@ EOF
 # Do not execute in subshell to calling context as created
 # variables will then not be available to calling context.
 dict_to_vars() {
+    __dict_abort_if_not_dict__ "${1}" "dict_to_vars"
     sdict_to_vars "${1}"
 }
