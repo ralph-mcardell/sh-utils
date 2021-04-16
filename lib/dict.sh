@@ -217,8 +217,8 @@ dict_is_dict() {
 dict_declare() {
     local dict="${__DICT_TYPE_RECORD__}"
     while [ $# -gt 1 ]; do
-        local dkey="$(__dict_decorated_key__ "${2}")"
-        local value="${3}"
+        local dkey="$(__dict_decorated_key__ "${1}")"
+        local value="${2}"
         dict="${dict}$(__dict_new_entry__ "${dkey}" "${value}")"
         shift 2
     done

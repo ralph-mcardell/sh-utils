@@ -63,6 +63,24 @@ dict_get_returns_empty_value_for_any_key_from_empty_dict() {
   CHECK "$(dict_get "${dict}" 'some_key')x" = "x"
 }
 
+can_add_multiple_initial_values_on_dict_declaration() {
+  dict=$(dict_declare )
+  CHECK "$(dict_get "${dict}" 'some_key')x" = "x"
+  local expected1='value 1'
+  local expected2='value 2'
+  local expected3='value 3'
+  local key1='key1'
+  local key2='key2'
+  local key3='key3'
+  dict=$(dict_declare "${key1}" "${expected1}" "${key2}" "${expected2}" "${key3}" "${expected3}" )
+
+  CHECK "$(dict_get "${dict}" "${key1}")A" = "${expected1}A"
+  CHECK "$(dict_get "${dict}" "${key2}")B" = "${expected2}B"
+  CHECK "$(dict_get "${dict}" "${key3}")C" = "${expected3}C"
+
+  CHECK "$(dict_get "${dict}" 'some_key')x" = "x"
+}
+
 dict_get_only_returns_value_associated_with_only_key_added_to_dict_by_dict_set_passed_inline() {
   local expected='value 1'
   local key='key1'
@@ -431,6 +449,7 @@ TEST arbitrary_string_is_not_a_dict
 TEST declared_dict_variable_is_a_dict
 TEST non_dict_variables_are_not_tolerated
 TEST dict_get_returns_empty_value_for_any_key_from_empty_dict
+TEST can_add_multiple_initial_values_on_dict_declaration
 TEST dict_get_only_returns_value_associated_with_only_key_added_to_dict_by_dict_set_passed_inline
 TEST dict_get_only_returns_value_associated_with_only_key_added_to_dict_by_dict_set_passed_via_variable
 TEST dict_get_only_returns_values_only_associated_with_keys_added_to_dict_by_dict_set
