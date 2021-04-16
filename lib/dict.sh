@@ -144,6 +144,14 @@ ${value}
 EOF
 }
 
+__dict_is_nested_dict__() {
+    if [ "${1%%${__DICT_GS__}[!D${__DICT_GS__}]*}X" = "${__DICT_TYPE_VALUE__}X" ]; then
+        true; return
+    else
+        false; return
+    fi
+}
+
 __dict_abort_if_not_dict__() {
     if ! dict_is_dict "${1}"; then
         echo "Oops! First argument passed to ${2} is not a dict(ionary) type. Quitting current (sub-)shell." >&2
@@ -232,7 +240,10 @@ EOF
 
 dict_set() {
     __dict_abort_if_not_dict__ "${1}" "dict_set"
-    local value="$(__dict_prepare_value_for_nesting__ "${3}")"
+    local value="${3}"
+    if dict_is_dict "${value}"; then
+        local value="$(__dict_prepare_value_for_nesting__ "${value}")"
+    fi
     cat << EOF
 $(sdict_set "${1}" "${2}" "${value}")
 EOF
@@ -241,9 +252,15 @@ EOF
 dict_get() {
     __dict_abort_if_not_dict__ "${1}" "dict_get"
     local value="$(sdict_get "${1}" "${2}")"
-    cat << EOF
+    if __dict_is_nested_dict__ "${value}"; then
+        cat << EOF
 $(__dict_prepare_value_for_unnesting__ "${value}")
 EOF
+    else
+        cat << EOF
+${value}
+EOF
+    fi
 }
 
 dict_remove() {
