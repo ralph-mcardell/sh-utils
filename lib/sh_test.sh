@@ -2,7 +2,7 @@
 #
 # Mini unit testing framework for sh (sh not bash) script 'units' - functions
 #
-__sh_test_flag_report_always__=true
+__sh_test_flag_report_always__=false
 __sh_test_testfn__="__main__"
 __sh_test_passed__=0
 __sh_test_failed__=0
@@ -61,8 +61,11 @@ __sh_test_maybe_plural__() {
 
 __sh_test_assert__() {
   local test_variant="${1}"
-  shift
-  if [ $# = 2 ]; then
+  local invert="${2}"
+  shift 2
+  if [ $# = 1 ]; then
+    result="${1}"
+  elif [ $# = 2 ]; then
     local test="${1}"
     local actual="${2}"
     local expression="${test} \"${actual}\""
@@ -86,9 +89,17 @@ __sh_test_assert__() {
       echo "WARNING: ${test_variant} passed too many arguments: need 2 or 3, $# provided. Extra ignored." >&2
     fi
   else
-    echo "ERROR: ${test_variant} passed too few arguments: need 2 or 3, $# provided." >&2
+    echo "ERROR: ${test_variant} passed too few arguments: need 1, 2 or 3, $# provided." >&2
     local result=false
     test_variant="REQUIRE"
+  fi
+
+  if ${invert}; then
+    if ${result}; then
+      result=false
+    else
+      result=true
+    fi
   fi
   if ${result}; then
     __sh_test_update_assert_passed__ "${test_variant}" "${expression}"
@@ -102,11 +113,19 @@ __sh_test_assert__() {
 }
 
 REQUIRE() {
-  __sh_test_assert__ "REQUIRE" "$@"
+  __sh_test_assert__ "REQUIRE" false "$@"
 }
 
 CHECK() {
-  __sh_test_assert__ "CHECK" "$@"
+  __sh_test_assert__ "CHECK" false "$@"
+}
+
+REQUIRE_FALSE() {
+  __sh_test_assert__ "REQUIRE" true "$@"
+}
+
+CHECK_FALSE() {
+  __sh_test_assert__ "CHECK" true "$@"
 }
 
 TEST() {
