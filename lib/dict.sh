@@ -45,6 +45,232 @@
 # modified on insertion in a dict and restored when retrieved.
 #
 
+# @brief return true if first parameter appears to be a dict
+#
+# Specifically looks for the special __DICT_TYPE_VALUE__ string
+# as a first dict-style record in the string.
+#
+# @param 1 : value or variable to query
+# @returns : true if "${1}" appears to be a dict - that is adheres to the dict
+#            string format, false otherwise.
+dict_is_dict() {
+    if [ "${1%%${__DICT_ENTRY_SEPARATOR__}*}X" = "${__DICT_TYPE_VALUE__}X" ]; then
+        true; return
+    else
+        false; return
+    fi
+}
+
+# @brief 'declare' a dict variable, optionally initialiing with entries
+#
+# Returns a value for storage in a variable that adheres to the dict
+# string format. If provided each pair of parameters are used to
+# add key value entries to the returned dict value.
+#
+# @param 2n-1 : entry n key value. n > 0.
+# @param 2n   : entry n value value. n > 0.
+# @returns : dict value containing 0+ entries that can be used with the
+#            other dict_xxx functions and for which specifically when
+#            passed to dict_is_dict returns true.
+dict_declare() {
+    local dict="${__DICT_TYPE_RECORD__}"
+    while [ $# -gt 1 ]; do
+        local dkey="$(__dict_decorated_key__ "${1}")"
+        local value="${2}"
+        dict="${dict}$(__dict_new_entry__ "${dkey}" "${value}")"
+        shift 2
+    done
+    if [ $# -gt 0 ]; then
+        echo "WARNING: incomplete key, value pair passed to dict_declare: ${1} left over." >&2
+    fi
+    cat << EOF
+${dict}
+EOF
+}
+
+# @brief Set - add or update - a key, value entry in a dict
+#
+# Passed a dict to update, a key and a value.
+# Returns the updated dict value.
+#
+# BOTH the key and value cannot be another dict, and cannot contain
+# ASCII US, RS, GS, FS characters.
+#
+# If there is no entry in the passed dict having a key value matching
+# matching the passed key a new entry is appended to the dict value returned.
+#
+# Otherwise the value of the existing entry in the passed dict having a key
+# value matching that of the passed key is updated to the new value.
+#
+# @param 1 : dict value to set value in
+# @param 2 : Entry key value.
+# @param 3 : Entry value value.
+# @returns : dict value containing the updated or added (appended)
+#            entry.
+dict_set_simple() {
+    __dict_abort_if_not_dict__ "${1}" "dict_set_simple"
+    __dict_set__ "$@"
+}
+
+
+# @brief Get a value associated with a key from a dict
+#
+# Passed a dict to query and a key.
+# Returns the value associated with the key or blank if the 
+# passed dict contains no entry having a matching key.
+#
+# BOTH the passed key and any returned value cannot be another dict,
+# and cannot contain ASCII US, RS, GS, FS characters.
+#
+# @param 1 : dict value to set value in
+# @param 2 : Entry key value.
+# @returns : value of entry in dict passed as parameter 1 having key
+#            matching parameter 2 or blank (empty) value.
+dict_get_simple() {
+    __dict_abort_if_not_dict__ "${1}" "dict_get_simple"
+    __dict_get__ "$@"
+}
+
+# @brief Set - add or update - a key, value entry in a dict
+#
+# Passed a dict to update, a key and a value.
+# Returns the updated dict value.
+#
+# The key annot be another dict, and cannot contain ASCII
+# US, RS, GS, FS characters.
+#
+# The value maybe another dict but otherwise cannot contain
+# ASCII US, RS, GS, FS characters. 
+#
+# If there is no entry in the passed dict having a key value matching
+# matching the passed key a new entry is appended to the dict value returned.
+#
+# Otherwise the value of the existing entry in the passed dict having a key
+# value matching that of the passed key is updated to the new value.
+#
+# @param 1 : dict value to set value in
+# @param 2 : Entry key value.
+# @param 3 : Entry value value.
+# @returns : dict value containing the updated or added (appended)
+#            entry.
+dict_set() {
+    __dict_abort_if_not_dict__ "${1}" "dict_set"
+    local value="${3}"
+    if dict_is_dict "${value}"; then
+        local value="$(__dict_prepare_value_for_nesting__ "${value}")"
+    fi
+    cat << EOF
+$(__dict_set__ "${1}" "${2}" "${value}")
+EOF
+}
+
+# @brief Get a value associated with a key from a dict
+#
+# Passed a dict to query and a key.
+# Returns the value associated with the key or blank if the 
+# passed dict contains no entry having a matching key.
+#
+# The key cannot be another dict, and cannot contain ASCII
+# US, RS, GS, FS characters.
+#
+# The value of the entry to remove maybe another dict.
+#
+#
+# @param 1 : dict value to set value in
+# @param 2 : Entry key value.
+# @returns : value of entry in dict passed as parameter 1 having key
+#            matching parameter 2 or blank (empty) value.
+dict_get() {
+    __dict_abort_if_not_dict__ "${1}" "dict_get"
+    local value="$(__dict_get__ "$@")"
+    if __dict_is_nested_dict__ "${value}"; then
+        cat << EOF
+$(__dict_prepare_value_for_unnesting__ "${value}")
+EOF
+    else
+        cat << EOF
+${value}
+EOF
+    fi
+}
+
+# @brief Remove an entry having a matching key form a dict
+#
+# Passed a dict to update, and the key of the entry to remove.
+#
+# The key cannot be another dict, and cannot contain ASCII
+# US, RS, GS, FS characters.
+#
+# The value maybe another dict but otherwise cannot contain
+# ASCII US, RS, GS, FS characters. 
+#
+# Returned the possibly updated dict. The returned dict
+# value with match the passed dict value if there is no
+# entry with a matching key.
+#
+# @param 1 : dict value to remove a value from
+# @param 2 : Key of entry to remove
+# @returns : a value either matching the passed dict or the
+#            passed dict with the requested entry removed.
+dict_remove() {
+    __dict_abort_if_not_dict__ "${1}" "dict_remove"
+    local dict="$(__dict_strip_header__ "${1}" "false")"
+    local dkey="$(__dict_decorated_key__ "${2}")"
+    cat << EOF
+${__DICT_TYPE_RECORD__}$(__dict_prefix_entries__ "${dict}" "${dkey}")$(__dict_suffix_entries__ "${dict}" "${dkey}")
+EOF
+}
+
+# @brief Output the raw characters of the dict
+#
+# Passed a dict will output to the (sub-)shell stdout (i.e. return) the
+# characters (bytes) making up the string representation og the dict with the 
+# unprintable characters used in field and record separators (i.e. ASCI US RS
+# GS and FS) translated to somethingprintable (usually) .
+#
+# The function optionally takes 2nd argument specifying the characters to
+# translate US RS GS and FS characters (in that order) to. If not provided
+# the translated to characters default to '_^]\'
+#
+# @param 1 : dict value to output
+# @param 2 : (optional) characters to translate ASCII US RS GS FS characters
+#            embedded in dict
+# @returns : raw characters of dict with the US RS GS FS characters translated.
+dict_to_vars() {
+  local dict="${1}"
+  local us_rs_gs_fs_translation='_^]\\'
+  if [ $# -ge 2 ]; then
+    us_rs_gs_fs_translation="${2}"
+  fi
+  echo "${dict}" | tr "${__DICT_US__}${__DICT_RS__}${__DICT_GS__}${__DICT_FS__}" "${us_rs_gs_fs_translation}" 
+}
+
+# @brief Create a variable for each entry in a dict
+# 
+# For each entry a variable with the same name as the entry key and a
+# value of the entry value is created.
+#
+# Do not execute in subshell to calling context as created
+# variables will then not be available to calling context.
+#
+# @param 1 : dict value create variables from
+dict_to_vars() {
+    __dict_abort_if_not_dict__ "${1}" "dict_to_vars"
+    local dict="$(__dict_strip_header__ "${1}" "true")"
+    while [ -n "${dict}" ]; do
+        local record="${dict%%${__DICT_ENTRY_SEPARATOR__}*}"
+        local key="${record%${__DICT_FIELD_SEPARATOR__}*}"
+        local value="${record#*${__DICT_FIELD_SEPARATOR__}}"
+        local dict="${dict#*${__DICT_ENTRY_SEPARATOR__}}"
+    #    echo "dict:\"${dict}\" record:\"${record}\" key:\"${key}\" value:\"${value}\"" | tr "${__DICT_RS__}${DICT___DICT_US__}" '^_' >&2
+        read ${key} << EOF 
+${value}
+EOF
+    done
+}
+
+# Details
+
 __DICT_FS__=$(echo '@' | tr '@' '\034')
 __DICT_GS__=$(echo '@' | tr '@' '\035')
 __DICT_RS__=$(echo '@' | tr '@' '\036')
@@ -184,99 +410,4 @@ __dict_get__() {
     cat << EOF
 $(__dict_value__ "${dict}" "${dkey}")
 EOF
-}
-
-dict_is_dict() {
-    if [ "${1%%${__DICT_ENTRY_SEPARATOR__}*}X" = "${__DICT_TYPE_VALUE__}X" ]; then
-        true; return
-    else
-        false; return
-    fi
-}
-
-dict_declare() {
-    local dict="${__DICT_TYPE_RECORD__}"
-    while [ $# -gt 1 ]; do
-        local dkey="$(__dict_decorated_key__ "${1}")"
-        local value="${2}"
-        dict="${dict}$(__dict_new_entry__ "${dkey}" "${value}")"
-        shift 2
-    done
-    if [ $# -gt 0 ]; then
-        echo "WARNING: incomplete key, value pair passed to dict_declare: ${1} left over." >&2
-    fi
-    cat << EOF
-${dict}
-EOF
-}
-
-dict_set_simple() {
-    __dict_abort_if_not_dict__ "${1}" "dict_set_simple"
-    __dict_set__ "$@"
-}
-
-dict_get_simple() {
-    __dict_abort_if_not_dict__ "${1}" "dict_get_simple"
-    __dict_get__ "$@"
-}
-
-dict_set() {
-    __dict_abort_if_not_dict__ "${1}" "dict_set"
-    local value="${3}"
-    if dict_is_dict "${value}"; then
-        local value="$(__dict_prepare_value_for_nesting__ "${value}")"
-    fi
-    cat << EOF
-$(__dict_set__ "${1}" "${2}" "${value}")
-EOF
-}
-
-dict_get() {
-    __dict_abort_if_not_dict__ "${1}" "dict_get"
-    local value="$(__dict_get__ "$@")"
-    if __dict_is_nested_dict__ "${value}"; then
-        cat << EOF
-$(__dict_prepare_value_for_unnesting__ "${value}")
-EOF
-    else
-        cat << EOF
-${value}
-EOF
-    fi
-}
-
-dict_remove() {
-    __dict_abort_if_not_dict__ "${1}" "dict_remove"
-    local dict="$(__dict_strip_header__ "${1}" "false")"
-    local dkey="$(__dict_decorated_key__ "${2}")"
-    cat << EOF
-${__DICT_TYPE_RECORD__}$(__dict_prefix_entries__ "${dict}" "${dkey}")$(__dict_suffix_entries__ "${dict}" "${dkey}")
-EOF
-}
-
-dict_print_raw()
-{
-  local dict="${1}"
-  local us_rs_gs_fs_translation='_^]\\'
-  if [ $# -ge 2 ]; then
-    us_rs_gs_fs_translation="${2}"
-  fi
-  echo "${dict}" | tr "${__DICT_US__}${__DICT_RS__}${__DICT_GS__}${__DICT_FS__}" "${us_rs_gs_fs_translation}" 
-}
-
-# Do not execute in subshell to calling context as created
-# variables will then not be available to calling context.
-dict_to_vars() {
-    __dict_abort_if_not_dict__ "${1}" "dict_to_vars"
-    local dict="$(__dict_strip_header__ "${1}" "true")"
-    while [ -n "${dict}" ]; do
-        local record="${dict%%${__DICT_ENTRY_SEPARATOR__}*}"
-        local key="${record%${__DICT_FIELD_SEPARATOR__}*}"
-        local value="${record#*${__DICT_FIELD_SEPARATOR__}}"
-        local dict="${dict#*${__DICT_ENTRY_SEPARATOR__}}"
-    #    echo "dict:\"${dict}\" record:\"${record}\" key:\"${key}\" value:\"${value}\"" | tr "${__DICT_RS__}${DICT___DICT_US__}" '^_' >&2
-        read ${key} << EOF 
-${value}
-EOF
-    done
 }
