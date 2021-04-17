@@ -16,24 +16,33 @@
 # an entry and entries from each other. Entries are stored in the order they
 # are added so dicts are unsorted. As manipulation requries string pattern
 # matching, cutting, pasting and (for nesting / unnesting) subsitution via sed
-# do not expect any decent perforance.
+# do not expect anything like decent performance. On the other hand they are
+# just strings so are naturally serialised and can be saved and restoed to
+# files or sent and recieved over character streams (network, serial etc.)
 #
 # Use:
-# dict_set      to add or update key,value to blank string or existing
-#               dict-formatted variable previously returned from dist_set.
-# dict_get      to retrieve a value associated with a key in a dict-formatted
-#               variable
-# dict_remove   to remove the key,value entry in a dict associated with a key.
-# dict_to_vars  to convert each key,value in a dict to a variable
-# dict_print_raw to print the raw string of a dict variable with substitutions
-#               for the US, RS, GS and FS non-printing separator characters.
-#               Useful for debugging and similar.
+# dict_declare    to declare a dict variable, optionally initialised with
+#                 initial key, value entries. Returns the dict value that
+#                 can be associated with a variable.
+# dict_set        to add or update a key,value to a previously
+# dict_set_simple dict_declare'd variable. Returns the updated dict.
 #
-# sdict_set, sdict_get, sdict_remove, sdict_to_vars are simpler versions that
-# do not support nesting of dict values in other dict variables. They should
-# have less overhead (sdict_set and sdict_get in particular require
-# substitutions of key,value and entry separator sequences using sed to allow
-# dicts to be nested as dict values).
+# dict_get        to retrieve a value associated with a key in a
+# dict_set_simple previously dict_declare'd variable. Return the value if
+#                 passed key present or blank if it is not.
+# dict_remove     to remove a key,value entry from a dict. Returns the updated
+#                 dict.
+# dict_is_dict    to see if a variable's value represents a dict type.
+# dict_to_vars    to convert each key in a dict to a variable having the name
+#                 of the key's value, and value of the key's associated value.
+# dict_print_raw  to print the raw string of a dict variable with
+#                 substitutions for the US, RS, GS and FS non-printing
+#                separator characters. Useful for debugging and similar.
+#
+#'_simple' suffixed functions are simpler versions that do not support nesting
+# of dict values in other dict variables. They should have less overhead as
+# nested dicts have to have their field and record separator sequences
+# modified on insertion in a dict and restored when retrieved.
 #
 
 __DICT_FS__=$(echo '@' | tr '@' '\034')
@@ -159,18 +168,7 @@ __dict_abort_if_not_dict__() {
     fi
 }
 
-dict_print_raw()
-{
-  local dict="${1}"
-  local us_rs_gs_fs_translation='_^]\\'
-  if [ $# -ge 2 ]; then
-    us_rs_gs_fs_translation="${2}"
-  fi
-  echo "${dict}" | tr "${__DICT_US__}${__DICT_RS__}${__DICT_GS__}${__DICT_FS__}" "${us_rs_gs_fs_translation}" 
-}
-
-sdict_set() {
-    __dict_abort_if_not_dict__ "${1}" "sdict_set"
+__dict_set__() {
     local dict="$(__dict_strip_header__ "${1}" "false")"
     local dkey="$(__dict_decorated_key__ "${2}")"
     local value="${3}"
@@ -179,39 +177,13 @@ ${__DICT_TYPE_VALUE__}$(__dict_prefix_entries__ "${dict}" "${dkey}")$(__dict_new
 EOF
 }
 
-sdict_get() {
-    __dict_abort_if_not_dict__ "${1}" "sdict_get"
+
+__dict_get__() {
     local dict="$(__dict_strip_header__ "${1}" "false")"
     local dkey="$(__dict_decorated_key__ "${2}")"
     cat << EOF
 $(__dict_value__ "${dict}" "${dkey}")
 EOF
-}
-
-sdict_remove() {
-    __dict_abort_if_not_dict__ "${1}" "sdict_remove"
-    local dict="$(__dict_strip_header__ "${1}" "false")"
-    local dkey="$(__dict_decorated_key__ "${2}")"
-    cat << EOF
-${__DICT_TYPE_RECORD__}$(__dict_prefix_entries__ "${dict}" "${dkey}")$(__dict_suffix_entries__ "${dict}" "${dkey}")
-EOF
-}
-
-# Do not execute in subshell to calling context as created
-# variables will then not be available to calling context.
-sdict_to_vars() {
-    __dict_abort_if_not_dict__ "${1}" "sdict_remove"
-    local dict="$(__dict_strip_header__ "${1}" "true")"
-    while [ -n "${dict}" ]; do
-        local record="${dict%%${__DICT_ENTRY_SEPARATOR__}*}"
-        local key="${record%${__DICT_FIELD_SEPARATOR__}*}"
-        local value="${record#*${__DICT_FIELD_SEPARATOR__}}"
-        local dict="${dict#*${__DICT_ENTRY_SEPARATOR__}}"
-    #    echo "dict:\"${dict}\" record:\"${record}\" key:\"${key}\" value:\"${value}\"" | tr "${__DICT_RS__}${DICT___DICT_US__}" '^_' >&2
-        read ${key} << EOF 
-${value}
-EOF
-    done
 }
 
 dict_is_dict() {
@@ -238,6 +210,16 @@ ${dict}
 EOF
 }
 
+dict_set_simple() {
+    __dict_abort_if_not_dict__ "${1}" "dict_set_simple"
+    __dict_set__ "$@"
+}
+
+dict_get_simple() {
+    __dict_abort_if_not_dict__ "${1}" "dict_get_simple"
+    __dict_get__ "$@"
+}
+
 dict_set() {
     __dict_abort_if_not_dict__ "${1}" "dict_set"
     local value="${3}"
@@ -245,13 +227,13 @@ dict_set() {
         local value="$(__dict_prepare_value_for_nesting__ "${value}")"
     fi
     cat << EOF
-$(sdict_set "${1}" "${2}" "${value}")
+$(__dict_set__ "${1}" "${2}" "${value}")
 EOF
 }
 
 dict_get() {
     __dict_abort_if_not_dict__ "${1}" "dict_get"
-    local value="$(sdict_get "${1}" "${2}")"
+    local value="$(__dict_get__ "$@")"
     if __dict_is_nested_dict__ "${value}"; then
         cat << EOF
 $(__dict_prepare_value_for_unnesting__ "${value}")
@@ -265,14 +247,36 @@ EOF
 
 dict_remove() {
     __dict_abort_if_not_dict__ "${1}" "dict_remove"
+    local dict="$(__dict_strip_header__ "${1}" "false")"
+    local dkey="$(__dict_decorated_key__ "${2}")"
     cat << EOF
-$(sdict_remove "${1}" "${2}")
+${__DICT_TYPE_RECORD__}$(__dict_prefix_entries__ "${dict}" "${dkey}")$(__dict_suffix_entries__ "${dict}" "${dkey}")
 EOF
+}
+
+dict_print_raw()
+{
+  local dict="${1}"
+  local us_rs_gs_fs_translation='_^]\\'
+  if [ $# -ge 2 ]; then
+    us_rs_gs_fs_translation="${2}"
+  fi
+  echo "${dict}" | tr "${__DICT_US__}${__DICT_RS__}${__DICT_GS__}${__DICT_FS__}" "${us_rs_gs_fs_translation}" 
 }
 
 # Do not execute in subshell to calling context as created
 # variables will then not be available to calling context.
 dict_to_vars() {
     __dict_abort_if_not_dict__ "${1}" "dict_to_vars"
-    sdict_to_vars "${1}"
+    local dict="$(__dict_strip_header__ "${1}" "true")"
+    while [ -n "${dict}" ]; do
+        local record="${dict%%${__DICT_ENTRY_SEPARATOR__}*}"
+        local key="${record%${__DICT_FIELD_SEPARATOR__}*}"
+        local value="${record#*${__DICT_FIELD_SEPARATOR__}}"
+        local dict="${dict#*${__DICT_ENTRY_SEPARATOR__}}"
+    #    echo "dict:\"${dict}\" record:\"${record}\" key:\"${key}\" value:\"${value}\"" | tr "${__DICT_RS__}${DICT___DICT_US__}" '^_' >&2
+        read ${key} << EOF 
+${value}
+EOF
+    done
 }
