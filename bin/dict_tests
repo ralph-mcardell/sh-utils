@@ -63,9 +63,12 @@ non_dict_variables_are_not_tolerated() {
 }
 
 cannot_retrieve_values_from_empty_dict() {
-  dict=$(dict_declare)
+  local dict=$(dict_declare)
   CHECK "$(dict_get "${dict}" 'some_key')x" = "x"
   CHECK "$(dict_get_simple "${dict}" 'some_key')x" = "x"
+  local dict2=$(dict_declare_simple)
+  CHECK "$(dict_get "${dict2}" 'some_key')x" = "x"
+  CHECK "$(dict_get_simple "${dict2}" 'some_key')x" = "x"
 }
 
 can_add_multiple_initial_values_on_dict_declaration() {
@@ -77,7 +80,27 @@ can_add_multiple_initial_values_on_dict_declaration() {
   local key1='key1'
   local key2='key2'
   local key3='key3'
-  dict=$(dict_declare "${key1}" "${expected1}" "${key2}" "${expected2}" "${key3}" "${expected3}" )
+  dict=$(dict_declare "${key1}" "${expected1}" \
+                      "${key2}" "${expected2}" "${key3}" "${expected3}")
+
+  CHECK "$(dict_get "${dict}" "${key1}")A" = "${expected1}A"
+  CHECK "$(dict_get "${dict}" "${key2}")B" = "${expected2}B"
+  CHECK "$(dict_get "${dict}" "${key3}")C" = "${expected3}C"
+
+  CHECK "$(dict_get "${dict}" 'some_key')x" = "x"
+}
+
+can_add_multiple_initial_simple_values_only_on_dict_declaration() {
+  dict=$(dict_declare )
+  CHECK "$(dict_get "${dict}" 'some_key')x" = "x"
+  local expected1='value 1'
+  local expected2='value 2'
+  local expected3='value 3'
+  local key1='key1'
+  local key2='key2'
+  local key3='key3'
+  dict=$(dict_declare_simple "${key1}" "${expected1}" \
+                             "${key2}" "${expected2}" "${key3}" "${expected3}")
 
   CHECK "$(dict_get "${dict}" "${key1}")A" = "${expected1}A"
   CHECK "$(dict_get "${dict}" "${key2}")B" = "${expected2}B"
@@ -131,7 +154,7 @@ can_retrieve_just_the_values_for_keys_for_dict_containing_multiple_entries() {
   CHECK "$(dict_get_simple "${dict}" 'some_key')x" = "x"
 }
 
-can_update_values_of_keys_previously_added_using_dict_set() {
+can_update_values_of_previously_added_entries_using_dict_set() {
   local expected1='value 1'
   local expected2='value 2'
   local expected3='value 3'
@@ -154,14 +177,14 @@ can_update_values_of_keys_previously_added_using_dict_set() {
   CHECK "$(dict_get "${dict}" 'some_key')x" = "x"
 }
 
-can_update_values_of_keys_previously_added_using_dict_set_simple() {
+can_update_values_of_previously_added_entries_using_dict_set_simple() {
   local expected1='value 1'
   local expected2='value 2'
   local expected3='value 3'
   local key1='key1'
   local key2='key2'
   local key3='key3'
-  local dict="$(dict_declare  \
+  local dict="$(dict_declare_simple  \
     "${key1}" "PLACEHOLDER 1" \
     "${key2}" "PLACEHOLDER 2" \
     "${key3}" "PLACEHOLDER 3")"
@@ -319,7 +342,7 @@ can_remove_whole_entry_specified_by_key_from_dict() {
   CHECK "$(dict_get "${dict}" "${key3}")C" = "C"
 }
 
-nested_dict_values_can_be_retrieved_correctly() {
+added_nested_dict_values_can_be_retrieved_correctly() {
   local expected1='value 1'
   local expected2='value 2'
   local expected3='value 3'
@@ -392,6 +415,79 @@ nested_dict_values_can_be_retrieved_correctly() {
   CHECK "$(dict_get "${vv}" "${key3}2_3")A" = "${expected3}2_3A"
 }
 
+initialised_nested_dict_values_can_be_retrieved_correctly() {
+  local expected1='value 1'
+  local expected2='value 2'
+  local expected3='value 3'
+  local key1='key1'
+  local key2='key2'
+  local key3='key3'
+
+  local dict_2_1="$(dict_declare \
+    "${key1}2_1" "${expected1}2_1" \
+    "${key2}2_1" "${expected2}2_1" \
+    "${key3}2_1" "${expected3}2_1")"
+  local dict_2_2="$(dict_declare_simple \
+    "${key1}2_2" "${expected1}2_2" \
+    "${key2}2_2" "${expected2}2_2" \
+    "${key3}2_2" "${expected3}2_2")"
+  local dict_2_3="$(dict_declare_simple \
+    "${key1}2_3" "${expected1}2_3" \
+    "${key2}2_3" "${expected2}2_3" \
+    "${key3}2_3" "${expected3}2_3")"
+
+  local dict_1_1="$(dict_declare \
+    "${key1}1_1" "${expected1}1_1" \
+    "${key2}1_1" "${expected2}1_1" \
+    "${key3}1_1" "${expected3}1_1")"
+  local dict_1_2="$(dict_declare_simple \
+    "${key1}1_2" "${expected1}1_2" \
+    "${key2}1_2" "${expected2}1_2" \
+    "${key3}1_2" "${expected3}1_2")"
+  local dict_1_3="$(dict_declare \
+    "${key1}1_3" "${dict_2_1}" \
+    "${key2}1_3" "${dict_2_2}" \
+    "${key3}1_3" "${dict_2_3}")"
+
+  local dict="$(dict_declare \
+    "${key1}" "${dict_1_1}" \
+    "${key2}" "${dict_1_2}" \
+    "${key3}" "${dict_1_3}")"
+
+  v="$(dict_get "${dict}" "${key1}")"
+  REQUIRE -n "${v}"
+  CHECK "$(dict_get "${v}" "${key1}1_1")A" = "${expected1}1_1A"
+  CHECK "$(dict_get "${v}" "${key2}1_1")A" = "${expected2}1_1A"
+  CHECK "$(dict_get "${v}" "${key3}1_1")A" = "${expected3}1_1A"
+
+  v="$(dict_get "${dict}" "${key2}")"
+  REQUIRE -n "${v}"
+  CHECK "$(dict_get "${v}" "${key1}1_2")A" = "${expected1}1_2A"
+  CHECK "$(dict_get "${v}" "${key2}1_2")A" = "${expected2}1_2A"
+  CHECK "$(dict_get "${v}" "${key3}1_2")A" = "${expected3}1_2A"
+
+  v="$(dict_get "${dict}" "${key3}")"
+  REQUIRE -n "${v}"
+
+  vv="$(dict_get "${v}" "${key1}1_3")"
+  REQUIRE -n "${vv}"
+  CHECK "$(dict_get "${vv}" "${key1}2_1")A" = "${expected1}2_1A"
+  CHECK "$(dict_get "${vv}" "${key2}2_1")A" = "${expected2}2_1A"
+  CHECK "$(dict_get "${vv}" "${key3}2_1")A" = "${expected3}2_1A"
+
+  vv="$(dict_get "${v}" "${key2}1_3")"
+  REQUIRE -n "${vv}"
+  CHECK "$(dict_get "${vv}" "${key1}2_2")A" = "${expected1}2_2A"
+  CHECK "$(dict_get "${vv}" "${key2}2_2")A" = "${expected2}2_2A"
+  CHECK "$(dict_get "${vv}" "${key3}2_2")A" = "${expected3}2_2A"
+
+  vv="$(dict_get "${v}" "${key3}1_3")"
+  REQUIRE -n "${vv}"
+  CHECK "$(dict_get "${vv}" "${key1}2_3")A" = "${expected1}2_3A"
+  CHECK "$(dict_get "${vv}" "${key2}2_3")A" = "${expected2}2_3A"
+  CHECK "$(dict_get "${vv}" "${key3}2_3")A" = "${expected3}2_3A"
+}
+
 nested_dict_values_can_be_removed_correctly() {
   local expected1='value 1'
   local expected2='value 2'
@@ -400,28 +496,28 @@ nested_dict_values_can_be_removed_correctly() {
   local key2='key2'
   local key3='key3'
 
-  local dict_2_1=$(dict_declare)
-  dict_2_1="$(dict_set "${dict_2_1}" "${key1}2_1" "${expected1}2_1")"
-  dict_2_1="$(dict_set "${dict_2_1}" "${key2}2_1" "${expected2}2_1")"
-  dict_2_1="$(dict_set "${dict_2_1}" "${key3}2_1" "${expected3}2_1")"
-  local dict_2_2=$(dict_declare)
-  dict_2_2="$(dict_set "${dict_2_2}" "${key1}2_2" "${expected1}2_2")"
-  dict_2_2="$(dict_set "${dict_2_2}" "${key2}2_2" "${expected2}2_2")"
-  dict_2_2="$(dict_set "${dict_2_2}" "${key3}2_2" "${expected3}2_2")"
+  local dict_2_1="$(dict_declare \
+    "${key1}2_1" "${expected1}2_1" \
+    "${key2}2_1" "${expected2}2_1" \
+    "${key3}2_1" "${expected3}2_1")"
+  local dict_2_2="$(dict_declare_simple \
+    "${key1}2_2" "${expected1}2_2" \
+    "${key2}2_2" "${expected2}2_2" \
+    "${key3}2_2" "${expected3}2_2")"
   local dict_2_3=$(dict_declare)
   dict_2_3="$(dict_set "${dict_2_3}" "${key1}2_3" "${expected1}2_3")"
   dict_2_3="$(dict_set "${dict_2_3}" "${key2}2_3" "${expected2}2_3")"
   dict_2_3="$(dict_set "${dict_2_3}" "${key3}2_3" "${expected3}2_3")"
 
   local dict_1_1=$(dict_declare)
-  dict_1_1="$(dict_set "${dict_1_1}" "${key1}1_1" "${expected1}1_1")"
-  dict_1_1="$(dict_set "${dict_1_1}" "${key2}1_1" "${expected2}1_1")"
-  dict_1_1="$(dict_set "${dict_1_1}" "${key3}1_1" "${expected3}1_1")"
-  local dict_1_2=$(dict_declare)
-  dict_1_2="$(dict_set "${dict_1_2}" "${key1}1_2" "${expected1}1_2")"
-  dict_1_2="$(dict_set "${dict_1_2}" "${key2}1_2" "${expected2}1_2")"
-  dict_1_2="$(dict_set "${dict_1_2}" "${key3}1_2" "${expected3}1_2")"
-  local dict_1_3=$(dict_declare)
+  dict_1_1="$(dict_set_simple "${dict_1_1}" "${key1}1_1" "${expected1}1_1")"
+  dict_1_1="$(dict_set_simple "${dict_1_1}" "${key2}1_1" "${expected2}1_1")"
+  dict_1_1="$(dict_set_simple "${dict_1_1}" "${key3}1_1" "${expected3}1_1")"
+  local dict_1_2=$(dict_declare_simple)
+  dict_1_2="$(dict_set_simple "${dict_1_2}" "${key1}1_2" "${expected1}1_2")"
+  dict_1_2="$(dict_set_simple "${dict_1_2}" "${key2}1_2" "${expected2}1_2")"
+  dict_1_2="$(dict_set_simple "${dict_1_2}" "${key3}1_2" "${expected3}1_2")"
+  local dict_1_3=$(dict_declare_simple)
   dict_1_3="$(dict_set "${dict_1_3}" "${key1}1_3" "${dict_2_1}")"
   dict_1_3="$(dict_set "${dict_1_3}" "${key2}1_3" "${dict_2_2}")"
   dict_1_3="$(dict_set "${dict_1_3}" "${key3}1_3" "${dict_2_3}")"
@@ -491,17 +587,19 @@ TEST declared_dict_variable_is_a_dict
 TEST non_dict_variables_are_not_tolerated
 TEST cannot_retrieve_values_from_empty_dict
 TEST can_add_multiple_initial_values_on_dict_declaration
+TEST can_add_multiple_initial_simple_values_only_on_dict_declaration
 TEST can_retrieve_just_the_value_for_key_for_dict_containing_single_entry
 TEST can_retrieve_just_the_values_for_keys_for_dict_containing_multiple_entries
-TEST can_update_values_of_keys_previously_added_using_dict_set
-TEST can_update_values_of_keys_previously_added_using_dict_set_simple
+TEST can_update_values_of_previously_added_entries_using_dict_set
+TEST can_update_values_of_previously_added_entries_using_dict_set_simple
 TEST can_add_retrieve_values_with_keys_tails_of_other_keys
 TEST can_add_retrieve_values_with_keys_heads_of_other_keys
 TEST can_add_retrieve_values_with_keys_contained_in_other_keys
 TEST can_add_and_retrieve_entries_correctly_with_key_values_within_values
 TEST can_add_update_and_retrieve_entries_correctly_with_key_values_within_values
 TEST can_remove_whole_entry_specified_by_key_from_dict
-TEST nested_dict_values_can_be_retrieved_correctly
+TEST added_nested_dict_values_can_be_retrieved_correctly
+TEST initialised_nested_dict_values_can_be_retrieved_correctly
 TEST nested_dict_values_can_be_removed_correctly
 TEST can_create_variable_of_key_name_with_associated_value_for_each_dict_entry
 PRINT_TEST_COUNTS
