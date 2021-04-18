@@ -580,6 +580,68 @@ can_create_variable_of_key_name_with_associated_value_for_each_dict_entry() {
   unset __key3__
 }
 
+
+test_dict_for_each_fn_called_count=0
+test_dict_for_each_fn_actual=''
+test_dict_for_each_fn_additional_parameters=''
+test_dict_for_each_collect_call_data() {
+  local key="${1}"
+  local value="${2}"
+  shift 2
+  test_dict_for_each_fn_actual="${key}${test_dict_for_each_fn_actual}${value}"
+  test_dict_for_each_fn_called_count=$((${test_dict_for_each_fn_called_count}+1))
+  test_dict_for_each_fn_additional_parameters="${test_dict_for_each_fn_additional_parameters} $@"
+}
+
+iterating_over_empty_dict_does_not_call_operation_function() {
+  test_dict_for_each_fn_called_count=0
+  test_dict_for_each_fn_actual=''
+
+  dict_for_each $(dict_declare_simple) test_dict_for_each_collect_call_data
+  CHECK "${test_dict_for_each_fn_called_count}" -eq 0
+  CHECK -z "${test_dict_for_each_fn_actual}"
+}
+
+iterating_over_single_entry_dict_calls_operation_function_once_with_key_and_value() {
+  local value='value 1'
+  local key='key1'
+  local expected="${key}${value}"
+
+  test_dict_for_each_fn_called_count=0
+  test_dict_for_each_fn_actual=''
+  dict_for_each "$(dict_declare_simple "${key}" "${value}")" test_dict_for_each_collect_call_data
+  CHECK "${test_dict_for_each_fn_called_count}" -eq 1
+  CHECK "${test_dict_for_each_fn_actual}" = "${expected}"
+}
+
+iterating_over_n_entry_dict_calls_operation_function_n_times_with_each_key_and_value() {
+  local value1='value 1'
+  local value1='value 2'
+  local value1='value 3'
+  local key1='key1'
+  local key2='key2'
+  local key3='key3'
+  local entry_count=3
+  dict=$(dict_declare_simple "${key1}" "${value1}" \
+                             "${key2}" "${value2}" "${key3}" "${value3}")
+  local expected="${key3}${key2}${key1}${value1}${value2}${value3}"
+
+  test_dict_for_each_fn_called_count=0
+  test_dict_for_each_fn_actual=''
+  dict_for_each "${dict}" test_dict_for_each_collect_call_data
+  CHECK "${test_dict_for_each_fn_called_count}" -eq "${entry_count}"
+  CHECK "${test_dict_for_each_fn_actual}" = "${expected}"
+}
+
+iterating_over_dict_calls_operation_function_passing_additional_parameters() {
+  p1="one"
+  p2="two"
+  local expected=" ${p1} ${p2} ${p1} ${p2} ${p1} ${p2}"
+  test_dict_for_each_fn_additional_parameters=''
+  dict_for_each "$(dict_declare_simple "a" "1" "b" "2" "c" "3")" test_dict_for_each_collect_call_data "${p1}" "${p2}"
+  CHECK "${test_dict_for_each_fn_additional_parameters}" = "${expected}"
+}
+
 #set -x
 TEST empty_string_is_not_a_dict
 TEST arbitrary_string_is_not_a_dict
@@ -598,6 +660,10 @@ TEST can_add_retrieve_values_with_keys_contained_in_other_keys
 TEST can_add_and_retrieve_entries_correctly_with_key_values_within_values
 TEST can_add_update_and_retrieve_entries_correctly_with_key_values_within_values
 TEST can_remove_whole_entry_specified_by_key_from_dict
+TEST iterating_over_empty_dict_does_not_call_operation_function
+TEST iterating_over_single_entry_dict_calls_operation_function_once_with_key_and_value
+TEST iterating_over_n_entry_dict_calls_operation_function_n_times_with_each_key_and_value
+TEST iterating_over_dict_calls_operation_function_passing_additional_parameters
 TEST added_nested_dict_values_can_be_retrieved_correctly
 TEST initialised_nested_dict_values_can_be_retrieved_correctly
 TEST nested_dict_values_can_be_removed_correctly

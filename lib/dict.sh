@@ -282,6 +282,34 @@ dict_print_raw() {
   echo "${dict}" | tr "${__DICT_US__}${__DICT_RS__}${__DICT_GS__}${__DICT_FS__}" "${us_rs_gs_fs_translation}" 
 }
 
+# @brief Iterate over dict calling a function taking each key value
+#
+# Iterate over the entries in the passed dict and call the function
+# whose name is passed as the 2nd parameter passing it the key and value
+# of each entry followed by any extra parameters passed to dict_for_each
+# (parameter 3 onwards).
+#
+# @param 1 : dict value to iterate over
+# @param 2 : name of function to call with each key, valaue and any
+#            additional parameters passed to dict_for_each
+# @param 3+: (optional) additional parameters passed as parameters 3+ to
+#            the function named in param 2.
+# @returns nothing
+dict_for_each() {
+    __dict_abort_if_not_dict__ "${1}" "dict_for_each"
+    local dict="$(__dict_strip_header__ "${1}" "true")"
+    local binaryFn="${2}"
+    shift 2
+    while [ -n "${dict}" ]; do
+        local record="${dict%%${__DICT_ENTRY_SEPARATOR__}*}"
+        local key="${record%${__DICT_FIELD_SEPARATOR__}*}"
+        local value="${record#*${__DICT_FIELD_SEPARATOR__}}"
+        local dict="${dict#*${__DICT_ENTRY_SEPARATOR__}}"
+    #    echo "dict:\"${dict}\" record:\"${record}\" key:\"${key}\" value:\"${value}\"" | tr "${__DICT_RS__}${DICT___DICT_US__}" '^_' >&2
+        ${binaryFn} "${key}" "${value}" "$@"
+    done
+}
+
 # @brief Create a variable for each entry in a dict
 # 
 # For each entry a variable with the same name as the entry key and a
