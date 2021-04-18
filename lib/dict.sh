@@ -15,35 +15,36 @@
 # uses ASCII separator control code values to separate key from value within
 # an entry and entries from each other. Entries are stored in the order they
 # are added so dicts are unsorted. As manipulation requries string pattern
-# matching, cutting, pasting and (for nesting / unnesting) subsitution via sed
-# do not expect anything like decent performance. On the other hand they are
-# just strings so are naturally serialised and can be saved and restoed to
-# files or sent and recieved over character streams (network, serial etc.)
+# matching, cutting, pasting and (for nesting / unnesting) subsitution via
+# sed do not expect anything like decent performance. On the other hand they
+# are just strings so are naturally serialised and can be saved and restoed
+# to files or sent and recieved over character streams (network, serial etc.)
 #
 # Use:
-# dict_declare    to declare a dict variable, optionally initialised with
-#                 initial key, value entries. Returns the dict value that
-#                 can be associated with a variable.
-# dict_set        to add or update a key,value to a previously
-# dict_set_simple dict_declare'd variable. Returns the updated dict.
+# dict_declare        to declare a dict variable, optionally initialised
+# dict_declare_simple with initial key, value entries. Returns the dict
+#                     value that can be associated with a variable.
+# dict_set            to add or update a key,value to a previously
+# dict_set_simple     dict_declare'd variable. Returns the updated dict.
 #
-# dict_get        to retrieve a value associated with a key in a
-# dict_set_simple previously dict_declare'd variable. Return the value if
-#                 passed key present or blank if it is not.
-# dict_remove     to remove a key,value entry from a dict. Returns the updated
-#                 dict.
-# dict_is_dict    to see if a variable's value represents a dict type.
-# dict_to_vars    to convert each key in a dict to a variable having the name
-#                 of the key's value, and value of the key's associated value.
-# dict_print_raw  to print the raw string of a dict variable with
-#                 substitutions for the US, RS, GS and FS non-printing
-#                separator characters. Useful for debugging and similar.
+# dict_get            to retrieve a value associated with a key in a
+# dict_set_simple     previously dict_declare'd variable. Return the value
+#                     if passed key present or blank if it is not.
+# dict_remove         to remove a key,value entry from a dict. Returns the
+#                     updated dict.
+# dict_is_dict        to see if a variable's value represents a dict type.
+# dict_to_vars        to convert each key in a dict to a variable having
+#                     the name of the key's value, and value of the key's
+#                     associated value.
+# dict_print_raw      to print the raw string of a dict variable with
+#                     substitutions for the US, RS, GS and FS non-printing
+#                     separator characters. Useful for debugging and similar.
 #
-#'_simple' suffixed functions are simpler versions that do not support nesting
-# of dict values in other dict variables. They should have less overhead as
-# nested dicts have to have their field and record separator sequences
-# modified on insertion in a dict and restored when retrieved.
-#
+# '_simple' suffixed functions are simpler versions that do not support
+# nesting of dict values in other dict variables. They should have less
+# overhead as nested dicts have to have their field and record separator
+# sequences modified on insertion in a dict and restored when retrieved.
+#-------------------------------------------------------------------------------
 
 # @brief return true if first parameter appears to be a dict
 #
@@ -65,14 +66,16 @@ dict_is_dict() {
 #
 # Returns a value for storage in a variable that adheres to the dict
 # string format. If provided each pair of parameters are used to
-# add key value entries to the returned dict value.
+# add key value entries to the returned dict value. For each such pair
+# BOTH the key and value cannot be another dict, and cannot contain
+# ASCII US, RS, GS, FS characters.
 #
 # @param 2n-1 : entry n key value. n > 0.
 # @param 2n   : entry n value value. n > 0.
 # @returns : dict value containing 0+ entries that can be used with the
 #            other dict_xxx functions and for which specifically when
 #            passed to dict_is_dict returns true.
-dict_declare() {
+dict_declare_simple() {
     local dict="${__DICT_TYPE_RECORD__}"
     while [ $# -gt 1 ]; do
         local dkey="$(__dict_decorated_key__ "${1}")"
@@ -131,12 +134,46 @@ dict_get_simple() {
     __dict_get__ "$@"
 }
 
+# @brief 'declare' a dict variable, optionally initialiing with entries
+#
+# Returns a value for storage in a variable that adheres to the dict
+# string format. If provided each pair of parameters are used to
+# add key value entries to the returned dict value. For each such pair:
+#   - The key cannot be another dict, and cannot contain ASCII
+#     US, RS, GS, FS characters.
+#
+#   - The value maybe another dict but otherwise cannot contain
+#     ASCII US, RS, GS, FS characters. #
+# @param 2n-1 : entry n key value. n > 0.
+# @param 2n   : entry n value value. n > 0.
+# @returns : dict value containing 0+ entries that can be used with the
+#            other dict_xxx functions and for which specifically when
+#            passed to dict_is_dict returns true.
+dict_declare() {
+    local dict="${__DICT_TYPE_RECORD__}"
+    while [ $# -gt 1 ]; do
+        local dkey="$(__dict_decorated_key__ "${1}")"
+        local value="${2}"
+        if dict_is_dict "${value}"; then
+            local value="$(__dict_prepare_value_for_nesting__ "${value}")"
+        fi
+        dict="${dict}$(__dict_new_entry__ "${dkey}" "${value}")"
+        shift 2
+    done
+    if [ $# -gt 0 ]; then
+        echo "WARNING: incomplete key, value pair passed to dict_declare: ${1} left over." >&2
+    fi
+    cat << EOF
+${dict}
+EOF
+}
+
 # @brief Set - add or update - a key, value entry in a dict
 #
 # Passed a dict to update, a key and a value.
 # Returns the updated dict value.
 #
-# The key annot be another dict, and cannot contain ASCII
+# The key cannot be another dict, and cannot contain ASCII
 # US, RS, GS, FS characters.
 #
 # The value maybe another dict but otherwise cannot contain
