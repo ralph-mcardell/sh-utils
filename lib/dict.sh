@@ -273,7 +273,7 @@ EOF
 # @param 2 : (optional) characters to translate ASCII US RS GS FS characters
 #            embedded in dict
 # @returns : raw characters of dict with the US RS GS FS characters translated.
-dict_to_vars() {
+dict_print_raw() {
   local dict="${1}"
   local us_rs_gs_fs_translation='_^]\\'
   if [ $# -ge 2 ]; then
