@@ -105,7 +105,7 @@ __sh_test_assert__() {
     __sh_test_update_assert_passed__ "${test_variant}" "${expression}"
   else
     __sh_test_update_assert_failed__ "${test_variant}" "${expression}"
-    if [ "${test_variant}" = "REQUIRE" ]; then
+    if [ "${test_variant}" = "REQUIRE" ] || [ "${test_variant}" = "REQUIRE_FALSE" ]; then
       PRINT_TEST_COUNTS
       exit 1
     fi
@@ -121,11 +121,11 @@ CHECK() {
 }
 
 REQUIRE_FALSE() {
-  __sh_test_assert__ "REQUIRE" true "$@"
+  __sh_test_assert__ "REQUIRE_FALSE" true "$@"
 }
 
 CHECK_FALSE() {
-  __sh_test_assert__ "CHECK" true "$@"
+  __sh_test_assert__ "CHECK_FALSE" true "$@"
 }
 
 TEST() {
