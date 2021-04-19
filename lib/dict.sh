@@ -35,9 +35,6 @@
 # dict_is_dict        to see if a variable's value represents a dict type.
 # dict_for_each       to iterate over the entries of a dict, having
 #                     a function called for each key value pair.
-# dict_to_vars        to convert each key in a dict to a variable having
-#                     the name of the key's value, and value of the key's
-#                     associated value.
 # dict_print_raw      to print the raw string of a dict variable with
 #                     substitutions for the US, RS, GS and FS non-printing
 #                     separator characters. Useful for debugging and similar.
@@ -46,6 +43,12 @@
 # nesting of dict values in other dict variables. They should have less
 # overhead as nested dicts have to have their field and record separator
 # sequences modified on insertion in a dict and restored when retrieved.
+#
+# Use with dict_for_each:
+#
+# dict_op_to_var_flat to create variables with the value of dict entries'
+#                     value and a name based on the dict entries' key value
+#                     with optional prefix and/or suffix.
 #-------------------------------------------------------------------------------
 
 # @brief return true if first parameter appears to be a dict
@@ -260,30 +263,6 @@ ${__DICT_TYPE_RECORD__}$(__dict_prefix_entries__ "${dict}" "${dkey}")$(__dict_su
 EOF
 }
 
-# @brief Output the raw characters of the dict
-#
-# Passed a dict will output to the (sub-)shell stdout (i.e. return) the
-# characters (bytes) making up the string representation og the dict with the 
-# unprintable characters used in field and record separators (i.e. ASCI US RS
-# GS and FS) translated to somethingprintable (usually) .
-#
-# The function optionally takes 2nd argument specifying the characters to
-# translate US RS GS and FS characters (in that order) to. If not provided
-# the translated to characters default to '_^]\'
-#
-# @param 1 : dict value to output
-# @param 2 : (optional) characters to translate ASCII US RS GS FS characters
-#            embedded in dict
-# @returns : raw characters of dict with the US RS GS FS characters translated.
-dict_print_raw() {
-  local dict="${1}"
-  local us_rs_gs_fs_translation='_^]\\'
-  if [ $# -ge 2 ]; then
-    us_rs_gs_fs_translation="${2}"
-  fi
-  echo "${dict}" | tr "${__DICT_US__}${__DICT_RS__}${__DICT_GS__}${__DICT_FS__}" "${us_rs_gs_fs_translation}" 
-}
-
 # @brief Iterate over dict calling a function taking each key value
 #
 # Iterate over the entries in the passed dict and call the function
@@ -315,31 +294,73 @@ dict_for_each() {
     done
 }
 
-# @brief Create a variable for each entry in a dict
-# 
-# For each entry a variable with the same name as the entry key and a
-# value of the entry value is created.
+# @brief Output the raw characters of the dict
 #
-# Do not execute in subshell to calling context as created
-# variables will then not be available to calling context.
+# Passed a dict will output to the (sub-)shell stdout (i.e. return) the
+# characters (bytes) making up the string representation og the dict with the 
+# unprintable characters used in field and record separators (i.e. ASCI US RS
+# GS and FS) translated to somethingprintable (usually) .
 #
-# @param 1 : dict value create variables from
-dict_to_vars() {
-    __dict_abort_if_not_dict__ "${1}" "dict_to_vars"
-    local dict="$(__dict_strip_header__ "${1}" "true")"
-    while [ -n "${dict}" ]; do
-        local record="${dict%%${__DICT_ENTRY_SEPARATOR__}*}"
-        local key="${record%%${__DICT_FIELD_SEPARATOR__}*}"
-        local value="${record#*${__DICT_FIELD_SEPARATOR__}}"
-        local dict="${dict#*${__DICT_ENTRY_SEPARATOR__}}"
-        if __dict_is_nested_dict__ "${value}"; then
-            value="$(__dict_prepare_value_for_unnesting__ "${value}")"
+# The function optionally takes 2nd argument specifying the characters to
+# translate US RS GS and FS characters (in that order) to. If not provided
+# the translated to characters default to '_^]\'
+#
+# @param 1 : dict value to output
+# @param 2 : (optional) characters to translate ASCII US RS GS FS characters
+#            embedded in dict
+# @returns : raw characters of dict with the US RS GS FS characters translated.
+dict_print_raw() {
+  local dict="${1}"
+  local us_rs_gs_fs_translation='_^]\\'
+  if [ $# -ge 2 ]; then
+    us_rs_gs_fs_translation="${2}"
+  fi
+  echo "${dict}" | tr "${__DICT_US__}${__DICT_RS__}${__DICT_GS__}${__DICT_FS__}" "${us_rs_gs_fs_translation}" 
+}
+
+# @brief Create variable from key, value
+#
+# Operation function for use with dict_for_each.
+#
+# Will create a variable having the value of value passed as the
+# 2nd parameter and a name based on the key-value passed as the
+# 1st parameter.
+#
+# The variable created will be in the global scope of the (sub-)
+# shell of the call to dict_for_each.
+#
+# The name of the created variable in the simplest case is simply
+# the same as the key value. Optional prefix and suffix 3rd and
+# 4th parameters may be passed in which case the name of the
+# will be:
+#   ${prefix}${key}${suffiix} (that is ${3}${1}${4})
+# If the formed string is not a valid variable identifer bad
+# things will happen. To provided a suffix without a prefix specify
+# the prefix as a hyphen.
+#
+# If the value represents a nested dict then teh value is unested.
+#
+# @param 1 : key value
+# @param 2 : value value
+# @param 3 : (optional) variable name prefix or '-' for suffix only
+# @param 4 : (optional) variable name suffix
+dict_op_to_var_flat() {
+    local var_name="${1}"
+    local var_value="${2}"
+    if [ $# -ge 3 ]; then
+        if [ "${3}" != '-' ]; then
+            local var_name="${3}${var_name}"
         fi
-    #    echo "dict:\"${dict}\" record:\"${record}\" key:\"${key}\" value:\"${value}\"" | tr "${__DICT_GS__}${__DICT_RS__}${__DICT_US__}" '^_' >&2
-        read ${key} << EOF 
-${value}
+    fi
+    if [ $# -ge 4 ]; then
+        local var_name="${var_name}${4}"
+    fi
+    if __dict_is_nested_dict__ "${var_value}"; then
+        var_value="$(__dict_prepare_value_for_unnesting__ "${var_value}")"
+    fi
+    read ${var_name} << EOF 
+${var_value}
 EOF
-    done
 }
 
 # Details
