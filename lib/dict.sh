@@ -33,6 +33,8 @@
 # dict_remove         to remove a key,value entry from a dict. Returns the
 #                     updated dict.
 # dict_is_dict        to see if a variable's value represents a dict type.
+# dict_for_each       to iterate over the entries of a dict, having
+#                     a function called for each key value pair.
 # dict_to_vars        to convert each key in a dict to a variable having
 #                     the name of the key's value, and value of the key's
 #                     associated value.
