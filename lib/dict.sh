@@ -304,10 +304,13 @@ dict_for_each() {
     shift 2
     while [ -n "${dict}" ]; do
         local record="${dict%%${__DICT_ENTRY_SEPARATOR__}*}"
-        local key="${record%${__DICT_FIELD_SEPARATOR__}*}"
+        local key="${record%%${__DICT_FIELD_SEPARATOR__}*}"
         local value="${record#*${__DICT_FIELD_SEPARATOR__}}"
         local dict="${dict#*${__DICT_ENTRY_SEPARATOR__}}"
-    #    echo "dict:\"${dict}\" record:\"${record}\" key:\"${key}\" value:\"${value}\"" | tr "${__DICT_RS__}${DICT___DICT_US__}" '^_' >&2
+        if __dict_is_nested_dict__ "${value}"; then
+            value="$(__dict_prepare_value_for_unnesting__ "${value}")"
+        fi
+    #    echo "dict:\"${dict}\" record:\"${record}\" key:\"${key}\" value:\"${value}\"" | tr "${__DICT_GS__}${__DICT_RS__}${__DICT_US__}" ']^_' >&2
         ${binaryFn} "${key}" "${value}" "$@"
     done
 }
@@ -326,10 +329,13 @@ dict_to_vars() {
     local dict="$(__dict_strip_header__ "${1}" "true")"
     while [ -n "${dict}" ]; do
         local record="${dict%%${__DICT_ENTRY_SEPARATOR__}*}"
-        local key="${record%${__DICT_FIELD_SEPARATOR__}*}"
+        local key="${record%%${__DICT_FIELD_SEPARATOR__}*}"
         local value="${record#*${__DICT_FIELD_SEPARATOR__}}"
         local dict="${dict#*${__DICT_ENTRY_SEPARATOR__}}"
-    #    echo "dict:\"${dict}\" record:\"${record}\" key:\"${key}\" value:\"${value}\"" | tr "${__DICT_RS__}${DICT___DICT_US__}" '^_' >&2
+        if __dict_is_nested_dict__ "${value}"; then
+            value="$(__dict_prepare_value_for_unnesting__ "${value}")"
+        fi
+    #    echo "dict:\"${dict}\" record:\"${record}\" key:\"${key}\" value:\"${value}\"" | tr "${__DICT_GS__}${__DICT_RS__}${__DICT_US__}" '^_' >&2
         read ${key} << EOF 
 ${value}
 EOF

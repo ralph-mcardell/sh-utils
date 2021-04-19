@@ -642,6 +642,50 @@ iterating_over_dict_calls_operation_function_passing_additional_parameters() {
   CHECK "${test_dict_for_each_fn_additional_parameters}" = "${expected}"
 }
 
+iterating_over_dict_with_nested_dict_values_passes_correct_key_values() {
+  local keyi11="keyi1"
+  local keyi12="keyi2"
+  local valuei11="value i 1 1"
+  local valuei12="value i _ 2"
+  local inner1="$(dict_declare_simple "${keyi11}" "${valuei11}" "${keyi12}" "${valuei12}")"
+  local keyi21="keyi1"
+  local keyi22="keyi2"
+  local valuei21="value i 1 1"
+  local valuei22="value i _ 2"
+  local inner2="$(dict_declare_simple "${keyi12}" "${valuei21}" "${keyi22}" "${valuei22}")"
+
+  local keym11="keym1"
+  local keym12="keym2"
+  local keym13="keym3"
+  local valuem11="value m 1 1"
+  local valuem13="value m _ _"
+  local mid1="$(dict_declare "${keym11}" "${valuem11}" "${keym12}" "${inner1}" "${keym13}" "${valuem13}")"
+  local keym21="keym1"
+  local keym22="keym2"
+  local keym23="keym3"
+  local keym24="keym4"
+  local valuem22="value m _ _"
+  local valuem23="value m 2 3"
+  local mid2="$(dict_declare "${keym21}" "${inner1}" "${keym22}" "${valuem22}" "${keym23}" "${valuem23}" "${keym24}"  "${inner2}")"
+
+  local keyo1="keyo1"
+  local keyo2="keyo2"
+  local keyo3="keyo3"
+  local keyo4="keyo4"
+  local valueo1="value o one"
+  local valueo4="value o four"
+  local outer="$(dict_declare "${keyo1}"  "${valueo1}"  "${keyo2}" "${mid1}" "${keyo3}" "${mid2}" "${keyo4}"  "${valueo4}")"
+
+  test_dict_for_each_fn_called_count=0
+  test_dict_for_each_fn_actual=''
+  local entry_count=4
+  local expected="${keyo4}${keyo3}${keyo2}${keyo1}${valueo1}${mid1}${mid2}${valueo4}"
+
+  dict_for_each "${outer}" test_dict_for_each_collect_call_data
+  CHECK "${test_dict_for_each_fn_called_count}" -eq "${entry_count}"
+  CHECK "${test_dict_for_each_fn_actual}" = "${expected}" | tr "${__DICT_GS__}${__DICT_RS__}${__DICT_US__}" '^_'
+}
+
 #set -x
 TEST empty_string_is_not_a_dict
 TEST arbitrary_string_is_not_a_dict
@@ -667,6 +711,7 @@ TEST iterating_over_dict_calls_operation_function_passing_additional_parameters
 TEST added_nested_dict_values_can_be_retrieved_correctly
 TEST initialised_nested_dict_values_can_be_retrieved_correctly
 TEST nested_dict_values_can_be_removed_correctly
+TEST iterating_over_dict_with_nested_dict_values_passes_correct_key_values
 TEST can_create_variable_of_key_name_with_associated_value_for_each_dict_entry
 PRINT_TEST_COUNTS
 
