@@ -28,7 +28,7 @@
 # dict_set_simple     dict_declare'd variable. Returns the updated dict.
 #
 # dict_get            to retrieve a value associated with a key in a
-# dict_set_simple     previously dict_declare'd variable. Return the value
+# dict_get_simple     previously dict_declare'd variable. Return the value
 #                     if passed key present or blank if it is not.
 # dict_remove         to remove a key,value entry from a dict. Returns the
 #                     updated dict.
