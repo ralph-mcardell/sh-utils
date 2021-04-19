@@ -58,7 +58,7 @@ non_dict_variables_are_not_tolerated() {
   ret=$(dict_remove "${notdict}" "key" )
   CHECK $? -eq 1
   notdict="key${__DICT_FIELD_SEPARATOR__}value${__DICT_ENTRY_SEPARATOR__}"
-  $(dict_to_vars "${notdict}" "key" )
+  $(dict_for_each "${notdict}" "key" )
   CHECK $? -eq 1
 }
 
@@ -567,7 +567,7 @@ can_create_variable_of_key_name_with_associated_value_for_each_dict_entry() {
   REQUIRE -z "${__key2__:+x}"
   REQUIRE -z "${__key3__:+x}"
 
-  dict_to_vars "${dict}"
+  dict_for_each "${dict}" dict_op_to_var_flat
 
   REQUIRE -n "${__key1__:+x}"
   REQUIRE -n "${__key2__:+x}"
