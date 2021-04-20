@@ -2,8 +2,12 @@
 #
 # Mini unit testing framework for sh (sh not bash) script 'units' - functions
 #
+__sh_test_command_line_arguments__="$@"
 __sh_test_flag_report_always__=false
 __sh_test_flag_test_elapsed_times=false
+__sh_test_flag_help__=false
+__sh_test_flag_version__=false
+__sh_test_is_uninitialised__=true
 __sh_test_testfn__="__main__"
 __sh_test_passed__=0
 __sh_test_failed__=0
@@ -131,6 +135,10 @@ CHECK_FALSE() {
 }
 
 TEST() {
+  if ${__sh_test_is_uninitialised__}; then
+    __sh_test_set_flags__ ${__sh_test_command_line_arguments__}
+    __sh_test_is_uninitialised__=false
+  fi
   local prev_test="${__sh_test_testfn__}"
   local initial_failed_assertions=${__sh_test_asserts_failed__}
   __sh_test_testfn__="${1}"
@@ -152,7 +160,6 @@ TEST() {
   fi
 }
 
-
 PRINT_TEST_COUNTS() {
   local timing_phrase=''
   if ${__sh_test_flag_test_elapsed_times}; then
@@ -169,4 +176,86 @@ Failed ${__sh_test_failed__} $(__sh_test_maybe_plural__ 'test' ${__sh_test_faile
 ${__sh_test_asserts_failed__} $(__sh_test_maybe_plural__ 'assertion' ${__sh_test_asserts_failed__})\
 ${timing_phrase}.
 EOF
+}
+
+__sh_test_print_help__() {
+  cat << EOF
+Usage
+${0} [OPTIONS]
+
+-s, --success     Report successful as well as failed assertions.
+-t, --timings     Report (rough) elapsed timings.
+-h, --help        Print this help and exit.
+-v, --version     Print sh-test version and exit.
+EOF
+}
+
+__sh_test_print_version__() {
+  cat << EOF
+sh-test 0.1
+Copyright © 2021 Ralph E. McArdell.
+EOF
+}
+
+__sh_test_set_flags_shift_by__=0
+__sh_test_process_long_commandline_arg__() {
+#    echo "Processing option ${1}..." >&2
+  local consumedArgs=1
+  case ${1} in
+    --help)
+      __sh_test_flag_help__=true
+      ;;
+    --version)
+      __sh_test_flag_version__=true
+      ;;
+    --success)
+      __sh_test_flag_report_always__=true
+      ;;
+    --timings)
+      __sh_test_flag_test_elapsed_times=true
+      ;;
+    *)
+      consumedArgs=0
+      ;;
+  esac
+  __sh_test_set_flags_shift_by__="${consumedArgs}"
+}
+
+__sh_test_set_flags__() {
+  local shift_by=0
+  while getopts ":hvst" arg; do
+    case ${arg} in
+      h)
+        __sh_test_process_long_commandline_arg__ --help
+        ;;
+      v)
+        __sh_test_process_long_commandline_arg__ --version
+        ;;
+      s)
+        __sh_test_process_long_commandline_arg__ --success
+        ;;
+      t)
+        __sh_test_process_long_commandline_arg__ --timings
+        ;;
+      *)
+        shift $((OPTIND-2))
+        __sh_test_process_long_commandline_arg__ $@
+        if [ ${__sh_test_set_flags_shift_by__} = '0' ]; then
+          echo "Sorry I do not understand command line argument '${1}'. Quitting." >&2
+          exit 1
+        fi
+        shift
+        OPTIND=1
+        ;;
+    esac
+  done
+  if ${__sh_test_flag_help__}; then
+    __sh_test_print_help__
+    exit 0
+  fi
+  if ${__sh_test_flag_version__}; then
+    __sh_test_print_version__
+    exit 0
+  fi
+  return
 }
