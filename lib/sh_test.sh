@@ -3,6 +3,7 @@
 # Mini unit testing framework for sh (sh not bash) script 'units' - functions
 #
 __sh_test_flag_report_always__=false
+__sh_test_flag_test_elapsed_times=false
 __sh_test_testfn__="__main__"
 __sh_test_passed__=0
 __sh_test_failed__=0
@@ -10,6 +11,7 @@ __sh_test_tests__=0
 __sh_test_asserts_passed__=0
 __sh_test_asserts_failed__=0
 __sh_test_asserts__=0
+__sh_test_total_time_secs__=0.0
 
 __sh_test_print_report__() {
   local test_result="${1}"
@@ -132,7 +134,16 @@ TEST() {
   local prev_test="${__sh_test_testfn__}"
   local initial_failed_assertions=${__sh_test_asserts_failed__}
   __sh_test_testfn__="${1}"
-  ${__sh_test_testfn__}
+  if ${__sh_test_flag_test_elapsed_times}; then
+    local start_seconds="$(date +%s.%N)"
+  fi
+  "${__sh_test_testfn__}"
+  if ${__sh_test_flag_test_elapsed_times}; then
+    local end_seconds="$(date +%s.%N)"
+    elapsed_time="$( echo "${end_seconds} - ${start_seconds}" | bc -q)"
+    echo "ELAPSED TIME: ${elapsed_time} seconds : ${__sh_test_testfn__}"
+    __sh_test_total_time_secs__="$( echo "${__sh_test_total_time_secs__} + ${elapsed_time}" | bc -q)"
+  fi
   __sh_test_testfn__="${prev_testfn}"
   if [ ${__sh_test_asserts_failed__} -gt ${initial_failed_assertions} ]; then
     __sh_test_update_failed__
@@ -143,6 +154,11 @@ TEST() {
 
 
 PRINT_TEST_COUNTS() {
+  local timing_phrase=''
+  if ${__sh_test_flag_test_elapsed_times}; then
+    local timing_phrase=" in ${__sh_test_total_time_secs__} seconds."
+  fi
+
   cat << EOF
 Performed \
 ${__sh_test_tests__} $(__sh_test_maybe_plural__ 'test' ${__sh_test_tests__}) / \
@@ -150,6 +166,7 @@ ${__sh_test_asserts__} $(__sh_test_maybe_plural__ 'assertion' ${__sh_test_assert
 Passed ${__sh_test_passed__} $(__sh_test_maybe_plural__ 'test' ${__sh_test_passed__}) / \
 ${__sh_test_asserts_passed__} $(__sh_test_maybe_plural__ 'assertion' ${__sh_test_asserts_passed__}). \
 Failed ${__sh_test_failed__} $(__sh_test_maybe_plural__ 'test' ${__sh_test_failed__}) / \
-${__sh_test_asserts_failed__} $(__sh_test_maybe_plural__ 'assertion' ${__sh_test_asserts_failed__}).
+${__sh_test_asserts_failed__} $(__sh_test_maybe_plural__ 'assertion' ${__sh_test_asserts_failed__})\
+${timing_phrase}.
 EOF
 }
