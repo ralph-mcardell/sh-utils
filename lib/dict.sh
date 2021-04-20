@@ -60,7 +60,8 @@
 # @returns : true if "${1}" appears to be a dict - that is adheres to the dict
 #            string format, false otherwise.
 dict_is_dict() {
-    if [ "${1%%${__DICT_ENTRY_SEPARATOR__}*}X" = "${__DICT_TYPE_VALUE__}X" ]; then
+    if [ $# -ge 1 ] && \
+       [ "${1%%${__DICT_ENTRY_SEPARATOR__}*}X" = "${__DICT_TYPE_VALUE__}X" ]; then
         true; return
     else
         false; return
@@ -82,14 +83,21 @@ dict_is_dict() {
 #            passed to dict_is_dict returns true.
 dict_declare_simple() {
     local dict="${__DICT_TYPE_RECORD__}"
+    local keys=${__DICT_RS__}
     while [ $# -gt 1 ]; do
         local dkey="$(__dict_decorated_key__ "${1}")"
+        if [ "${keys##${__DICT_RS__}*${__DICT_US__}${dkey}}" != "${keys}" ]; then
+            echo "ERROR: duplciate key \"${1}\" passed to dict_declare_simple." >&2
+            echo ""
+            exit 1
+        fi
+        local keys="${keys}${__DICT_US__}${dkey}"
         local value="${2}"
         dict="${dict}$(__dict_new_entry__ "${dkey}" "${value}")"
         shift 2
     done
     if [ $# -gt 0 ]; then
-        echo "WARNING: incomplete key, value pair passed to dict_declare: ${1} left over." >&2
+        echo "WARNING: incomplete key, value pair passed to dict_declare_simple: ${1} left over." >&2
     fi
     cat << EOF
 ${dict}
@@ -119,7 +127,6 @@ dict_set_simple() {
     __dict_abort_if_not_dict__ "${1}" "dict_set_simple"
     __dict_set__ "$@"
 }
-
 
 # @brief Get a value associated with a key from a dict
 #
@@ -151,13 +158,22 @@ dict_get_simple() {
 #     ASCII US, RS, GS, FS characters. #
 # @param 2n-1 : entry n key value. n > 0.
 # @param 2n   : entry n value value. n > 0.
-# @returns : dict value containing 0+ entries that can be used with the
-#            other dict_xxx functions and for which specifically when
+# @returns : 0 and dict value containing 0+ entries that can be used with
+#            the other dict_xxx functions and for which specifically when
 #            passed to dict_is_dict returns true.
+#            1 (fail) and empty string if duplicate key values provided
+#            for param 2n-1 values.
 dict_declare() {
     local dict="${__DICT_TYPE_RECORD__}"
+    local keys=${__DICT_RS__}
     while [ $# -gt 1 ]; do
         local dkey="$(__dict_decorated_key__ "${1}")"
+        if [ "${keys##${__DICT_RS__}*${__DICT_US__}${dkey}}" != "${keys}" ]; then
+            echo "ERROR: duplicate key \"${1}\" passed to dict_declare." >&2
+            echo ""
+            exit 1
+        fi
+        local keys="${keys}${__DICT_US__}${dkey}"
         local value="${2}"
         if dict_is_dict "${value}"; then
             local value="$(__dict_prepare_value_for_nesting__ "${value}")"

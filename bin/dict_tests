@@ -40,8 +40,12 @@ declared_dict_variable_is_a_dict() {
 }
 
 non_dict_variables_are_not_tolerated() {
-  ret=$(dict_set '' "${key}" "${expected}")
+  # checking $? only works if value not placed in local variable viz:
+  gret=$(dict_set '' "${key}" "${expected}")
   CHECK $? -eq 1
+  unset gret
+# or local declared 1st then set:
+  local ret
   notdict="key${__DICT_FIELD_SEPARATOR__}value${__DICT_ENTRY_SEPARATOR__}"
   ret=$(dict_set "${notdict}" "key2" "something")
   CHECK $? -eq 1
@@ -72,8 +76,6 @@ cannot_retrieve_values_from_empty_dict() {
 }
 
 can_add_multiple_initial_values_on_dict_declaration() {
-  dict=$(dict_declare )
-  CHECK "$(dict_get "${dict}" 'some_key')x" = "x"
   local expected1='value 1'
   local expected2='value 2'
   local expected3='value 3'
@@ -91,8 +93,6 @@ can_add_multiple_initial_values_on_dict_declaration() {
 }
 
 can_add_multiple_initial_simple_values_only_on_dict_declaration() {
-  dict=$(dict_declare )
-  CHECK "$(dict_get "${dict}" 'some_key')x" = "x"
   local expected1='value 1'
   local expected2='value 2'
   local expected3='value 3'
@@ -107,6 +107,34 @@ can_add_multiple_initial_simple_values_only_on_dict_declaration() {
   CHECK "$(dict_get "${dict}" "${key3}")C" = "${expected3}C"
 
   CHECK "$(dict_get "${dict}" 'some_key')x" = "x"
+}
+
+cannot_set_duplicate_keys_in_dict_declaration() {
+  local ret
+  ret=$(dict_declare "K" "V" "K" "VV")
+  CHECK $? -eq 1
+  local is_dict="dict_is_dict ${ret}"
+  CHECK_FALSE "${is_dict}"
+  CHECK -z "${ret}"
+
+  ret=$(dict_declare_simple "K" "V" "K" "VV")
+  CHECK $? -eq 1
+  is_dict="dict_is_dict ${ret}"
+  CHECK_FALSE "${is_dict}"
+  CHECK -z "${ret}"
+}
+
+can_set_keys_duplicated_in_part_in_dict_declaration() {
+  local ret
+  ret=$(dict_declare "K" "V" "Kk" "Vv" "kKk" "vVv" "kK" "vV" "k" "v")
+  CHECK $? -eq 0
+  local is_dict="dict_is_dict ${ret}"
+  CHECK "${is_dict}"
+
+  ret=$(dict_declare_simple "K" "V" "Kk" "Vv" "kKk" "vVv" "kK" "vV" "k" "v")
+  CHECK $? -eq 0
+  is_dict="dict_is_dict ${ret}"
+  CHECK "${is_dict}"
 }
 
 can_retrieve_just_the_value_for_key_for_dict_containing_single_entry() {
@@ -942,6 +970,8 @@ TEST non_dict_variables_are_not_tolerated
 TEST cannot_retrieve_values_from_empty_dict
 TEST can_add_multiple_initial_values_on_dict_declaration
 TEST can_add_multiple_initial_simple_values_only_on_dict_declaration
+TEST cannot_set_duplicate_keys_in_dict_declaration
+TEST can_set_keys_duplicated_in_part_in_dict_declaration
 TEST can_retrieve_just_the_value_for_key_for_dict_containing_single_entry
 TEST can_retrieve_just_the_values_for_keys_for_dict_containing_multiple_entries
 TEST can_update_values_of_previously_added_entries_using_dict_set
