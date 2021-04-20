@@ -580,6 +580,254 @@ can_create_variable_of_key_name_with_associated_value_for_each_dict_entry() {
   unset __key3__
 }
 
+can_create_variable_of_key_name_with_associated_nested_dict_value_for_each_dict_entry() {
+  local keyi11="__keyi1__"
+  local keyi12="__keyi2__"
+  local valuei11="value i 1 1"
+  local valuei12="value i _ 2"
+  local inner1="$(dict_declare_simple "${keyi11}" "${valuei11}" "${keyi12}" "${valuei12}")"
+  local keyi21="__keyi1__"
+  local keyi22="__keyi2__"
+  local valuei21="value i 2 1"
+  local valuei22="value i _ 2"
+  local inner2="$(dict_declare_simple "${keyi21}" "${valuei21}" "${keyi22}" "${valuei22}")"
+
+  local keym11="__keym1__"
+  local keym12="__keym2__"
+  local keym13="__keym3__"
+  local valuem11="value m 1 1"
+  local valuem13="value m _ _"
+  local mid1="$(dict_declare "${keym11}" "${valuem11}" "${keym12}" "${inner1}" "${keym13}" "${valuem13}")"
+  local keym21="__keym1__"
+  local keym22="__keym2__"
+  local keym23="__keym3__"
+  local keym24="__keym4__"
+  local valuem22="value m _ _"
+  local valuem23="value m 2 3"
+  local mid2="$(dict_declare "${keym21}" "${inner1}" "${keym22}" "${valuem22}" "${keym23}" "${valuem23}" "${keym24}"  "${inner2}")"
+
+  local keyo1="__keyo1__"
+  local keyo2="__keyo2__"
+  local keyo3="__keyo3__"
+  local keyo4="__keyo4__"
+  local valueo1="value o one"
+  local valueo4="value o four"
+  local outer="$(dict_declare "${keyo1}"  "${valueo1}"  "${keyo2}" "${mid1}" "${keyo3}" "${mid2}" "${keyo4}"  "${valueo4}")"
+
+  REQUIRE "$(dict_get "${outer}" "${keyo1}")A" = "${valueo1}A"
+  REQUIRE "$(dict_get "${outer}" "${keyo2}")B" = "${mid1}B"
+  REQUIRE "$(dict_get "${outer}" "${keyo3}")C" = "${mid2}C"
+  REQUIRE "$(dict_get "${outer}" "${keyo4}")D" = "${valueo4}D"
+  # Check we do not have variables defined already
+  REQUIRE -z "${__keyo1__:+x}"
+  REQUIRE -z "${__keyo2__:+x}"
+  REQUIRE -z "${__keyo3__:+x}"
+  REQUIRE -z "${__keyo4__:+x}"
+
+  dict_for_each "${outer}" dict_op_to_var_flat
+
+  REQUIRE -n "${__keyo1__:+x}"
+  REQUIRE -n "${__keyo2__:+x}"
+  REQUIRE -n "${__keyo3__:+x}"
+  REQUIRE -n "${__keyo4__:+x}"
+  CHECK "${__keyo1__}A" = "${valueo1}A"
+  CHECK "${__keyo2__}B" = "${mid1}B"
+  CHECK "${__keyo3__}C" = "${mid2}C"
+  CHECK "${__keyo4__}D" = "${valueo4}D"
+  unset __keyo1__
+  unset __keyo4__
+
+  REQUIRE "$(dict_get "${__keyo2__}" "${keym11}")A" = "${valuem11}A"
+  REQUIRE "$(dict_get "${__keyo2__}" "${keym12}")B" = "${inner1}B"
+  REQUIRE "$(dict_get "${__keyo2__}" "${keym13}")C" = "${valuem13}C"
+  # Check we do not have variables defined already
+  REQUIRE -z "${__keym1__:+x}"
+  REQUIRE -z "${__keym2__:+x}"
+  REQUIRE -z "${__keym3__:+x}"
+
+  dict_for_each "${__keyo2__}" dict_op_to_var_flat
+  unset __keyo2__
+
+  REQUIRE -n "${__keym1__:+x}"
+  REQUIRE -n "${__keym2__:+x}"
+  REQUIRE -n "${__keym3__:+x}"
+  CHECK "${__keym1__}A" = "${valuem11}A"
+  CHECK "${__keym2__}B" = "${inner1}B"
+  CHECK "${__keym3__}C" = "${valuem13}C"
+  unset __keym1__
+  unset __keym3__
+
+  REQUIRE "$(dict_get "${__keym2__}" "${keyi11}")A" = "${valuei11}A"
+  REQUIRE "$(dict_get "${__keym2__}" "${keyi12}")B" = "${valuei12}B"
+  # Check we do not have variables defined already
+  REQUIRE -z "${__keyi1__:+x}"
+  REQUIRE -z "${__keyi2__:+x}"
+
+  dict_for_each "${__keym2__}" dict_op_to_var_flat
+  unset __keym2__
+
+  REQUIRE -n "${__keyi1__:+x}"
+  REQUIRE -n "${__keyi2__:+x}"
+  CHECK "${__keyi1__}A" = "${valuei11}A"
+  CHECK "${__keyi2__}B" = "${valuei12}B"
+  unset __keyi1__
+  unset __keyi2__
+
+  REQUIRE "$(dict_get "${__keyo3__}" "${keym21}")A" = "${inner1}A"
+  REQUIRE "$(dict_get "${__keyo3__}" "${keym22}")B" = "${valuem22}B"
+  REQUIRE "$(dict_get "${__keyo3__}" "${keym23}")C" = "${valuem23}C"
+  REQUIRE "$(dict_get "${__keyo3__}" "${keym24}")D" = "${inner2}D"
+  # Check we do not have variables defined already
+  REQUIRE -z "${__keym1__:+x}"
+  REQUIRE -z "${__keym2__:+x}"
+  REQUIRE -z "${__keym3__:+x}"
+  REQUIRE -z "${__keym4__:+x}"
+
+  dict_for_each "${__keyo3__}" dict_op_to_var_flat
+  unset __keyo3__
+
+  REQUIRE -n "${__keym1__:+x}"
+  REQUIRE -n "${__keym2__:+x}"
+  REQUIRE -n "${__keym3__:+x}"
+  REQUIRE -n "${__keym4__:+x}"
+  CHECK "${__keym1__}A" = "${inner1}A"
+  CHECK "${__keym2__}B" = "${valuem22}B"
+  CHECK "${__keym3__}C" = "${valuem23}C"
+  CHECK "${__keym4__}D" = "${inner2}D"
+  unset __keym2__
+  unset __keym3__
+
+  REQUIRE "$(dict_get "${__keym1__}" "${keyi11}")A" = "${valuei11}A"
+  REQUIRE "$(dict_get "${__keym1__}" "${keyi12}")B" = "${valuei12}B"
+  # Check we do not have variables defined already
+  REQUIRE -z "${__keyi1__:+x}"
+  REQUIRE -z "${__keyi2__:+x}"
+
+  dict_for_each "${__keym1__}" dict_op_to_var_flat
+  unset __keym1__
+
+  REQUIRE -n "${__keyi1__:+x}"
+  REQUIRE -n "${__keyi2__:+x}"
+  CHECK "${__keyi1__}A" = "${valuei11}A"
+  CHECK "${__keyi2__}B" = "${valuei12}B"
+  unset __keyi1__
+  unset __keyi2__
+
+  REQUIRE "$(dict_get "${__keym4__}" "${keyi21}")A" = "${valuei21}A"
+  REQUIRE "$(dict_get "${__keym4__}" "${keyi22}")B" = "${valuei22}B"
+  # Check we do not have variables defined already
+  REQUIRE -z "${__keyi1__:+x}"
+  REQUIRE -z "${__keyi2__:+x}"
+
+  dict_for_each "${__keym4__}" dict_op_to_var_flat
+  unset __keym4__
+
+  REQUIRE -n "${__keyi1__:+x}"
+  REQUIRE -n "${__keyi2__:+x}"
+  CHECK "${__keyi1__}A" = "${valuei21}A"
+  CHECK "${__keyi2__}B" = "${valuei22}B"
+  unset __keyi1__
+  unset __keyi2__
+}
+
+can_create_variable_of_key_name_with_prefix_and_suffix_with_associated_value_for_each_dict_entry() {
+  local expected1='value 1'
+  local expected2='value 2'
+  local expected3='value 3'
+  local key1='key1'
+  local key2='key2'
+  local key3='key3'
+  local dict=$(dict_declare)
+  dict="$(dict_set "${dict}" "${key1}" "${expected1}")"
+  dict="$(dict_set "${dict}" "${key2}" "${expected2}")"
+  dict="$(dict_set "${dict}" "${key3}" "${expected3}")"
+
+  REQUIRE "$(dict_get "${dict}" "${key1}")A" = "${expected1}A"
+  REQUIRE "$(dict_get "${dict}" "${key2}")B" = "${expected2}B"
+  REQUIRE "$(dict_get "${dict}" "${key3}")C" = "${expected3}C"
+  # Check we do not have variables defined already
+  REQUIRE -z "${__pkey1s__:+x}"
+  REQUIRE -z "${__pkey2s__:+x}"
+  REQUIRE -z "${__pkey3s__:+x}"
+
+  dict_for_each "${dict}" dict_op_to_var_flat "__p" "s__"
+
+  REQUIRE -n "${__pkey1s__:+x}"
+  REQUIRE -n "${__pkey2s__:+x}"
+  REQUIRE -n "${__pkey3s__:+x}"
+  CHECK "${__pkey1s__}A" = "${expected1}A"
+  CHECK "${__pkey2s__}B" = "${expected2}B"
+  CHECK "${__pkey3s__}C" = "${expected3}C"
+  unset __pkey1s__
+  unset __pkey2s__
+  unset __pkey3s__
+}
+
+can_create_variable_of_key_name_with_prefix_with_associated_value_for_each_dict_entry() {
+  local expected1='value 1'
+  local expected2='value 2'
+  local expected3='value 3'
+  local key1='key1__'
+  local key2='key2__'
+  local key3='key3__'
+  local dict=$(dict_declare)
+  dict="$(dict_set "${dict}" "${key1}" "${expected1}")"
+  dict="$(dict_set "${dict}" "${key2}" "${expected2}")"
+  dict="$(dict_set "${dict}" "${key3}" "${expected3}")"
+
+  REQUIRE "$(dict_get "${dict}" "${key1}")A" = "${expected1}A"
+  REQUIRE "$(dict_get "${dict}" "${key2}")B" = "${expected2}B"
+  REQUIRE "$(dict_get "${dict}" "${key3}")C" = "${expected3}C"
+  # Check we do not have variables defined already
+  REQUIRE -z "${__pkey1__:+x}"
+  REQUIRE -z "${__pkey2__:+x}"
+  REQUIRE -z "${__pkey3__:+x}"
+
+  dict_for_each "${dict}" dict_op_to_var_flat "__p"
+
+  REQUIRE -n "${__pkey1__:+x}"
+  REQUIRE -n "${__pkey2__:+x}"
+  REQUIRE -n "${__pkey3__:+x}"
+  CHECK "${__pkey1__}A" = "${expected1}A"
+  CHECK "${__pkey2__}B" = "${expected2}B"
+  CHECK "${__pkey3__}C" = "${expected3}C"
+  unset __pkey1__
+  unset __pkey2__
+  unset __pkey3__
+}
+
+can_create_variable_of_key_name_with_suffix_with_associated_value_for_each_dict_entry() {
+  local expected1='value 1'
+  local expected2='value 2'
+  local expected3='value 3'
+  local key1='__key1'
+  local key2='__key2'
+  local key3='__key3'
+  local dict=$(dict_declare)
+  dict="$(dict_set "${dict}" "${key1}" "${expected1}")"
+  dict="$(dict_set "${dict}" "${key2}" "${expected2}")"
+  dict="$(dict_set "${dict}" "${key3}" "${expected3}")"
+
+  REQUIRE "$(dict_get "${dict}" "${key1}")A" = "${expected1}A"
+  REQUIRE "$(dict_get "${dict}" "${key2}")B" = "${expected2}B"
+  REQUIRE "$(dict_get "${dict}" "${key3}")C" = "${expected3}C"
+  # Check we do not have variables defined already
+  REQUIRE -z "${__key1s__:+x}"
+  REQUIRE -z "${__key2s__:+x}"
+  REQUIRE -z "${__key3s__:+x}"
+
+  dict_for_each "${dict}" dict_op_to_var_flat "-" "s__"
+
+  REQUIRE -n "${__key1s__:+x}"
+  REQUIRE -n "${__key2s__:+x}"
+  REQUIRE -n "${__key3s__:+x}"
+  CHECK "${__key1s__}A" = "${expected1}A"
+  CHECK "${__key2s__}B" = "${expected2}B"
+  CHECK "${__key3s__}C" = "${expected3}C"
+  unset __key1s__
+  unset __key2s__
+  unset __key3s__
+}
 
 test_dict_for_each_fn_called_count=0
 test_dict_for_each_fn_actual=''
@@ -650,9 +898,9 @@ iterating_over_dict_with_nested_dict_values_passes_correct_key_values() {
   local inner1="$(dict_declare_simple "${keyi11}" "${valuei11}" "${keyi12}" "${valuei12}")"
   local keyi21="keyi1"
   local keyi22="keyi2"
-  local valuei21="value i 1 1"
+  local valuei21="value i 2 1"
   local valuei22="value i _ 2"
-  local inner2="$(dict_declare_simple "${keyi12}" "${valuei21}" "${keyi22}" "${valuei22}")"
+  local inner2="$(dict_declare_simple "${keyi21}" "${valuei21}" "${keyi22}" "${valuei22}")"
 
   local keym11="keym1"
   local keym12="keym2"
@@ -713,6 +961,10 @@ TEST initialised_nested_dict_values_can_be_retrieved_correctly
 TEST nested_dict_values_can_be_removed_correctly
 TEST iterating_over_dict_with_nested_dict_values_passes_correct_key_values
 TEST can_create_variable_of_key_name_with_associated_value_for_each_dict_entry
+TEST can_create_variable_of_key_name_with_prefix_and_suffix_with_associated_value_for_each_dict_entry
+TEST can_create_variable_of_key_name_with_associated_nested_dict_value_for_each_dict_entry
+TEST can_create_variable_of_key_name_with_prefix_with_associated_value_for_each_dict_entry
+TEST can_create_variable_of_key_name_with_suffix_with_associated_value_for_each_dict_entry
 PRINT_TEST_COUNTS
 
 exit 0
