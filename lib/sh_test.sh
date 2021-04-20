@@ -2,6 +2,67 @@
 #
 # Mini unit testing framework for sh (sh not bash) script 'units' - functions
 #
+
+REQUIRE() {
+  __sh_test_assert__ "REQUIRE" false "$@"
+}
+
+CHECK() {
+  __sh_test_assert__ "CHECK" false "$@"
+}
+
+REQUIRE_FALSE() {
+  __sh_test_assert__ "REQUIRE_FALSE" true "$@"
+}
+
+CHECK_FALSE() {
+  __sh_test_assert__ "CHECK_FALSE" true "$@"
+}
+
+TEST() {
+  if ${__sh_test_is_uninitialised__}; then
+    __sh_test_set_flags__ ${__sh_test_command_line_arguments__}
+    __sh_test_is_uninitialised__=false
+  fi
+  local prev_test="${__sh_test_testfn__}"
+  local initial_failed_assertions=${__sh_test_asserts_failed__}
+  __sh_test_testfn__="${1}"
+  if ${__sh_test_flag_test_elapsed_times}; then
+    local start_seconds="$(date +%s.%N)"
+  fi
+  "${__sh_test_testfn__}"
+  if ${__sh_test_flag_test_elapsed_times}; then
+    local end_seconds="$(date +%s.%N)"
+    elapsed_time="$( echo "${end_seconds} - ${start_seconds}" | bc -q)"
+    echo "ELAPSED TIME: ${elapsed_time} seconds : ${__sh_test_testfn__}"
+    __sh_test_total_time_secs__="$( echo "${__sh_test_total_time_secs__} + ${elapsed_time}" | bc -q)"
+  fi
+  __sh_test_testfn__="${prev_testfn}"
+  if [ ${__sh_test_asserts_failed__} -gt ${initial_failed_assertions} ]; then
+    __sh_test_update_failed__
+  else
+    __sh_test_update_passed__
+  fi
+}
+
+PRINT_TEST_COUNTS() {
+  local timing_phrase=''
+  if ${__sh_test_flag_test_elapsed_times}; then
+    local timing_phrase=" in ${__sh_test_total_time_secs__} seconds."
+  fi
+
+  cat << EOF
+Performed \
+${__sh_test_tests__} $(__sh_test_maybe_plural__ 'test' ${__sh_test_tests__}) / \
+${__sh_test_asserts__} $(__sh_test_maybe_plural__ 'assertion' ${__sh_test_asserts__}). \
+Passed ${__sh_test_passed__} $(__sh_test_maybe_plural__ 'test' ${__sh_test_passed__}) / \
+${__sh_test_asserts_passed__} $(__sh_test_maybe_plural__ 'assertion' ${__sh_test_asserts_passed__}). \
+Failed ${__sh_test_failed__} $(__sh_test_maybe_plural__ 'test' ${__sh_test_failed__}) / \
+${__sh_test_asserts_failed__} $(__sh_test_maybe_plural__ 'assertion' ${__sh_test_asserts_failed__})\
+${timing_phrase}.
+EOF
+}
+
 __sh_test_command_line_arguments__="$@"
 __sh_test_flag_report_always__=false
 __sh_test_flag_test_elapsed_times=false
@@ -116,66 +177,6 @@ __sh_test_assert__() {
       exit 1
     fi
   fi
-}
-
-REQUIRE() {
-  __sh_test_assert__ "REQUIRE" false "$@"
-}
-
-CHECK() {
-  __sh_test_assert__ "CHECK" false "$@"
-}
-
-REQUIRE_FALSE() {
-  __sh_test_assert__ "REQUIRE_FALSE" true "$@"
-}
-
-CHECK_FALSE() {
-  __sh_test_assert__ "CHECK_FALSE" true "$@"
-}
-
-TEST() {
-  if ${__sh_test_is_uninitialised__}; then
-    __sh_test_set_flags__ ${__sh_test_command_line_arguments__}
-    __sh_test_is_uninitialised__=false
-  fi
-  local prev_test="${__sh_test_testfn__}"
-  local initial_failed_assertions=${__sh_test_asserts_failed__}
-  __sh_test_testfn__="${1}"
-  if ${__sh_test_flag_test_elapsed_times}; then
-    local start_seconds="$(date +%s.%N)"
-  fi
-  "${__sh_test_testfn__}"
-  if ${__sh_test_flag_test_elapsed_times}; then
-    local end_seconds="$(date +%s.%N)"
-    elapsed_time="$( echo "${end_seconds} - ${start_seconds}" | bc -q)"
-    echo "ELAPSED TIME: ${elapsed_time} seconds : ${__sh_test_testfn__}"
-    __sh_test_total_time_secs__="$( echo "${__sh_test_total_time_secs__} + ${elapsed_time}" | bc -q)"
-  fi
-  __sh_test_testfn__="${prev_testfn}"
-  if [ ${__sh_test_asserts_failed__} -gt ${initial_failed_assertions} ]; then
-    __sh_test_update_failed__
-  else
-    __sh_test_update_passed__
-  fi
-}
-
-PRINT_TEST_COUNTS() {
-  local timing_phrase=''
-  if ${__sh_test_flag_test_elapsed_times}; then
-    local timing_phrase=" in ${__sh_test_total_time_secs__} seconds."
-  fi
-
-  cat << EOF
-Performed \
-${__sh_test_tests__} $(__sh_test_maybe_plural__ 'test' ${__sh_test_tests__}) / \
-${__sh_test_asserts__} $(__sh_test_maybe_plural__ 'assertion' ${__sh_test_asserts__}). \
-Passed ${__sh_test_passed__} $(__sh_test_maybe_plural__ 'test' ${__sh_test_passed__}) / \
-${__sh_test_asserts_passed__} $(__sh_test_maybe_plural__ 'assertion' ${__sh_test_asserts_passed__}). \
-Failed ${__sh_test_failed__} $(__sh_test_maybe_plural__ 'test' ${__sh_test_failed__}) / \
-${__sh_test_asserts_failed__} $(__sh_test_maybe_plural__ 'assertion' ${__sh_test_asserts_failed__})\
-${timing_phrase}.
-EOF
 }
 
 __sh_test_print_help__() {
