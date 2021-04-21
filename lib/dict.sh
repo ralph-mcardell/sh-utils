@@ -297,6 +297,7 @@ dict_for_each() {
     local dict="$(__dict_strip_header__ "${1}" "true")"
     local binaryFn="${2}"
     shift 2
+    local record_number=1
     while [ -n "${dict}" ]; do
         local record="${dict%%${__DICT_ENTRY_SEPARATOR__}*}"
         local key="${record%%${__DICT_FIELD_SEPARATOR__}*}"
@@ -306,7 +307,8 @@ dict_for_each() {
             value="$(__dict_prepare_value_for_unnesting__ "${value}")"
         fi
     #    echo "dict:\"${dict}\" record:\"${record}\" key:\"${key}\" value:\"${value}\"" | tr "${__DICT_GS__}${__DICT_RS__}${__DICT_US__}" ']^_' >&2
-        ${binaryFn} "${key}" "${value}" "$@"
+        ${binaryFn} "${key}" "${value}" "${record_number}" "$@"
+        record_number=$((${record_number}+1))
     done
 }
 
@@ -315,7 +317,7 @@ dict_for_each() {
 # Passed a dict will output to the (sub-)shell stdout (i.e. return) the
 # characters (bytes) making up the string representation og the dict with the 
 # unprintable characters used in field and record separators (i.e. ASCI US RS
-# GS and FS) translated to somethingprintable (usually) .
+# GS and FS) translated to something printable (usually) .
 #
 # The function optionally takes 2nd argument specifying the characters to
 # translate US RS GS and FS characters (in that order) to. If not provided
@@ -354,7 +356,7 @@ dict_print_raw() {
 # things will happen. To provided a suffix without a prefix specify
 # the prefix as a hyphen.
 #
-# If the value represents a nested dict then teh value is unested.
+# If the value represents a nested dict then the value is unested.
 #
 # @param 1 : key value
 # @param 2 : value value
@@ -363,19 +365,41 @@ dict_print_raw() {
 dict_op_to_var_flat() {
     local var_name="${1}"
     local var_value="${2}"
-    if [ $# -ge 3 ]; then
-        if [ "${3}" != '-' ]; then
-            local var_name="${3}${var_name}"
+    if [ $# -ge 4 ]; then
+        if [ "${4}" != '-' ]; then
+            local var_name="${4}${var_name}"
         fi
     fi
-    if [ $# -ge 4 ]; then
-        local var_name="${var_name}${4}"
+    if [ $# -ge 5 ]; then
+        local var_name="${var_name}${5}"
     fi
     if __dict_is_nested_dict__ "${var_value}"; then
         var_value="$(__dict_prepare_value_for_unnesting__ "${var_value}")"
     fi
     read ${var_name} << EOF 
 ${var_value}
+EOF
+}
+
+dict_pretty_print() {
+  local dict="${1}"
+  local pprint_specs="${2}"
+  __dict_abort_if_not_dict__ "${1}" "dict_pretty_print"
+  if ! dict_is_dict "${1}"; then
+    echo "Oops! Print specifications argument #2 passed to dict_pretty_print is not a dict(ionary) type. Quitting current (sub-)shell." >&2
+    exit 1
+  fi
+
+  local output="$(dict_get "${pprint_specs}" "dict_prefix")$(dict_for_each "${dict}" __dict_op_pretty_print_record__ "${pprint_specs}")$(dict_get "${pprint_specs}" "dict_suffix")"
+#  cat << EOF
+#$(dict_get "${pprint_specs}" "dict_prefix")
+#EOF
+#  dict_for_each "${dict}" __dict_op_pretty_print_record__ "${pprint_specs}"
+#  cat << EOF
+#$(dict_get "${pprint_specs}" "dict_suffix")
+#EOF
+  cat << EOF
+${output}
 EOF
 }
 
@@ -398,6 +422,34 @@ __dict_decorated_key__() {
     cat << EOF 
 ${1}${__DICT_FIELD_SEPARATOR__}
 EOF
+}
+
+__dict_op_pretty_print_record__() {
+  local key="${1}"
+  local value="${2}"
+  local record_number="${3}"
+  local pprint_specs="${4}"
+  local record_separator=''
+  if [ ${record_number} -gt 1 ]; then
+    record_separator="$(dict_get "${pprint_specs}" "record_separator")"
+  fi
+  if ! dict_is_dict "${value}"; then
+    head -c -1 -q << EOF
+${record_separator}\
+$(dict_get "${pprint_specs}" "record_prefix")\
+$(dict_get "${pprint_specs}" "key_prefix")\
+${key}\
+$(dict_get "${pprint_specs}" "key_suffix")\
+$(dict_get "${pprint_specs}" "value_prefix")\
+${value}\
+$(dict_get "${pprint_specs}" "value_suffix")\
+$(dict_get "${pprint_specs}" "record_suffix")
+EOF
+  else
+    head -c -1 -q << EOF
+$(dict_get "${pprint_specs}" "record_prefix")$(dict_get "${pprint_specs}" "key_prefix")${key}$(dict_get "${pprint_specs}" "key_suffix")$(dict_pretty_print "${value}" "${pprint_specs}")$(dict_get "${pprint_specs}" "record_suffix")
+EOF
+  fi
 }
 
 __dict_new_entry__() {

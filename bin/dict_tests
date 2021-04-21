@@ -859,23 +859,27 @@ can_create_variable_of_key_name_with_suffix_with_associated_value_for_each_dict_
 
 test_dict_for_each_fn_called_count=0
 test_dict_for_each_fn_actual=''
+test_dict_for_each_fn_record_numbers=''
 test_dict_for_each_fn_additional_parameters=''
 test_dict_for_each_collect_call_data() {
   local key="${1}"
   local value="${2}"
-  shift 2
+  local record_number="${3}"
+  shift 3
   test_dict_for_each_fn_actual="${key}${test_dict_for_each_fn_actual}${value}"
   test_dict_for_each_fn_called_count=$((${test_dict_for_each_fn_called_count}+1))
   test_dict_for_each_fn_additional_parameters="${test_dict_for_each_fn_additional_parameters} $@"
+  test_dict_for_each_fn_record_numbers="${test_dict_for_each_fn_record_numbers}${record_number}"
 }
 
 iterating_over_empty_dict_does_not_call_operation_function() {
   test_dict_for_each_fn_called_count=0
   test_dict_for_each_fn_actual=''
-
+  test_dict_for_each_fn_record_numbers=''
   dict_for_each $(dict_declare_simple) test_dict_for_each_collect_call_data
   CHECK "${test_dict_for_each_fn_called_count}" -eq 0
   CHECK -z "${test_dict_for_each_fn_actual}"
+  CHECK -z "${test_dict_for_each_fn_record_numbers}"
 }
 
 iterating_over_single_entry_dict_calls_operation_function_once_with_key_and_value() {
@@ -885,9 +889,11 @@ iterating_over_single_entry_dict_calls_operation_function_once_with_key_and_valu
 
   test_dict_for_each_fn_called_count=0
   test_dict_for_each_fn_actual=''
+  test_dict_for_each_fn_record_numbers=''
   dict_for_each "$(dict_declare_simple "${key}" "${value}")" test_dict_for_each_collect_call_data
   CHECK "${test_dict_for_each_fn_called_count}" -eq 1
   CHECK "${test_dict_for_each_fn_actual}" = "${expected}"
+  CHECK "${test_dict_for_each_fn_record_numbers}" = "1"
 }
 
 iterating_over_n_entry_dict_calls_operation_function_n_times_with_each_key_and_value() {
@@ -904,9 +910,11 @@ iterating_over_n_entry_dict_calls_operation_function_n_times_with_each_key_and_v
 
   test_dict_for_each_fn_called_count=0
   test_dict_for_each_fn_actual=''
+  test_dict_for_each_fn_record_numbers=''
   dict_for_each "${dict}" test_dict_for_each_collect_call_data
   CHECK "${test_dict_for_each_fn_called_count}" -eq "${entry_count}"
   CHECK "${test_dict_for_each_fn_actual}" = "${expected}"
+  CHECK "${test_dict_for_each_fn_record_numbers}" = "123"
 }
 
 iterating_over_dict_calls_operation_function_passing_additional_parameters() {
@@ -962,6 +970,51 @@ iterating_over_dict_with_nested_dict_values_passes_correct_key_values() {
   CHECK "${test_dict_for_each_fn_actual}" = "${expected}" | tr "${__DICT_GS__}${__DICT_RS__}${__DICT_US__}" '^_'
 }
 
+make_pretty_print_spec() {
+echo "$(dict_declare_simple \
+       "dict_prefix" "{dpx|" "dict_suffix" "|dsx} " \
+       "record_separator" ",rpx| " "record_prefix" "<rpx|" "record_suffix" "|rsx>" \
+       "key_prefix" "\"kpx|" "key_suffix" "|ksx\"" \
+       "value_prefix" "\"vpx|" "value_suffix" "|vsx\"" \
+      )"
+}
+
+__TEST_NL__="$(echo '@$' | tr '@$' '\012\015')"
+make_json_pretty_print_spec() {
+echo "$(dict_declare_simple \
+       "dict_prefix" "{${__TEST_NL__}" "dict_suffix" "${__TEST_NL__}}" \
+       "record_separator" ",${__TEST_NL__}" "record_prefix" "   " "record_suffix" "" \
+       "key_prefix" "\"" "key_suffix" "\" : " \
+       "value_prefix" "\"" "value_suffix" "\"" \
+      )"
+}
+can_pretty_print_empty_dict() {
+  dict_pretty_print "$(dict_declare_simple)" "$(make_pretty_print_spec)"
+}
+
+can_pretty_print_simple_dict() {
+  local expected1='value 1'
+  local expected2='value 2'
+  local expected3='value 3'
+  local key1='key1'
+  local key2='key2'
+  local key3='key3'
+  dict=$(dict_declare_simple "${key1}" "${expected1}" \
+                             "${key2}" "${expected2}" "${key3}" "${expected3}") 
+  dict_pretty_print "${dict}" "$(make_pretty_print_spec)"
+}
+can_json_pretty_print_simple_dict() {
+  local expected1='value 1'
+  local expected2='value 2'
+  local expected3='value 3'
+  local key1='key1'
+  local key2='key2'
+  local key3='key3'
+  dict=$(dict_declare_simple "${key1}" "${expected1}" \
+                             "${key2}" "${expected2}" "${key3}" "${expected3}") 
+  dict_pretty_print "${dict}" "$(make_json_pretty_print_spec)"
+}
+
 #set -x
 TEST empty_string_is_not_a_dict
 TEST arbitrary_string_is_not_a_dict
@@ -995,6 +1048,9 @@ TEST can_create_variable_of_key_name_with_prefix_and_suffix_with_associated_valu
 TEST can_create_variable_of_key_name_with_associated_nested_dict_value_for_each_dict_entry
 TEST can_create_variable_of_key_name_with_prefix_with_associated_value_for_each_dict_entry
 TEST can_create_variable_of_key_name_with_suffix_with_associated_value_for_each_dict_entry
+TEST can_pretty_print_empty_dict
+TEST can_pretty_print_simple_dict
+TEST can_json_pretty_print_simple_dict
 PRINT_TEST_COUNTS
 
 exit 0
