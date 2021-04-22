@@ -21,6 +21,10 @@ SHARED_DIR="${WORK_DIR}/shared"
 . ${SHARED_DIR}/dict
 . ${EXEC_DIR}/sh-test
 
+__TEST_NL__='
+'
+__TEST_CR__=$(echo '@' | tr '@' '\015')
+
 empty_string_is_not_a_dict() {
   local notdict=''
   local is_dict="dict_is_dict  ${notdict}";
@@ -180,6 +184,34 @@ can_retrieve_just_the_values_for_keys_for_dict_containing_multiple_entries() {
 
   CHECK "$(dict_get "${dict}" 'some_key')x" = "x"
   CHECK "$(dict_get_simple "${dict}" 'some_key')x" = "x"
+}
+
+can_retrieve_the_value_for_key_for_dict_containing_newlines() {
+  local expected='value
+1
+
+'
+  local key='key1'
+  local dict="$(dict_set $(dict_declare) "${key}" "${expected}")"
+
+# Pass dict_get result directly inline with call to CHECK
+# NOTE: that trailing newlines are stripped from command expansions as per
+# POSIX shell standard :(
+# Hence the special handling to add a trailing character on. Below shows
+# removing this when getting result into a variable.
+# Carriage return is used as this is probably not already in the string. Other
+# options could be one of the non-printable ASCII separator characters used
+# in dicts as these are not allowed in dict values.
+  CHECK "$(dict_get "${dict}" "${key}"; echo "${__TEST_CR__}")i" = "${expected}${__TEST_CR__}i"
+  CHECK "$(dict_get_simple "${dict}" "${key}"; echo "${__TEST_CR__}")is" = "${expected}${__TEST_CR__}is"
+
+# Pass dict_get result via intermediate variable to call to CHECK
+  local actual="$(dict_get "${dict}" "${key}"; echo "${__TEST_CR__}")"
+  actual="${actual%"${__TEST_CR__}"}"
+  CHECK "${actual}v" = "${expected}v"
+  local actual="$(dict_get_simple "${dict}" "${key}"; echo "${__TEST_CR__}")"
+  actual="${actual%"${__TEST_CR__}"}"
+  CHECK "${actual}vs" = "${expected}vs"
 }
 
 can_update_values_of_previously_added_entries_using_dict_set() {
@@ -979,14 +1011,16 @@ echo "$(dict_declare_simple \
       )"
 }
 
-__TEST_NL__="$(echo '@$' | tr '@$' '\012\015')"
+#__TEST_NL__="$(echo '@@' | tr '@$' '\012\015')"
 make_json_pretty_print_spec() {
-echo "$(dict_declare_simple \
-       "dict_prefix" "{${__TEST_NL__}" "dict_suffix" "${__TEST_NL__}}" \
+cat << EOF
+$(dict_declare_simple \
+       "dict_prefix" "{${__TEST_NL__}" "dict_suffix" "${__TEST_NL__}}${__TEST_NL__}" \
        "record_separator" ",${__TEST_NL__}" "record_prefix" "   " "record_suffix" "" \
        "key_prefix" "\"" "key_suffix" "\" : " \
        "value_prefix" "\"" "value_suffix" "\"" \
-      )"
+      )
+EOF
 }
 can_pretty_print_empty_dict() {
   dict_pretty_print "$(dict_declare_simple)" "$(make_pretty_print_spec)"
@@ -1000,7 +1034,7 @@ can_pretty_print_simple_dict() {
   local key2='key2'
   local key3='key3'
   dict=$(dict_declare_simple "${key1}" "${expected1}" \
-                             "${key2}" "${expected2}" "${key3}" "${expected3}") 
+                             "${key2}" "${expected2}" "${key3}" "${expected3}")
   dict_pretty_print "${dict}" "$(make_pretty_print_spec)"
 }
 can_json_pretty_print_simple_dict() {
@@ -1012,6 +1046,11 @@ can_json_pretty_print_simple_dict() {
   local key3='key3'
   dict=$(dict_declare_simple "${key1}" "${expected1}" \
                              "${key2}" "${expected2}" "${key3}" "${expected3}") 
+  dict_print_raw "$(make_json_pretty_print_spec)"
+  local dict_prefix="$(dict_get "$(make_json_pretty_print_spec)" "dict_prefix"; echo "${__TEST_CR__}")"
+  dict_prefix="${dict_prefix%${__TEST_CR__}}"
+  CHECK  "${dict_prefix}" = '{
+'
   dict_pretty_print "${dict}" "$(make_json_pretty_print_spec)"
 }
 
@@ -1027,6 +1066,7 @@ TEST cannot_set_duplicate_keys_in_dict_declaration
 TEST can_set_keys_duplicated_in_part_in_dict_declaration
 TEST can_retrieve_just_the_value_for_key_for_dict_containing_single_entry
 TEST can_retrieve_just_the_values_for_keys_for_dict_containing_multiple_entries
+TEST can_retrieve_the_value_for_key_for_dict_containing_newlines
 TEST can_update_values_of_previously_added_entries_using_dict_set
 TEST can_update_values_of_previously_added_entries_using_dict_set_simple
 TEST can_add_retrieve_values_with_keys_tails_of_other_keys

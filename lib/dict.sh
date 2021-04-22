@@ -240,15 +240,12 @@ EOF
 #            matching parameter 2 or blank (empty) value.
 dict_get() {
     __dict_abort_if_not_dict__ "${1}" "dict_get"
-    local value="$(__dict_get__ "$@")"
+    local value="$(__dict_get__ "$@"; echo "${__DICT_GS__}")"
+    value="${value%${__DICT_GS__}}"
     if __dict_is_nested_dict__ "${value}"; then
-        cat << EOF
-$(__dict_prepare_value_for_unnesting__ "${value}")
-EOF
+        __dict_prepare_value_for_unnesting__ "${value}"
     else
-        cat << EOF
-${value}
-EOF
+        echo -n "${value}"
     fi
 }
 
@@ -389,18 +386,9 @@ dict_pretty_print() {
     echo "Oops! Print specifications argument #2 passed to dict_pretty_print is not a dict(ionary) type. Quitting current (sub-)shell." >&2
     exit 1
   fi
-
-  local output="$(dict_get "${pprint_specs}" "dict_prefix")$(dict_for_each "${dict}" __dict_op_pretty_print_record__ "${pprint_specs}")$(dict_get "${pprint_specs}" "dict_suffix")"
-#  cat << EOF
-#$(dict_get "${pprint_specs}" "dict_prefix")
-#EOF
-#  dict_for_each "${dict}" __dict_op_pretty_print_record__ "${pprint_specs}"
-#  cat << EOF
-#$(dict_get "${pprint_specs}" "dict_suffix")
-#EOF
-  cat << EOF
-${output}
-EOF
+  dict_get_simple "${pprint_specs}" "dict_prefix"
+  dict_for_each "${dict}" __dict_op_pretty_print_record__ "${pprint_specs}"
+  dict_get_simple "${pprint_specs}" "dict_suffix"
 }
 
 # Details
@@ -431,20 +419,19 @@ __dict_op_pretty_print_record__() {
   local pprint_specs="${4}"
   local record_separator=''
   if [ ${record_number} -gt 1 ]; then
-    record_separator="$(dict_get "${pprint_specs}" "record_separator")"
+    record_separator="$(dict_get "${pprint_specs}" "record_separator"; echo "${__DICT_GS__}")"
+    record_separator="${record_separator%${__DICT_GS__}}"
   fi
   if ! dict_is_dict "${value}"; then
-    head -c -1 -q << EOF
-${record_separator}\
-$(dict_get "${pprint_specs}" "record_prefix")\
-$(dict_get "${pprint_specs}" "key_prefix")\
-${key}\
-$(dict_get "${pprint_specs}" "key_suffix")\
-$(dict_get "${pprint_specs}" "value_prefix")\
-${value}\
-$(dict_get "${pprint_specs}" "value_suffix")\
-$(dict_get "${pprint_specs}" "record_suffix")
-EOF
+    echo -n "${record_separator}"
+    dict_get_simple "${pprint_specs}" "record_prefix"
+    dict_get_simple "${pprint_specs}" "key_prefix"
+    echo -n "${key}"
+    dict_get_simple "${pprint_specs}" "key_suffix"
+    dict_get_simple "${pprint_specs}" "value_prefix"
+    echo -n "${value}"
+    dict_get_simple "${pprint_specs}" "value_suffix"
+    dict_get_simple "${pprint_specs}" "record_suffix"
   else
     head -c -1 -q << EOF
 $(dict_get "${pprint_specs}" "record_prefix")$(dict_get "${pprint_specs}" "key_prefix")${key}$(dict_get "${pprint_specs}" "key_suffix")$(dict_pretty_print "${value}" "${pprint_specs}")$(dict_get "${pprint_specs}" "record_suffix")
@@ -455,9 +442,7 @@ EOF
 __dict_new_entry__() {
     local decorated_key="${1}"
     local value="${2}"
-    cat << EOF 
-${decorated_key}${value}${__DICT_ENTRY_SEPARATOR__}
-EOF
+    echo -n "${decorated_key}${value}${__DICT_ENTRY_SEPARATOR__}"
 }
 
 __dict_prefix_entries__() {
@@ -472,17 +457,13 @@ __dict_prefix_entries__() {
     if [ "${prefix}" != "${dict}" ]; then
         local prefix="${prefix}${__DICT_ENTRY_SEPARATOR__}"
     fi
-    cat << EOF
-${prefix}
-EOF
+    echo -n "${prefix}"
 }
 
 __dict_value_and_suffix_entries__() {
     local dict="${1}"
     local decorated_key="${2}"
-    cat << EOF
-${dict#*${__DICT_ENTRY_SEPARATOR__}${decorated_key}}
-EOF
+    echo -n "${dict#*${__DICT_ENTRY_SEPARATOR__}${decorated_key}}"
 }
 
 __dict_value__() {
@@ -490,9 +471,7 @@ __dict_value__() {
     local decorated_key="${2}"
     local value_plus="$(__dict_value_and_suffix_entries__ "${dict}" "${decorated_key}")"
     if [ "${value_plus}" != "${dict}" ]; then
-        cat << EOF
-${value_plus%%${__DICT_ENTRY_SEPARATOR__}*}
-EOF
+        echo -n "${value_plus%%${__DICT_ENTRY_SEPARATOR__}*}"
     fi
 }
 
@@ -505,9 +484,7 @@ __dict_suffix_entries__() {
         if [ "${suffix_entries}" = "${value_plus}" ]; then
             suffix_entries=''
         fi
-        cat << EOF
-${suffix_entries}
-EOF
+        echo -n "${suffix_entries}"
     fi
 }
 
@@ -521,9 +498,7 @@ __dict_strip_header__() {
     fi
     local entries="${dict#${stripped}}"
     if [ "${entries}" != "${dict}" ]; then
-    cat << EOF
-${entries}
-EOF
+        echo -n "${entries}"
     fi
 }
 
@@ -560,16 +535,14 @@ __dict_set__() {
     local dict="$(__dict_strip_header__ "${1}" "false")"
     local dkey="$(__dict_decorated_key__ "${2}")"
     local value="${3}"
-    cat << EOF
-${__DICT_TYPE_VALUE__}$(__dict_prefix_entries__ "${dict}" "${dkey}")$(__dict_new_entry__ "${dkey}" "${value}")$(__dict_suffix_entries__ "${dict}" "${dkey}")
-EOF
+    echo -n "${__DICT_TYPE_VALUE__}"
+    __dict_prefix_entries__ "${dict}" "${dkey}"
+    __dict_new_entry__ "${dkey}" "${value}"
+    __dict_suffix_entries__ "${dict}" "${dkey}"
 }
-
 
 __dict_get__() {
     local dict="$(__dict_strip_header__ "${1}" "false")"
     local dkey="$(__dict_decorated_key__ "${2}")"
-    cat << EOF
-$(__dict_value__ "${dict}" "${dkey}")
-EOF
+    __dict_value__ "${dict}" "${dkey}"
 }
