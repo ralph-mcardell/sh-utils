@@ -382,13 +382,13 @@ dict_pretty_print() {
   local dict="${1}"
   local pprint_specs="${2}"
   __dict_abort_if_not_dict__ "${1}" "dict_pretty_print"
-  if ! dict_is_dict "${1}"; then
+  if ! dict_is_dict "${pprint_specs}"; then
     echo "Oops! Print specifications argument #2 passed to dict_pretty_print is not a dict(ionary) type. Quitting current (sub-)shell." >&2
     exit 1
   fi
-  dict_get_simple "${pprint_specs}" "dict_prefix"
-  dict_for_each "${dict}" __dict_op_pretty_print_record__ "${pprint_specs}"
-  dict_get_simple "${pprint_specs}" "dict_suffix"
+  dict_get_simple "${pprint_specs}" "print_prefix"
+  __dict_pretty_print__ "${dict}" "${pprint_specs}"
+  dict_get_simple "${pprint_specs}" "print_suffix"
 }
 
 # Details
@@ -412,6 +412,15 @@ ${1}${__DICT_FIELD_SEPARATOR__}
 EOF
 }
 
+
+__dict_pretty_print__() {
+  local dict="${1}"
+  local pprint_specs="${2}"
+  dict_get_simple "${pprint_specs}" "dict_prefix"
+  dict_for_each "${dict}" __dict_op_pretty_print_record__ "${pprint_specs}"
+  dict_get_simple "${pprint_specs}" "dict_suffix"
+}
+
 __dict_op_pretty_print_record__() {
   local key="${1}"
   local value="${2}"
@@ -433,9 +442,23 @@ __dict_op_pretty_print_record__() {
     dict_get_simple "${pprint_specs}" "value_suffix"
     dict_get_simple "${pprint_specs}" "record_suffix"
   else
-    head -c -1 -q << EOF
-$(dict_get "${pprint_specs}" "record_prefix")$(dict_get "${pprint_specs}" "key_prefix")${key}$(dict_get "${pprint_specs}" "key_suffix")$(dict_pretty_print "${value}" "${pprint_specs}")$(dict_get "${pprint_specs}" "record_suffix")
-EOF
+    echo -n "${record_separator}"
+    dict_get "${pprint_specs}" "record_prefix"
+    dict_get "${pprint_specs}" "key_prefix"
+    echo -n ${key}
+    dict_get "${pprint_specs}" "key_suffix"
+    local indent="$(dict_get "${pprint_specs}" "nesting_indent"; echo "${__DICT_GS__}")"
+    indent="${indent%${__DICT_GS__}}"
+    if [ -n "${indent}" ]; then
+        local pprint_specs_indent="$(echo -n "${pprint_specs}" | sed '2,$s'"/^/${indent}/";  echo "${__DICT_GS__}" )"
+        pprint_specs_indent="${pprint_specs_indent%${__DICT_GS__}}"
+    else
+        local pprint_specs_indent="${pprint_specs}"
+    fi
+    dict_get "${pprint_specs_indent}" "nesting_prefix"
+    __dict_pretty_print__ "${value}" "${pprint_specs_indent}"
+    dict_get "${pprint_specs_indent}" "nesting_suffix"
+    dict_get "${pprint_specs}" "record_suffix"
   fi
 }
 
