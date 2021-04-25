@@ -1004,16 +1004,15 @@ iterating_over_dict_with_nested_dict_values_passes_correct_key_values() {
 
 make_pretty_print_spec() {
 echo "$(dict_declare_simple \
-      "print_prefix" ">PRINT PRINT BEGIN>" "print_suffix" "<PRINT PRINT END<${__TEST_NL__}" \
-      "nesting_indent" "" "nesting_prefix" "|NS[" "nesting_suffix" "]NS|" \
-      "dict_prefix" "{dpx|" "dict_suffix" "|dsx}" \
-      "record_separator" ",rsp| " "record_prefix" "<rpx|" "record_suffix" "|rsx>" \
-      "key_prefix" "\"kpx|" "key_suffix" "|ksx\"" \
-      "value_prefix" "\"vpx|" "value_suffix" "|vsx\"" \
+      "print_prefix" "P" "print_suffix" "Q" \
+      "nesting_indent" "I" "nesting_prefix" "N" "nesting_suffix" "O" \
+      "dict_prefix" "D" "dict_suffix" "E" \
+      "record_separator" "T" "record_prefix" "R" "record_suffix" "S" \
+      "key_prefix" "K" "key_suffix" "L" \
+      "value_prefix" "V" "value_suffix" "W" \
     )"
 }
 
-#__TEST_NL__="$(echo '@@' | tr '@$' '\012\015')"
 make_json_pretty_print_spec() {
 cat << EOF
 $(dict_declare_simple \
@@ -1027,8 +1026,40 @@ $(dict_declare_simple \
 EOF
 }
 
+check_is_json() {
+  local candidate="${1}"
+  echo -n "${candidate}" | python -c "import sys,json;sys.tracebacklimit=0;json.loads(sys.stdin.read())"
+  local ret="$?"
+#  echo "@@@@@ json check of \""${candidate}"\" exitcode: \"${ret}\"" >&2
+  if [ "${ret}" -eq 0 ]; then
+    echo -n "true"
+  else
+    echo -n "false"
+  fi
+}
+
+check_is_json_true_for_good_json() {
+  local good_json="{ \"key\" : \"value\" }"
+  local result="$(check_is_json "${good_json}")"
+  CHECK "${result}"
+}
+
+check_is_json_false_for_bad_json() {
+  local bad_json="{ \"key\" : \"value\" "
+  local result="$(check_is_json "${bad_json}")"
+  CHECK_FALSE "${result}"
+}
+
 can_pretty_print_empty_dict() {
-  dict_pretty_print "$(dict_declare_simple)" "$(make_pretty_print_spec)"
+  local expected='PDEQ'
+  local actual="$(dict_pretty_print "$(dict_declare_simple)" "$(make_pretty_print_spec)")"
+  CHECK "${actual}X" = "${expected}X"
+}
+
+pretty_printing_empty_dict_with_empty_print_spec_gives_empty_result() {
+  local expected=''
+  local actual="$(dict_pretty_print "$(dict_declare_simple)" "$(dict_declare_simple)")"
+  CHECK "${actual}X" = "${expected}X"
 }
 
 can_pretty_print_simple_dict() {
@@ -1040,7 +1071,25 @@ can_pretty_print_simple_dict() {
   local key3='key3'
   dict=$(dict_declare_simple "${key1}" "${expected1}" \
                              "${key2}" "${expected2}" "${key3}" "${expected3}")
-  dict_pretty_print "${dict}" "$(make_pretty_print_spec)"
+
+  local expected="PDRK${key1}LV${expected1}WSTRK${key2}LV${expected2}WSTRK${key3}LV${expected3}WSEQ"
+  local actual="$(dict_pretty_print "${dict}" "$(make_pretty_print_spec)")"
+  CHECK "${actual}X" = "${expected}X"
+}
+
+pretty_printing_simple_dict_with_empty_print_spec_gives_just_keys_and_values() {
+  local expected1='value 1'
+  local expected2='value 2'
+  local expected3='value 3'
+  local key1='key1'
+  local key2='key2'
+  local key3='key3'
+  dict=$(dict_declare_simple "${key1}" "${expected1}" \
+                             "${key2}" "${expected2}" "${key3}" "${expected3}")
+
+  local expected="${key1}${expected1}${key2}${expected2}${key3}${expected3}"
+  local actual="$(dict_pretty_print "${dict}" "$(dict_declare_simple)")"
+  CHECK "${actual}X" = "${expected}X"
 }
 
 can_json_pretty_print_simple_dict() {
@@ -1054,11 +1103,9 @@ can_json_pretty_print_simple_dict() {
                              "${key2}" "${expected2}" "${key3}" "${expected3}") 
 #dict_print_raw "$(make_json_pretty_print_spec)"
   local dict_prefix="$(dict_get "$(make_json_pretty_print_spec)" "dict_prefix"; echo "${__TEST_CR__}")"
-  dict_prefix="${dict_prefix%${__TEST_CR__}}"
-  CHECK  "${dict_prefix}" = '{
-'
-  dict_pretty_print "${dict}" "$(make_json_pretty_print_spec)"
-  echo "<PRINT PRINT END<"
+  local json="$(dict_pretty_print "${dict}" "$(make_json_pretty_print_spec)")"
+  local is_json="$(check_is_json "${json}")"
+  CHECK "${is_json}"
 }
 
 make_nested_dict() {
@@ -1097,19 +1144,52 @@ make_nested_dict() {
 }
 
 can_pretty_print_nested_dict() {
+  local keyi11="keyi1"
+  local keyi12="keyi2"
+  local valuei11="value i 1 1"
+  local valuei12="value i _ 2"
+  local keyi21="keyi1"
+  local keyi22="keyi2"
+  local valuei21="value i 2 1"
+  local valuei22="value i _ 2"
+
+  local keym11="keym1"
+  local keym12="keym2"
+  local keym13="keym3"
+  local valuem11="value m 1 1"
+  local valuem13="value m _ _"
+  local keym21="keym1"
+  local keym22="keym2"
+  local keym23="keym3"
+  local keym24="keym4"
+  local valuem22="value m _ _"
+  local valuem23="value m 2 3"
+  local keyo1="keyo1"
+  local keyo2="keyo2"
+  local keyo3="keyo3"
+  local keyo4="keyo4"
+  local valueo1="value o one"
+  local valueo4="value o four"
   dict="$(make_nested_dict)"
-  dict_pretty_print "${dict}" "$(make_pretty_print_spec)"
+  actual="$(dict_pretty_print "${dict}" "$(make_pretty_print_spec)")"
+  expected="PDRK${keyo1}LV${valueo1}WST"\
+"RK${keyo2}LNDRK${keym11}LV${valuem11}WST"\
+"RK${keym12}LNDRK${keyi11}LV${valuei11}WSTRK${keyi12}LV${valuei12}WSEOST"\
+"RK${keym13}LV${valuem13}WSEOST"\
+"RK${keyo3}LNDRK${keym21}LNDRK${keyi11}LV${valuei11}WSTRK${keyi12}LV${valuei12}WSEOST"\
+"RK${keym22}LV${valuem22}WSTRK${keym23}LV${valuem23}WST"\
+"RK${keym24}LNDRK${keyi21}LV${valuei21}WSTRK${keyi22}LV${valuei22}WSEOSEOST"\
+"RK${keyo4}LV${valueo4}WSEQ"
+  CHECK "${actual}X" = "${expected}X"
 }
 
 can_json_pretty_print_nested_dict() {
   dict="$(make_nested_dict)"
 #dict_print_raw "$(make_json_pretty_print_spec)"
   local dict_prefix="$(dict_get "$(make_json_pretty_print_spec)" "dict_prefix"; echo "${__TEST_CR__}")"
-  dict_prefix="${dict_prefix%${__TEST_CR__}}"
-  CHECK  "${dict_prefix}" = '{
-'
-  dict_pretty_print "${dict}" "$(make_json_pretty_print_spec)"
-  echo "<PRINT PRINT END<"
+  local json="$(dict_pretty_print "${dict}" "$(make_json_pretty_print_spec)")"
+  local is_json="$(check_is_json "${json}")"
+  CHECK "${is_json}"
 }
 
 #set -x
@@ -1146,8 +1226,12 @@ TEST can_create_variable_of_key_name_with_prefix_and_suffix_with_associated_valu
 TEST can_create_variable_of_key_name_with_associated_nested_dict_value_for_each_dict_entry
 TEST can_create_variable_of_key_name_with_prefix_with_associated_value_for_each_dict_entry
 TEST can_create_variable_of_key_name_with_suffix_with_associated_value_for_each_dict_entry
+TEST check_is_json_true_for_good_json
+TEST check_is_json_false_for_bad_json
 TEST can_pretty_print_empty_dict
+TEST pretty_printing_empty_dict_with_empty_print_spec_gives_empty_result
 TEST can_pretty_print_simple_dict
+TEST pretty_printing_simple_dict_with_empty_print_spec_gives_just_keys_and_values
 TEST can_json_pretty_print_simple_dict
 TEST can_pretty_print_nested_dict
 TEST can_json_pretty_print_nested_dict
