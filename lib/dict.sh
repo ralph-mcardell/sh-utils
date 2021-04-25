@@ -38,7 +38,8 @@
 # dict_print_raw      to print the raw string of a dict variable with
 #                     substitutions for the US, RS, GS and FS non-printing
 #                     separator characters. Useful for debugging and similar.
-#
+# dict_pretty_print   output dict entries with customisable surrounding 
+#                     decoration.
 # '_simple' suffixed functions are simpler versions that do not support
 # nesting of dict values in other dict variables. They should have less
 # overhead as nested dicts have to have their field and record separator
