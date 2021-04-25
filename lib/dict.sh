@@ -325,12 +325,12 @@ dict_for_each() {
 #            embedded in dict
 # @returns : raw characters of dict with the US RS GS FS characters translated.
 dict_print_raw() {
-  local dict="${1}"
-  local us_rs_gs_fs_translation='_^]\\'
-  if [ $# -ge 2 ]; then
-    us_rs_gs_fs_translation="${2}"
-  fi
-  echo "${dict}" | tr "${__DICT_US__}${__DICT_RS__}${__DICT_GS__}${__DICT_FS__}" "${us_rs_gs_fs_translation}" 
+    local dict="${1}"
+    local us_rs_gs_fs_translation='_^]\\'
+    if [ $# -ge 2 ]; then
+        us_rs_gs_fs_translation="${2}"
+    fi
+    echo "${dict}" | tr "${__DICT_US__}${__DICT_RS__}${__DICT_GS__}${__DICT_FS__}" "${us_rs_gs_fs_translation}" 
 }
 
 # @brief Create variable from key, value
@@ -378,13 +378,57 @@ ${var_value}
 EOF
 }
 
+# @brief Output the entries of a dict with user-defined decoration
+#
+# The key, value entries of the passed dict will be output to the
+# (sub-) shell stdout, with customisable decoration surrounding elements
+# of the  data output provided by a second print specification dict
+# passed as the second parameter.
+#
+# Will recursively print the entries of nested dict values.
+# 
+# The print specification provides any or none of the following
+# string values to control the format of the output. Any value
+# not provided will be output as an empty string, hence providing
+# and empty print specification dict will just output each key,value
+# in order, including nested key values, with no separation between
+# each key and value or between each key, value entry.
+#
+# The available print specification keys and the use of their associated
+# values are:
+# 'print_prefix'      Characters output before any other dict output
+# 'print_suffix'      Characters output after all other dict output
+# 'nesting_indent'    Characters output after newlines for nested dict output;
+#                     applied to existing indent on each subsequent nesting.
+# 'nesting_prefix'    Characters output before any other nested dict output
+# 'nesting_suffix'    Characters output after all other nested dict output
+# 'dict_prefix'       Characters output before any dict entry output
+# 'dict_suffix'       Characters output after all dict entry output
+# 'record_separator'  Characters output between 'record_prefix' and
+#                     'record_suffix' characters. Useful for producing
+#                     list separators without trailing separator.
+# 'record_prefix'     Characters output before each dict entry output
+# 'record_suffix'     Characters output after each dict entry output
+# 'key_prefix'        Characters output before each dict entry key output
+# 'key_suffix'        Characters output after each dict entry key output
+# 'value_prefix'      Characters output before each dict entry value output
+# 'value_suffix'      Characters output after each dict entry value output
+#
+# As implied in the description of the value for the 'nesting_indent' key
+# print specification string values may contain newlines.
+#
+# @param 1 : dict to output
+# @param 2 : output print specification of decoration to output around dict
+#            key, value entries.
+# @returns: (to stdout of (sub-)shell) 'pretty-printed' representation of dict
+# @error: either parameter is not a dict. exit 1 from (sub-)shell.
 dict_pretty_print() {
   local dict="${1}"
   local pprint_specs="${2}"
   __dict_abort_if_not_dict__ "${1}" "dict_pretty_print"
   if ! dict_is_dict "${pprint_specs}"; then
-    echo "Oops! Print specifications argument #2 passed to dict_pretty_print is not a dict(ionary) type. Quitting current (sub-)shell." >&2
-    exit 1
+      echo "Oops! Print specifications argument #2 passed to dict_pretty_print is not a dict(ionary) type. Quitting current (sub-)shell." >&2
+      exit 1
   fi
   dict_get_simple "${pprint_specs}" "print_prefix"
   __dict_pretty_print__ "${dict}" "${pprint_specs}"
