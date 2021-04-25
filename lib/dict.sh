@@ -334,51 +334,6 @@ dict_print_raw() {
     echo "${dict}" | tr "${__DICT_US__}${__DICT_RS__}${__DICT_GS__}${__DICT_FS__}" "${us_rs_gs_fs_translation}" 
 }
 
-# @brief Create variable from key, value
-#
-# Operation function for use with dict_for_each.
-#
-# Will create a variable having the value of value passed as the
-# 2nd parameter and a name based on the key-value passed as the
-# 1st parameter.
-#
-# The variable created will be in the global scope of the (sub-)
-# shell of the call to dict_for_each.
-#
-# The name of the created variable in the simplest case is simply
-# the same as the key value. Optional prefix and suffix 3rd and
-# 4th parameters may be passed in which case the name of the
-# will be:
-#   ${prefix}${key}${suffiix} (that is ${3}${1}${4})
-# If the formed string is not a valid variable identifer bad
-# things will happen. To provided a suffix without a prefix specify
-# the prefix as a hyphen.
-#
-# If the value represents a nested dict then the value is unested.
-#
-# @param 1 : key value
-# @param 2 : value value
-# @param 3 : (optional) variable name prefix or '-' for suffix only
-# @param 4 : (optional) variable name suffix
-dict_op_to_var_flat() {
-    local var_name="${1}"
-    local var_value="${2}"
-    if [ $# -ge 4 ]; then
-        if [ "${4}" != '-' ]; then
-            local var_name="${4}${var_name}"
-        fi
-    fi
-    if [ $# -ge 5 ]; then
-        local var_name="${var_name}${5}"
-    fi
-    if __dict_is_nested_dict__ "${var_value}"; then
-        var_value="$(__dict_prepare_value_for_unnesting__ "${var_value}")"
-    fi
-    read ${var_name} << EOF 
-${var_value}
-EOF
-}
-
 # @brief Output the entries of a dict with user-defined decoration
 #
 # The key, value entries of the passed dict will be output to the
@@ -436,6 +391,51 @@ dict_pretty_print() {
   dict_get_simple "${pprint_specs}" "print_suffix"
 }
 
+# @brief Create variable from key, value
+#
+# Operation function for use with dict_for_each.
+#
+# Will create a variable having the value of value passed as the
+# 2nd parameter and a name based on the key-value passed as the
+# 1st parameter.
+#
+# The variable created will be in the global scope of the (sub-)
+# shell of the call to dict_for_each.
+#
+# The name of the created variable in the simplest case is simply
+# the same as the key value. Optional prefix and suffix 3rd and
+# 4th parameters may be passed in which case the name of the
+# will be:
+#   ${prefix}${key}${suffiix} (that is ${3}${1}${4})
+# If the formed string is not a valid variable identifer bad
+# things will happen. To provided a suffix without a prefix specify
+# the prefix as a hyphen.
+#
+# If the value represents a nested dict then the value is unested.
+#
+# @param 1 : key value
+# @param 2 : value value
+# @param 3 : (optional) variable name prefix or '-' for suffix only
+# @param 4 : (optional) variable name suffix
+dict_op_to_var_flat() {
+    local var_name="${1}"
+    local var_value="${2}"
+    if [ $# -ge 4 ]; then
+        if [ "${4}" != '-' ]; then
+            local var_name="${4}${var_name}"
+        fi
+    fi
+    if [ $# -ge 5 ]; then
+        local var_name="${var_name}${5}"
+    fi
+    if __dict_is_nested_dict__ "${var_value}"; then
+        var_value="$(__dict_prepare_value_for_unnesting__ "${var_value}")"
+    fi
+    read ${var_name} << EOF 
+${var_value}
+EOF
+}
+
 # Details
 
 __DICT_FS__=$(echo '@' | tr '@' '\034')
@@ -455,56 +455,6 @@ __dict_decorated_key__() {
     cat << EOF 
 ${1}${__DICT_FIELD_SEPARATOR__}
 EOF
-}
-
-
-__dict_pretty_print__() {
-  local dict="${1}"
-  local pprint_specs="${2}"
-  dict_get_simple "${pprint_specs}" "dict_prefix"
-  dict_for_each "${dict}" __dict_op_pretty_print_record__ "${pprint_specs}"
-  dict_get_simple "${pprint_specs}" "dict_suffix"
-}
-
-__dict_op_pretty_print_record__() {
-  local key="${1}"
-  local value="${2}"
-  local record_number="${3}"
-  local pprint_specs="${4}"
-  local record_separator=''
-  if [ ${record_number} -gt 1 ]; then
-    record_separator="$(dict_get "${pprint_specs}" "record_separator"; echo "${__DICT_GS__}")"
-    record_separator="${record_separator%${__DICT_GS__}}"
-  fi
-  if ! dict_is_dict "${value}"; then
-    echo -n "${record_separator}"
-    dict_get_simple "${pprint_specs}" "record_prefix"
-    dict_get_simple "${pprint_specs}" "key_prefix"
-    echo -n "${key}"
-    dict_get_simple "${pprint_specs}" "key_suffix"
-    dict_get_simple "${pprint_specs}" "value_prefix"
-    echo -n "${value}"
-    dict_get_simple "${pprint_specs}" "value_suffix"
-    dict_get_simple "${pprint_specs}" "record_suffix"
-  else
-    echo -n "${record_separator}"
-    dict_get "${pprint_specs}" "record_prefix"
-    dict_get "${pprint_specs}" "key_prefix"
-    echo -n ${key}
-    dict_get "${pprint_specs}" "key_suffix"
-    local indent="$(dict_get "${pprint_specs}" "nesting_indent"; echo "${__DICT_GS__}")"
-    indent="${indent%${__DICT_GS__}}"
-    if [ -n "${indent}" ]; then
-        local pprint_specs_indent="$(echo -n "${pprint_specs}" | sed '2,$s'"/^/${indent}/";  echo "${__DICT_GS__}" )"
-        pprint_specs_indent="${pprint_specs_indent%${__DICT_GS__}}"
-    else
-        local pprint_specs_indent="${pprint_specs}"
-    fi
-    dict_get "${pprint_specs_indent}" "nesting_prefix"
-    __dict_pretty_print__ "${value}" "${pprint_specs_indent}"
-    dict_get "${pprint_specs_indent}" "nesting_suffix"
-    dict_get "${pprint_specs}" "record_suffix"
-  fi
 }
 
 __dict_new_entry__() {
@@ -613,4 +563,53 @@ __dict_get__() {
     local dict="$(__dict_strip_header__ "${1}" "false")"
     local dkey="$(__dict_decorated_key__ "${2}")"
     __dict_value__ "${dict}" "${dkey}"
+}
+
+__dict_pretty_print__() {
+    local dict="${1}"
+    local pprint_specs="${2}"
+    dict_get_simple "${pprint_specs}" "dict_prefix"
+    dict_for_each "${dict}" __dict_op_pretty_print_record__ "${pprint_specs}"
+    dict_get_simple "${pprint_specs}" "dict_suffix"
+}
+
+__dict_op_pretty_print_record__() {
+    local key="${1}"
+    local value="${2}"
+    local record_number="${3}"
+    local pprint_specs="${4}"
+    local record_separator=''
+    if [ ${record_number} -gt 1 ]; then
+        record_separator="$(dict_get "${pprint_specs}" "record_separator"; echo "${__DICT_GS__}")"
+        record_separator="${record_separator%${__DICT_GS__}}"
+    fi
+    if ! dict_is_dict "${value}"; then
+        echo -n "${record_separator}"
+        dict_get_simple "${pprint_specs}" "record_prefix"
+        dict_get_simple "${pprint_specs}" "key_prefix"
+        echo -n "${key}"
+        dict_get_simple "${pprint_specs}" "key_suffix"
+        dict_get_simple "${pprint_specs}" "value_prefix"
+        echo -n "${value}"
+        dict_get_simple "${pprint_specs}" "value_suffix"
+        dict_get_simple "${pprint_specs}" "record_suffix"
+    else
+        echo -n "${record_separator}"
+        dict_get "${pprint_specs}" "record_prefix"
+        dict_get "${pprint_specs}" "key_prefix"
+        echo -n ${key}
+        dict_get "${pprint_specs}" "key_suffix"
+        local indent="$(dict_get "${pprint_specs}" "nesting_indent"; echo "${__DICT_GS__}")"
+        indent="${indent%${__DICT_GS__}}"
+        if [ -n "${indent}" ]; then
+            local pprint_specs_indent="$(echo -n "${pprint_specs}" | sed '2,$s'"/^/${indent}/";  echo "${__DICT_GS__}" )"
+            pprint_specs_indent="${pprint_specs_indent%${__DICT_GS__}}"
+        else
+            local pprint_specs_indent="${pprint_specs}"
+        fi
+        dict_get "${pprint_specs_indent}" "nesting_prefix"
+        __dict_pretty_print__ "${value}" "${pprint_specs_indent}"
+        dict_get "${pprint_specs_indent}" "nesting_suffix"
+        dict_get "${pprint_specs}" "record_suffix"
+    fi
 }
