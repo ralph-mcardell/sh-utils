@@ -67,10 +67,18 @@ non_dict_variables_are_not_tolerated() {
   notdict="key${__DICT_FIELD_SEPARATOR__}value${__DICT_ENTRY_SEPARATOR__}"
   $(dict_for_each "${notdict}" "key" )
   CHECK $? -eq 1
+  notdict="key${__DICT_FIELD_SEPARATOR__}value${__DICT_ENTRY_SEPARATOR__}"
+  $(dict_size "${notdict}" )
+  CHECK $? -eq 1
+  $(dict_pretty_print "${notdict}" "${notdict}" )
+  CHECK $? -eq 1
+  $(dict_pretty_print "$(dict_declare_simple)" "${notdict}" )
+  CHECK $? -eq 1
 }
 
 cannot_retrieve_values_from_empty_dict() {
   local dict=$(dict_declare)
+  REQUIRE "$(dict_size "${dict}")" -eq "0"
   CHECK "$(dict_get "${dict}" 'some_key')x" = "x"
   CHECK "$(dict_get_simple "${dict}" 'some_key')x" = "x"
   local dict2=$(dict_declare_simple)
@@ -88,6 +96,7 @@ can_add_multiple_initial_values_on_dict_declaration() {
   dict=$(dict_declare "${key1}" "${expected1}" \
                       "${key2}" "${expected2}" "${key3}" "${expected3}")
 
+  REQUIRE "$(dict_size "${dict}")" -eq "3"
   CHECK "$(dict_get "${dict}" "${key1}")A" = "${expected1}A"
   CHECK "$(dict_get "${dict}" "${key2}")B" = "${expected2}B"
   CHECK "$(dict_get "${dict}" "${key3}")C" = "${expected3}C"
@@ -104,6 +113,7 @@ can_add_multiple_initial_simple_values_only_on_dict_declaration() {
   local key3='key3'
   dict=$(dict_declare_simple "${key1}" "${expected1}" \
                              "${key2}" "${expected2}" "${key3}" "${expected3}")
+  REQUIRE "$(dict_size "${dict}")" -eq "3"
 
   CHECK "$(dict_get "${dict}" "${key1}")A" = "${expected1}A"
   CHECK "$(dict_get "${dict}" "${key2}")B" = "${expected2}B"
@@ -133,11 +143,13 @@ can_set_keys_duplicated_in_part_in_dict_declaration() {
   CHECK $? -eq 0
   local is_dict="dict_is_dict ${ret}"
   CHECK "${is_dict}"
+  CHECK "$(dict_size "${ret}")" -eq "5"
 
   ret=$(dict_declare_simple "K" "V" "Kk" "Vv" "kKk" "vVv" "kK" "vV" "k" "v")
   CHECK $? -eq 0
   is_dict="dict_is_dict ${ret}"
   CHECK "${is_dict}"
+  CHECK "$(dict_size "${ret}")" -eq "5"
 }
 
 can_retrieve_just_the_value_for_key_for_dict_containing_single_entry() {
@@ -145,6 +157,7 @@ can_retrieve_just_the_value_for_key_for_dict_containing_single_entry() {
   local key='key1'
 
   local dict="$(dict_set $(dict_declare) "${key}" "${expected}")"
+  REQUIRE "$(dict_size "${dict}")" -eq "1"
 
 # Pass dict_get result directly inline with call to CHECK
   CHECK "$(dict_get "${dict}" "${key}")i" = "${expected}i"
@@ -169,9 +182,10 @@ can_retrieve_just_the_values_for_keys_for_dict_containing_multiple_entries() {
   local key3='key3'
 
 # can add entries to dict when declared or by dict_set/dict_set_simple
-  local dict="$(dict_declare "${key1}" "${expected1}")"
+  local dict="$(dict_declare_simple "${key1}" "${expected1}")"
   dict="$(dict_set_simple "${dict}" "${key2}" "${expected2}")"
   dict="$(dict_set "${dict}" "${key3}" "${expected3}")"
+  REQUIRE "$(dict_size "${dict}")" -eq "3"
 
   CHECK "$(dict_get "${dict}" "${key1}")A" = "${expected1}A"
   CHECK "$(dict_get "${dict}" "${key2}")B" = "${expected2}B"
@@ -192,6 +206,7 @@ can_retrieve_the_value_for_key_for_dict_containing_newlines() {
 '
   local key='key1'
   local dict="$(dict_set $(dict_declare) "${key}" "${expected}")"
+  REQUIRE "$(dict_size "${dict}")" -eq "1"
 
 # Pass dict_get result directly inline with call to CHECK
 # NOTE: that trailing newlines are stripped from command expansions as per
@@ -224,11 +239,13 @@ can_update_values_of_previously_added_entries_using_dict_set() {
     "${key1}" "PLACEHOLDER 1" \
     "${key2}" "PLACEHOLDER 2" \
     "${key3}" "PLACEHOLDER 3")"
+  REQUIRE "$(dict_size "${dict}")" -eq "3"
 
   dict="$(dict_set "${dict}" "${key1}" "${expected1}")"
   dict="$(dict_set "${dict}" "${key2}" "${expected2}")"
   dict="$(dict_set "${dict}" "${key3}" "${expected3}")"
 
+  CHECK "$(dict_size "${dict}")" -eq "3"
   CHECK "$(dict_get "${dict}" "${key1}")A" = "${expected1}A"
   CHECK "$(dict_get "${dict}" "${key2}")B" = "${expected2}B"
   CHECK "$(dict_get "${dict}" "${key3}")C" = "${expected3}C"
@@ -247,11 +264,13 @@ can_update_values_of_previously_added_entries_using_dict_set_simple() {
     "${key1}" "PLACEHOLDER 1" \
     "${key2}" "PLACEHOLDER 2" \
     "${key3}" "PLACEHOLDER 3")"
+  REQUIRE "$(dict_size "${dict}")" -eq "3"
 
   dict="$(dict_set_simple "${dict}" "${key1}" "${expected1}")"
   dict="$(dict_set_simple "${dict}" "${key2}" "${expected2}")"
   dict="$(dict_set_simple "${dict}" "${key3}" "${expected3}")"
 
+  CHECK "$(dict_size "${dict}")" -eq "3"
   CHECK "$(dict_get_simple "${dict}" "${key1}")A" = "${expected1}A"
   CHECK "$(dict_get_simple "${dict}" "${key2}")B" = "${expected2}B"
   CHECK "$(dict_get_simple "${dict}" "${key3}")C" = "${expected3}C"
@@ -270,6 +289,7 @@ can_add_retrieve_values_with_keys_tails_of_other_keys() {
     "${key1}" "${expected1}" \
     "${key2}" "${expected2}" \
     "${key3}" "${expected3}")"
+  REQUIRE "$(dict_size "${dict}")" -eq "3"
 
   CHECK "$(dict_get "${dict}" "${key1}")A" = "${expected1}A"
   CHECK "$(dict_get "${dict}" "${key2}")B" = "${expected2}B"
@@ -291,6 +311,7 @@ can_add_retrieve_values_with_keys_heads_of_other_keys() {
   dict="$(dict_set "${dict}" "${key1}" "${expected1}")"
   dict="$(dict_set "${dict}" "${key2}" "${expected2}")"
   dict="$(dict_set "${dict}" "${key3}" "${expected3}")"
+  REQUIRE "$(dict_size "${dict}")" -eq "3"
 
   CHECK "$(dict_get "${dict}" "${key1}")A" = "${expected1}A"
   CHECK "$(dict_get "${dict}" "${key2}")B" = "${expected2}B"
@@ -312,6 +333,7 @@ can_add_retrieve_values_with_keys_contained_in_other_keys() {
   dict="$(dict_set_simple "${dict}" "${key1}" "${expected1}")"
   dict="$(dict_set_simple "${dict}" "${key2}" "${expected2}")"
   dict="$(dict_set_simple "${dict}" "${key3}" "${expected3}")"
+  REQUIRE "$(dict_size "${dict}")" -eq "3"
 
   CHECK "$(dict_get "${dict}" "${key1}")A" = "${expected1}A"
   CHECK "$(dict_get "${dict}" "${key2}")B" = "${expected2}B"
@@ -335,6 +357,7 @@ can_add_and_retrieve_entries_correctly_with_key_values_within_values() {
   dict="$(dict_set "${dict}" "${keyvalue}" "${keyvalue}")"
   dict="$(dict_set "${dict}" "${aftersuffixkey}" "${keyvalue}${aftersuffixkey}")"
   dict="$(dict_set "${dict}" "${afterprefixkey}" "${afterprefixkey}${keyvalue}")"
+  REQUIRE "$(dict_size "${dict}")" -eq "5"
   CHECK "$(dict_get "${dict}" "${keyvalue}")B" = "${keyvalue}B"
   CHECK "$(dict_get "${dict}" "${beforeprefixkey}")B" = "${beforeprefixkey}${keyvalue}B"
   CHECK "$(dict_get "${dict}" "${beforesuffixkey}")B" = "${keyvalue}${beforesuffixkey}B"
@@ -355,11 +378,13 @@ can_add_update_and_retrieve_entries_correctly_with_key_values_within_values() {
   dict="$(dict_set "${dict}" "${keyvalue}" "${keyvalue}")"
   dict="$(dict_set "${dict}" "${aftersuffixkey}" "PLACEHOLDER${aftersuffixkey}")"
   dict="$(dict_set "${dict}" "${afterprefixkey}" "${afterprefixkey}PLACEHOLDER")"
+  REQUIRE "$(dict_size "${dict}")" -eq "5"
 
   dict="$(dict_set "${dict}" "${beforeprefixkey}" "${beforeprefixkey}${keyvalue}")"
   dict="$(dict_set "${dict}" "${beforesuffixkey}" "${keyvalue}${beforesuffixkey}")"
   dict="$(dict_set "${dict}" "${aftersuffixkey}" "${keyvalue}${aftersuffixkey}")"
   dict="$(dict_set "${dict}" "${afterprefixkey}" "${afterprefixkey}${keyvalue}")"
+  CHECK "$(dict_size "${dict}")" -eq "5"
 
   CHECK "$(dict_get "${dict}" "${keyvalue}")B" = "${keyvalue}B"
 
@@ -381,21 +406,25 @@ can_remove_whole_entry_specified_by_key_from_dict() {
   dict="$(dict_set "${dict}" "${key2}" "${expected2}")"
   dict="$(dict_set "${dict}" "${key3}" "${expected3}")"
 
+  REQUIRE "$(dict_size "${dict}")" -eq "3"
   REQUIRE "$(dict_get "${dict}" "${key1}")A" = "${expected1}A"
   REQUIRE "$(dict_get "${dict}" "${key2}")B" = "${expected2}B"
   REQUIRE "$(dict_get "${dict}" "${key3}")C" = "${expected3}C"
 
   dict="$(dict_remove "${dict}" "${key2}")"
+  CHECK "$(dict_size "${dict}")" -eq "2"
   CHECK "$(dict_get "${dict}" "${key1}")A" = "${expected1}A"
   CHECK "$(dict_get "${dict}" "${key2}")B" = "B"
   CHECK "$(dict_get "${dict}" "${key3}")C" = "${expected3}C"
 
   dict="$(dict_remove "${dict}" "${key3}")"
+  CHECK "$(dict_size "${dict}")" -eq "1"
   CHECK "$(dict_get "${dict}" "${key1}")A" = "${expected1}A"
   CHECK "$(dict_get "${dict}" "${key2}")B" = "B"
   CHECK "$(dict_get "${dict}" "${key3}")C" = "C"
 
   dict="$(dict_remove "${dict}" "${key1}")"
+  CHECK "$(dict_size "${dict}")" -eq "0"
   CHECK "$(dict_get "${dict}" "${key1}")A" = "A"
   CHECK "$(dict_get "${dict}" "${key2}")B" = "B"
   CHECK "$(dict_get "${dict}" "${key3}")C" = "C"
@@ -413,62 +442,75 @@ added_nested_dict_values_can_be_retrieved_correctly() {
   dict_2_1="$(dict_set "${dict_2_1}" "${key1}2_1" "${expected1}2_1")"
   dict_2_1="$(dict_set "${dict_2_1}" "${key2}2_1" "${expected2}2_1")"
   dict_2_1="$(dict_set "${dict_2_1}" "${key3}2_1" "${expected3}2_1")"
+  REQUIRE "$(dict_size "${dict_2_1}")" -eq "3"
   local dict_2_2=$(dict_declare)
   dict_2_2="$(dict_set "${dict_2_2}" "${key1}2_2" "${expected1}2_2")"
   dict_2_2="$(dict_set "${dict_2_2}" "${key2}2_2" "${expected2}2_2")"
   dict_2_2="$(dict_set "${dict_2_2}" "${key3}2_2" "${expected3}2_2")"
+  REQUIRE "$(dict_size "${dict_2_2}")" -eq "3"
   local dict_2_3=$(dict_declare)
   dict_2_3="$(dict_set "${dict_2_3}" "${key1}2_3" "${expected1}2_3")"
   dict_2_3="$(dict_set "${dict_2_3}" "${key2}2_3" "${expected2}2_3")"
   dict_2_3="$(dict_set "${dict_2_3}" "${key3}2_3" "${expected3}2_3")"
+  REQUIRE "$(dict_size "${dict_2_3}")" -eq "3"
 
   local dict_1_1=$(dict_declare)
   dict_1_1="$(dict_set "${dict_1_1}" "${key1}1_1" "${expected1}1_1")"
   dict_1_1="$(dict_set "${dict_1_1}" "${key2}1_1" "${expected2}1_1")"
   dict_1_1="$(dict_set "${dict_1_1}" "${key3}1_1" "${expected3}1_1")"
+  REQUIRE "$(dict_size "${dict_1_1}")" -eq "3"
   local dict_1_2=$(dict_declare)
   dict_1_2="$(dict_set "${dict_1_2}" "${key1}1_2" "${expected1}1_2")"
   dict_1_2="$(dict_set "${dict_1_2}" "${key2}1_2" "${expected2}1_2")"
   dict_1_2="$(dict_set "${dict_1_2}" "${key3}1_2" "${expected3}1_2")"
+  REQUIRE "$(dict_size "${dict_1_2}")" -eq "3"
   local dict_1_3=$(dict_declare)
   dict_1_3="$(dict_set "${dict_1_3}" "${key1}1_3" "${dict_2_1}")"
   dict_1_3="$(dict_set "${dict_1_3}" "${key2}1_3" "${dict_2_2}")"
   dict_1_3="$(dict_set "${dict_1_3}" "${key3}1_3" "${dict_2_3}")"
+  REQUIRE "$(dict_size "${dict_1_3}")" -eq "3"
 
   local dict=$(dict_declare)
   dict="$(dict_set "${dict}" "${key1}" "${dict_1_1}")"
   dict="$(dict_set "${dict}" "${key2}" "${dict_1_2}")"
   dict="$(dict_set "${dict}" "${key3}" "${dict_1_3}")"
+  REQUIRE "$(dict_size "${dict}")" -eq "3"
 
   v="$(dict_get "${dict}" "${key1}")"
   REQUIRE -n "${v}"
+  CHECK "$(dict_size "${v}")" -eq "3"
   CHECK "$(dict_get "${v}" "${key1}1_1")A" = "${expected1}1_1A"
   CHECK "$(dict_get "${v}" "${key2}1_1")A" = "${expected2}1_1A"
   CHECK "$(dict_get "${v}" "${key3}1_1")A" = "${expected3}1_1A"
 
   v="$(dict_get "${dict}" "${key2}")"
   REQUIRE -n "${v}"
+  CHECK "$(dict_size "${v}")" -eq "3"
   CHECK "$(dict_get "${v}" "${key1}1_2")A" = "${expected1}1_2A"
   CHECK "$(dict_get "${v}" "${key2}1_2")A" = "${expected2}1_2A"
   CHECK "$(dict_get "${v}" "${key3}1_2")A" = "${expected3}1_2A"
 
   v="$(dict_get "${dict}" "${key3}")"
   REQUIRE -n "${v}"
+  CHECK "$(dict_size "${v}")" -eq "3"
 
   vv="$(dict_get "${v}" "${key1}1_3")"
   REQUIRE -n "${vv}"
+  CHECK "$(dict_size "${vv}")" -eq "3"
   CHECK "$(dict_get "${vv}" "${key1}2_1")A" = "${expected1}2_1A"
   CHECK "$(dict_get "${vv}" "${key2}2_1")A" = "${expected2}2_1A"
   CHECK "$(dict_get "${vv}" "${key3}2_1")A" = "${expected3}2_1A"
 
   vv="$(dict_get "${v}" "${key2}1_3")"
   REQUIRE -n "${vv}"
+  CHECK "$(dict_size "${vv}")" -eq "3"
   CHECK "$(dict_get "${vv}" "${key1}2_2")A" = "${expected1}2_2A"
   CHECK "$(dict_get "${vv}" "${key2}2_2")A" = "${expected2}2_2A"
   CHECK "$(dict_get "${vv}" "${key3}2_2")A" = "${expected3}2_2A"
 
   vv="$(dict_get "${v}" "${key3}1_3")"
   REQUIRE -n "${vv}"
+  CHECK "$(dict_size "${vv}")" -eq "3"
   CHECK "$(dict_get "${vv}" "${key1}2_3")A" = "${expected1}2_3A"
   CHECK "$(dict_get "${vv}" "${key2}2_3")A" = "${expected2}2_3A"
   CHECK "$(dict_get "${vv}" "${key3}2_3")A" = "${expected3}2_3A"
@@ -486,62 +528,75 @@ initialised_nested_dict_values_can_be_retrieved_correctly() {
     "${key1}2_1" "${expected1}2_1" \
     "${key2}2_1" "${expected2}2_1" \
     "${key3}2_1" "${expected3}2_1")"
+  REQUIRE "$(dict_size "${dict_2_1}")" -eq "3"
   local dict_2_2="$(dict_declare_simple \
     "${key1}2_2" "${expected1}2_2" \
     "${key2}2_2" "${expected2}2_2" \
     "${key3}2_2" "${expected3}2_2")"
+  REQUIRE "$(dict_size "${dict_2_2}")" -eq "3"
   local dict_2_3="$(dict_declare_simple \
     "${key1}2_3" "${expected1}2_3" \
     "${key2}2_3" "${expected2}2_3" \
     "${key3}2_3" "${expected3}2_3")"
+  REQUIRE "$(dict_size "${dict_2_3}")" -eq "3"
 
   local dict_1_1="$(dict_declare \
     "${key1}1_1" "${expected1}1_1" \
     "${key2}1_1" "${expected2}1_1" \
     "${key3}1_1" "${expected3}1_1")"
+  REQUIRE "$(dict_size "${dict_1_1}")" -eq "3"
   local dict_1_2="$(dict_declare_simple \
     "${key1}1_2" "${expected1}1_2" \
     "${key2}1_2" "${expected2}1_2" \
     "${key3}1_2" "${expected3}1_2")"
+  REQUIRE "$(dict_size "${dict_1_2}")" -eq "3"
   local dict_1_3="$(dict_declare \
     "${key1}1_3" "${dict_2_1}" \
     "${key2}1_3" "${dict_2_2}" \
     "${key3}1_3" "${dict_2_3}")"
+  REQUIRE "$(dict_size "${dict_1_3}")" -eq "3"
 
   local dict="$(dict_declare \
     "${key1}" "${dict_1_1}" \
     "${key2}" "${dict_1_2}" \
     "${key3}" "${dict_1_3}")"
+  REQUIRE "$(dict_size "${dict}")" -eq "3"
 
   v="$(dict_get "${dict}" "${key1}")"
   REQUIRE -n "${v}"
+  CHECK "$(dict_size "${v}")" -eq "3"
   CHECK "$(dict_get "${v}" "${key1}1_1")A" = "${expected1}1_1A"
   CHECK "$(dict_get "${v}" "${key2}1_1")A" = "${expected2}1_1A"
   CHECK "$(dict_get "${v}" "${key3}1_1")A" = "${expected3}1_1A"
 
   v="$(dict_get "${dict}" "${key2}")"
   REQUIRE -n "${v}"
+  CHECK "$(dict_size "${v}")" -eq "3"
   CHECK "$(dict_get "${v}" "${key1}1_2")A" = "${expected1}1_2A"
   CHECK "$(dict_get "${v}" "${key2}1_2")A" = "${expected2}1_2A"
   CHECK "$(dict_get "${v}" "${key3}1_2")A" = "${expected3}1_2A"
 
   v="$(dict_get "${dict}" "${key3}")"
   REQUIRE -n "${v}"
+  CHECK "$(dict_size "${v}")" -eq "3"
 
   vv="$(dict_get "${v}" "${key1}1_3")"
   REQUIRE -n "${vv}"
+  CHECK "$(dict_size "${vv}")" -eq "3"
   CHECK "$(dict_get "${vv}" "${key1}2_1")A" = "${expected1}2_1A"
   CHECK "$(dict_get "${vv}" "${key2}2_1")A" = "${expected2}2_1A"
   CHECK "$(dict_get "${vv}" "${key3}2_1")A" = "${expected3}2_1A"
 
   vv="$(dict_get "${v}" "${key2}1_3")"
   REQUIRE -n "${vv}"
+  CHECK "$(dict_size "${vv}")" -eq "3"
   CHECK "$(dict_get "${vv}" "${key1}2_2")A" = "${expected1}2_2A"
   CHECK "$(dict_get "${vv}" "${key2}2_2")A" = "${expected2}2_2A"
   CHECK "$(dict_get "${vv}" "${key3}2_2")A" = "${expected3}2_2A"
 
   vv="$(dict_get "${v}" "${key3}1_3")"
   REQUIRE -n "${vv}"
+  CHECK "$(dict_size "${vv}")" -eq "3"
   CHECK "$(dict_get "${vv}" "${key1}2_3")A" = "${expected1}2_3A"
   CHECK "$(dict_get "${vv}" "${key2}2_3")A" = "${expected2}2_3A"
   CHECK "$(dict_get "${vv}" "${key3}2_3")A" = "${expected3}2_3A"
@@ -559,48 +614,58 @@ nested_dict_values_can_be_removed_correctly() {
     "${key1}2_1" "${expected1}2_1" \
     "${key2}2_1" "${expected2}2_1" \
     "${key3}2_1" "${expected3}2_1")"
+  REQUIRE "$(dict_size "${dict_2_1}")" -eq "3"
   local dict_2_2="$(dict_declare_simple \
     "${key1}2_2" "${expected1}2_2" \
     "${key2}2_2" "${expected2}2_2" \
     "${key3}2_2" "${expected3}2_2")"
+  REQUIRE "$(dict_size "${dict_2_2}")" -eq "3"
   local dict_2_3=$(dict_declare)
   dict_2_3="$(dict_set "${dict_2_3}" "${key1}2_3" "${expected1}2_3")"
   dict_2_3="$(dict_set "${dict_2_3}" "${key2}2_3" "${expected2}2_3")"
   dict_2_3="$(dict_set "${dict_2_3}" "${key3}2_3" "${expected3}2_3")"
+  REQUIRE "$(dict_size "${dict_2_3}")" -eq "3"
 
   local dict_1_1=$(dict_declare)
   dict_1_1="$(dict_set_simple "${dict_1_1}" "${key1}1_1" "${expected1}1_1")"
   dict_1_1="$(dict_set_simple "${dict_1_1}" "${key2}1_1" "${expected2}1_1")"
   dict_1_1="$(dict_set_simple "${dict_1_1}" "${key3}1_1" "${expected3}1_1")"
+  REQUIRE "$(dict_size "${dict_1_1}")" -eq "3"
   local dict_1_2=$(dict_declare_simple)
   dict_1_2="$(dict_set_simple "${dict_1_2}" "${key1}1_2" "${expected1}1_2")"
   dict_1_2="$(dict_set_simple "${dict_1_2}" "${key2}1_2" "${expected2}1_2")"
   dict_1_2="$(dict_set_simple "${dict_1_2}" "${key3}1_2" "${expected3}1_2")"
+  REQUIRE "$(dict_size "${dict_1_2}")" -eq "3"
   local dict_1_3=$(dict_declare_simple)
   dict_1_3="$(dict_set "${dict_1_3}" "${key1}1_3" "${dict_2_1}")"
   dict_1_3="$(dict_set "${dict_1_3}" "${key2}1_3" "${dict_2_2}")"
   dict_1_3="$(dict_set "${dict_1_3}" "${key3}1_3" "${dict_2_3}")"
+  REQUIRE "$(dict_size "${dict_1_3}")" -eq "3"
 
   local dict=$(dict_declare)
   dict="$(dict_set "${dict}" "${key1}" "${dict_1_1}")"
   dict="$(dict_set "${dict}" "${key2}" "${dict_1_2}")"
   dict="$(dict_set "${dict}" "${key3}" "${dict_1_3}")"
+  REQUIRE "$(dict_size "${dict}")" -eq "3"
 
   REQUIRE "$(dict_get "${dict}" "${key1}")A" = "${dict_1_1}A"
   REQUIRE "$(dict_get "${dict}" "${key2}")B" = "${dict_1_2}B"
   REQUIRE "$(dict_get "${dict}" "${key3}")C" = "${dict_1_3}C"
 
   dict="$(dict_remove "${dict}" "${key2}")"
+  REQUIRE "$(dict_size "${dict}")" -eq "2"
   CHECK "$(dict_get "${dict}" "${key1}")A" = "${dict_1_1}A"
   CHECK "$(dict_get "${dict}" "${key2}")B" = "B"
   CHECK "$(dict_get "${dict}" "${key3}")C" = "${dict_1_3}C"
 
   dict="$(dict_remove "${dict}" "${key3}")"
+  REQUIRE "$(dict_size "${dict}")" -eq "1"
   CHECK "$(dict_get "${dict}" "${key1}")A" = "${dict_1_1}A"
   CHECK "$(dict_get "${dict}" "${key2}")B" = "B"
   CHECK "$(dict_get "${dict}" "${key3}")C" = "C"
 
   dict="$(dict_remove "${dict}" "${key1}")"
+  REQUIRE "$(dict_size "${dict}")" -eq "0"
   CHECK "$(dict_get "${dict}" "${key1}")A" = "A"
   CHECK "$(dict_get "${dict}" "${key2}")B" = "B"
   CHECK "$(dict_get "${dict}" "${key3}")C" = "C"
@@ -618,6 +683,7 @@ can_create_variable_of_key_name_with_associated_value_for_each_dict_entry() {
   dict="$(dict_set "${dict}" "${key2}" "${expected2}")"
   dict="$(dict_set "${dict}" "${key3}" "${expected3}")"
 
+  REQUIRE "$(dict_size "${dict}")" -eq "3"
   REQUIRE "$(dict_get "${dict}" "${key1}")A" = "${expected1}A"
   REQUIRE "$(dict_get "${dict}" "${key2}")B" = "${expected2}B"
   REQUIRE "$(dict_get "${dict}" "${key3}")C" = "${expected3}C"
