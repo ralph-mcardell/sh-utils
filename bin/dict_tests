@@ -4,16 +4,15 @@ echo "====================================================="
 echo ">>>>>>>>>>>>>>>>>> DICT TESTS <<<<<<<<<<<<<<<<<<<<<<<"
 echo "====================================================="
 
-build_realpath() {
-  local path="$1"
-  echo $(realpath "${path}") || {
-    echo "No realpath; falling back to setting EXEC_DIR with cd ${path} && pwd -P." >&2
-    echo $(cd ${path} && pwd -P)
-  }
+EXEC_DIR=`realpath $(dirname "$0")` || {
+   echo "No realpath; falling back to setting EXEC_DIR with cd dirname \"\$0\" && pwd -P."
+   EXEC_DIR=$(cd $(dirname "$0") && pwd -P)
 }
 
-EXEC_DIR=$(build_realpath $(dirname "$0"))
-WORK_DIR=$(build_realpath "${EXEC_DIR}/..")
+WORK_DIR=`realpath "${EXEC_DIR}/.."` || {
+   echo "No realpath; falling back to setting WORK_DIR with cd \"\${EXEC_DIR}/..\" && pwd -P."
+   WORK_DIR=$(cd "${EXEC_DIR}/.." && pwd -P)
+}
 
 BUILD_DIR="${WORK_DIR}/build"
 SHARED_DIR="${WORK_DIR}/shared"
