@@ -100,9 +100,7 @@ dict_declare_simple() {
     if [ $# -gt 0 ]; then
         echo "WARNING: incomplete key, value pair passed to dict_declare_simple: ${1} left over." >&2
     fi
-    cat << EOF
-${dict}
-EOF
+    echo -n "${dict}"
 }
 
 # @brief Set - add or update - a key, value entry in a dict
@@ -185,9 +183,7 @@ dict_declare() {
     if [ $# -gt 0 ]; then
         echo "WARNING: incomplete key, value pair passed to dict_declare: ${1} left over." >&2
     fi
-    cat << EOF
-${dict}
-EOF
+    echo -n "${dict}"
 }
 
 # @brief Set - add or update - a key, value entry in a dict
@@ -218,9 +214,7 @@ dict_set() {
     if dict_is_dict "${value}"; then
         local value="$(__dict_prepare_value_for_nesting__ "${value}")"
     fi
-    cat << EOF
-$(__dict_set__ "${1}" "${2}" "${value}")
-EOF
+    echo -n "$(__dict_set__ "${1}" "${2}" "${value}")"
 }
 
 # @brief Get a value associated with a key from a dict
@@ -272,9 +266,7 @@ dict_remove() {
     __dict_abort_if_not_dict__ "${1}" "dict_remove"
     local dict="$(__dict_strip_header__ "${1}" "false")"
     local dkey="$(__dict_decorated_key__ "${2}")"
-    cat << EOF
-${__DICT_TYPE_RECORD__}$(__dict_prefix_entries__ "${dict}" "${dkey}")$(__dict_suffix_entries__ "${dict}" "${dkey}")
-EOF
+    echo -n "${__DICT_TYPE_VALUE__}$(__dict_prefix_entries__ "${dict}" "${dkey}")$(__dict_suffix_entries__ "${dict}" "${dkey}")"
 }
 
 # @brief Iterate over dict calling a function taking each key value
@@ -308,6 +300,17 @@ dict_for_each() {
         ${binaryFn} "${key}" "${value}" "${record_number}" "$@"
         record_number=$((${record_number}+1))
     done
+}
+
+dict_size() {
+    __dict_abort_if_not_dict__ "${1}" "dict_size"
+    local size="$(dict_for_each "${1}" "__dict_op_recnums__")"
+    if [ -z "${size}" ]; then
+        size="0"
+    else
+        size=${size##*${__DICT_RS__}}
+    fi
+    echo -n "${size}"
 }
 
 # @brief Output the raw characters of the dict
@@ -452,9 +455,7 @@ __DICT_TYPE_VALUE__="${__DICT_GS__}DiCt${__DICT_GS__}"
 __DICT_TYPE_RECORD__="${__DICT_TYPE_VALUE__}${__DICT_ENTRY_SEPARATOR__}"
 
 __dict_decorated_key__() {
-    cat << EOF 
-${1}${__DICT_FIELD_SEPARATOR__}
-EOF
+    echo -n "${1}${__DICT_FIELD_SEPARATOR__}"
 }
 
 __dict_new_entry__() {
@@ -563,6 +564,10 @@ __dict_get__() {
     local dict="$(__dict_strip_header__ "${1}" "false")"
     local dkey="$(__dict_decorated_key__ "${2}")"
     __dict_value__ "${dict}" "${dkey}"
+}
+
+__dict_op_recnums__() {
+    echo -n "${__DICT_RS__}${3}"
 }
 
 __dict_pretty_print__() {
