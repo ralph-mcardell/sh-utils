@@ -17,7 +17,7 @@
 # are added so dicts are unsorted. As manipulation requries string pattern
 # matching, cutting, pasting and (for nesting / unnesting) subsitution via
 # sed do not expect anything like decent performance. On the other hand they
-# are just strings so are naturally serialised and can be saved and restoed
+# are just strings so are naturally serialised and can be saved and restored
 # to files or sent and recieved over character streams (network, serial etc.)
 #
 # Use:
