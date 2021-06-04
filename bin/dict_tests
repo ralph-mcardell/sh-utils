@@ -20,6 +20,9 @@ SHARED_DIR="${WORK_DIR}/shared"
 . ${SHARED_DIR}/dict
 . ${EXEC_DIR}/sh-test
 
+# Check we can 'include' dict more than once safely
+. ${SHARED_DIR}/dict
+
 __TEST_NL__='
 '
 __TEST_CR__=$(echo '@' | tr '@' '\015')
