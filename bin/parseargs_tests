@@ -1,0 +1,43 @@
+#!/bin/sh
+
+echo "======================================================"
+echo ">>>>>>>>>>>>>>>> PARSEARGS TESTS <<<<<<<<<<<<<<<<<<<<<"
+echo "======================================================"
+
+EXEC_DIR=`realpath $(dirname "$0")` || {
+   echo "No realpath; falling back to setting EXEC_DIR with cd dirname \"\$0\" && pwd -P."
+   EXEC_DIR=$(cd $(dirname "$0") && pwd -P)
+}
+
+WORK_DIR=`realpath "${EXEC_DIR}/.."` || {
+   echo "No realpath; falling back to setting WORK_DIR with cd \"\${EXEC_DIR}/..\" && pwd -P."
+   WORK_DIR=$(cd "${EXEC_DIR}/.." && pwd -P)
+}
+
+BUILD_DIR="${WORK_DIR}/build"
+SHARED_DIR="${WORK_DIR}/shared"
+
+PATH=${PATH}:${SHARED_DIR}:${EXEC_DIR}
+. parseargs
+. sh-test
+
+# Check we can 'include' parseargs more than once safely
+. parseargs
+
+make_positional_arg_parser() {
+  local parser="$(parseargs_new_argument_parser)"
+  local is_parser=false
+  is_parser="parseargs_is_argument_parser  ${parser}"
+  REQUIRE -n "${is_parser}"
+  REQUIRE "${is_parser}"
+  parser="$(parseargs_add_argument "${parser}" "name" "source")"
+  parser="$(parseargs_add_argument "${parser}" "name" "target")"
+  arguments="$(parseargs_parse_arguments "${parser}" "prog FROM TO" )"
+  CHECK "$(dict_get "${arguments}" "__PROGRAM__")" = "prog"
+  CHECK "$(dict_get "${arguments}" "source")" = "FROM"
+  CHECK "$(dict_get "${arguments}" "target")" = "TO"
+}
+
+#set -x
+TEST make_positional_arg_parser
+PRINT_TEST_COUNTS
