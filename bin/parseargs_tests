@@ -32,8 +32,8 @@ make_positional_arg_parser() {
   REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "name" "source")"
   parser="$(parseargs_add_argument "${parser}" "name" "target")"
-  arguments="$(parseargs_parse_arguments "${parser}" "prog FROM TO" )"
-  CHECK "$(dict_get "${arguments}" "__PROGRAM__")" = "prog"
+  arguments="$(parseargs_parse_arguments "${parser}" "FROM" "TO" )"
+  CHECK "$(dict_get "${arguments}" "__PROGRAM__")" = "${0}"
   CHECK "$(dict_get "${arguments}" "source")" = "FROM"
   CHECK "$(dict_get "${arguments}" "target")" = "TO"
 }
