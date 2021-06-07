@@ -49,7 +49,21 @@ make_arg_parser_with_positional_arguments_and_parse_some_arguments() {
   CHECK "$(dict_get "${arguments}" "target")" = "TO"
 }
 
+argument_cannot_be_both_positional_and_optional() {
+  local parser="$(parseargs_new_argument_parser)"
+  local bad_parser=""
+  bad_parser="$(parseargs_add_argument "${parser}" "name" "positional" "short" "o")"
+  CHECK $? -eq 1
+  bad_parser="$(parseargs_add_argument "${parser}" "short" "o" "name" "positional")"
+  CHECK $? -eq 1
+  parser_bad="$(parseargs_add_argument "${parser}" "name" "positional" "long" "optional")"
+  CHECK $? -eq 1
+  parser_bad="$(parseargs_add_argument "${parser}" "long" "optional" "name" "positional")"
+  CHECK $? -eq 1
+}
+
 #set -x
 TEST parsearg_functions_complain_if_parameter_not_a_parseargs_parser
 TEST make_arg_parser_with_positional_arguments_and_parse_some_arguments
+TEST argument_cannot_be_both_positional_and_optional
 PRINT_TEST_COUNTS
