@@ -95,7 +95,7 @@ then
           fi
           ;;
         destination)
-          argument="$(dict_set_simple "${argument}" "destination" "${2}")"
+          dest="${2}"
           ;;
         action)
           argument="$(dict_set_simple "${argument}" "action" "${2}")"
@@ -107,7 +107,6 @@ then
       shift 2
     done
 
-    local dest=$(dict_get_simple "${argument}" "destination")
     if [ -z "${dest}" ]; then
       dest="${positional}"
       if [ -z "${dest}" ]; then
