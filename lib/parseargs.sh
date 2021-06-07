@@ -177,7 +177,7 @@ then
     local optstring="$(dict_get_simple "${parser}" "__optstring__")"
     local current_positional="0"
 
-    arguments="$(dict_declare_simple "__PROGRAM__" "${0}")"
+    arguments="$(dict_declare_simple)"
     shift
     while [ "$#" -gt "0" ]; do
       dest="$(dict_get_simple "${positionals}" "${current_positional}")"
