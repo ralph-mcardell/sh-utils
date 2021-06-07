@@ -10,6 +10,7 @@ then
 
   parseargs_is_argument_parser() {
     if [ $# -ge 1 ] && \
+    dict_is_dict "${1}" && \
     [ "$(dict_get_simple "${1}" "__PARSEARG_TYPE__")X" = "argument_parserX" ]; then
       true; return
     else

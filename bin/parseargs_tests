@@ -24,7 +24,19 @@ PATH=${PATH}:${SHARED_DIR}:${EXEC_DIR}
 # Check we can 'include' parseargs more than once safely
 . parseargs
 
-make_positional_arg_parser() {
+parsearg_functions_complain_if_parameter_not_a_parseargs_parser(){
+  dict="$(dict_declare_simple)"
+  ret="$(parseargs_add_argument "not a parser" "name" "source")"
+  CHECK $? -eq 1
+  ret="$(parseargs_add_argument "${dict}" "name" "source")"
+  CHECK $? -eq 1
+  ret="$(parseargs_parse_arguments "not a parser" "FROM" "TO")"
+  CHECK $? -eq 1
+  ret="$(parseargs_parse_arguments "${dict}" "FROM" "TO")"
+  CHECK $? -eq 1
+}
+
+make_arg_parser_with_positional_arguments_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
   local is_parser=false
   is_parser="parseargs_is_argument_parser  ${parser}"
@@ -38,5 +50,6 @@ make_positional_arg_parser() {
 }
 
 #set -x
-TEST make_positional_arg_parser
+TEST parsearg_functions_complain_if_parameter_not_a_parseargs_parser
+TEST make_arg_parser_with_positional_arguments_and_parse_some_arguments
 PRINT_TEST_COUNTS
