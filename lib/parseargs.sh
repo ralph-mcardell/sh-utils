@@ -43,9 +43,7 @@ then
 
   parseargs_add_argument() {
     __parseargs_abort_if_not_parser__ "${1}" "parseargs_add_argument"
-    local argument="$(dict_declare_simple \
-                     "__PARSEARG_TYPE__" "argument_parser_argument"
-                  )"
+    local argument="$(dict_declare_simple)"
     local parser="${1}"
     local positionals="$(dict_get "${parser}" "__positionals__")"
     local longopts="$(dict_get "${parser}" "__longopts__")"
