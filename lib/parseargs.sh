@@ -50,7 +50,7 @@ then
     local longopts="$(dict_get "${parser}" "__longopts__")"
     local shortopts="$(dict_get "${parser}" "__shortopts__")"
     local optstring="$(dict_get "${parser}" "__optstring__")"
-    local readonly err_msg_pos_or_opt="ERROR: Both name and long/short specified. Argument cannot be both positional and optional."
+    local readonly err_msg_pos_or_opt="Both name and long/short specified. Argument cannot be both positional and optional."
     shift
     while [ "$#" -gt "1" ]; do
       case ${1} in
@@ -59,7 +59,7 @@ then
             if [ -z "${positional}" ]; then
               positional="${2}"
             else
-              __parseargs_error_exit__ "ERROR: Argument name attribute specified more than once."
+              __parseargs_error_exit__ "Argument name attribute specified more than once."
             fi
           else
             __parseargs_error_exit__ "${err_msg_pos_or_opt}"
@@ -71,7 +71,7 @@ then
               is_option="true"
               short_opt="${2}"
             else
-              __parseargs_error_exit__ "ERROR: Argument short attribute specified more than once."
+              __parseargs_error_exit__ "Argument short attribute specified more than once."
             fi
           else
             __parseargs_error_exit__ "${err_msg_pos_or_opt}"
@@ -84,7 +84,7 @@ then
               is_option="true"
               long_opt="${2}"
             else
-              __parseargs_error_exit__ "ERROR: Argument long attribute specified more than once."
+              __parseargs_error_exit__ "Argument long attribute specified more than once."
             fi
           else
             __parseargs_error_exit__ "${err_msg_pos_or_opt}"
@@ -112,8 +112,7 @@ then
     dest="$(__parseargs_sanitise_destination__ "${dest}")"
 
     if [ -z "${dest}" ]; then
-      echo "Error: unable to deduce destination name for argument value." >&2
-      exit 1
+      __parseargs_error_exit__ "Unable to deduce destination name for argument value from destination, name or long attribute values." >&2
     fi
 
     if [ -n "${positional}" ]; then
@@ -122,11 +121,11 @@ then
     elif  [ -n "${is_option}" ]; then
       if [ -n "${short_opt}" ]; then
         if [ "${#short_opt}" -ne 1 ]; then
-          __parseargs_error_exit__ "Error: Argument short option attribute value '${short_opt}' is not a single character."
+          __parseargs_error_exit__ "Argument short option attribute value '${short_opt}' is not a single character."
         fi
         existing="$(dict_get_simple "${shortopts}" "${short_opt}")"
         if [ -n "${existing}" ]; then
-          __parseargs_error_exit__ "Error: Argument short option attribute value '${short_opt}' given previously."
+          __parseargs_error_exit__ "Argument short option attribute value '${short_opt}' given previously."
         fi
         argument="$(dict_set_simple "${argument}" "short" "${short_opt}")"
         shortopts="$(dict_set_simple "${shortopts}" "${short_opt}" "${dest}")"
@@ -135,13 +134,13 @@ then
       if [ -n "${long_opt}" ]; then
         existing="$(dict_get_simple "${longopts}" "${long_opt}")"
         if [ -n "${existing}" ]; then
-          __parseargs_error_exit__ "Error: Argument long option attribute value '${long_opt}' given previously."
+          __parseargs_error_exit__ "Argument long option attribute value '${long_opt}' given previously."
         fi
         argument="$(dict_set_simple "${argument}" "long" "${long_opt}")"
         longopts="$(dict_set_simple "${longopts}" "${long_opt}" "${dest}")"
       fi
     else
-      __parseargs_error_exit__ "Error: none of name, long or short attributes provided for argument."
+      __parseargs_error_exit__ "None of name, long or short attributes provided for argument."
     fi
 
     argument="$(dict_set_simple "${argument}" "destination" "${dest}")"
@@ -151,6 +150,7 @@ then
     parser="$(dict_set "${parser}" "__arguments__" "${args}")"
     parser="$(dict_set "${parser}" "__positionals__" "${positionals}")"
     parser="$(dict_set "${parser}" "__longopts__" "${longopts}")"
+    parser="$(dict_set "${parser}" "__shortopts__" "${shortopts}")"
     parser="$(dict_set_simple "${parser}" "__optstring__" "${optstring}")"
 
     echo -n "${parser}"
@@ -178,7 +178,7 @@ then
       current_positional=$((${current_positional}+1))
       attributes="$(dict_get "${arg_specs}" "${dest}")"
       if [ -z "${attributes}" ]; then
-        __parseargs_error_exit__ "Error (internal). No attrubutes specifying this argument."
+        __parseargs_error_exit__ "(internal). No attrubutes specifying this argument."
       fi
       arguments="$(dict_set_simple "${arguments}" "${dest}" "${1}")"
       shift
@@ -187,16 +187,16 @@ then
   }
 
   __parseargs_warn_continue__() {
-    echo "${1}" >&2
+    echo "WARNING: ${1}" >&2
   }
 
   __parseargs_error_exit__() {
-    echo "${1}" >&2
+    echo "ERROR: ${1}" >&2
     exit 1
   }
   __parseargs_abort_if_not_parser__() {
     if ! parseargs_is_argument_parser "${1}"; then
-      __parseargs_error_exit__ "Oops! First argument passed to ${2} is not an argument parser type. Quitting current (sub-)shell."
+      __parseargs_error_exit__ "First argument passed to ${2} is not an argument parser type. Quitting current (sub-)shell."
     fi
   }
 
