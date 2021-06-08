@@ -19,6 +19,14 @@ CHECK_FALSE() {
   __sh_test_assert__ "CHECK_FALSE" true "$@"
 }
 
+CHECK_CONTAINS_ALL() {
+  __sh_test_assert_contains_all__ "CHECK_CONTAINS_ALL" false "$@"
+}
+
+REQUIRE_CONTAINS_ALL() {
+  __sh_test_assert_contains_all__ "REQUIRE_CONTAINS_ALL" true "$@"
+}
+
 TEST() {
   if ${__sh_test_is_uninitialised__}; then
     __sh_test_set_flags__ ${__sh_test_command_line_arguments__}
@@ -179,6 +187,36 @@ __sh_test_assert__() {
   fi
 }
 
+__sh_test_contains_all__() {
+  local test_str="${1}"
+  shift
+  local empty_if_contains=""
+  while [ "$#" -gt "0" ]; do
+    empty_if_contains="${test_str%%*${1}*}"
+    if [ -n "${empty_if_contains}" ]; then
+      false; return
+    fi
+    shift
+  done
+  true; return
+}
+
+__sh_test_assert_contains_all__() {
+  local test_variant="${1}"
+  local invert="${2}"
+  shift 2
+  local expression="$*"
+  __sh_test_contains_all__ "$@"
+  if [ $? -eq 0 ]; then
+    __sh_test_update_assert_passed__ "${test_variant}" "${expression}"
+  else
+    __sh_test_update_assert_failed__ "${test_variant}" "${expression}"
+    if [ "${test_variant}" = "REQUIRE_CONTAINS_ALL" ] ; then
+      PRINT_TEST_COUNTS
+      exit 1
+    fi
+  fi
+}
 __sh_test_print_help__() {
   cat << EOF
 Usage
