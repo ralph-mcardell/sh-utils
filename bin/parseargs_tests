@@ -52,8 +52,14 @@ make_arg_parser_with_positional_arguments_and_parse_some_arguments() {
 argument_cannot_be_both_positional_and_optional() {
   local parser="$(parseargs_new_argument_parser)"
   local bad_parser=""
+  local is_parser=false
   bad_parser="$(parseargs_add_argument "${parser}" "name" "positional" "short" "o")"
   CHECK $? -eq 1
+
+  # errors exit and we lose the usual returned parser value
+  is_parser="parseargs_is_argument_parser  ${bad_parser}"
+  REQUIRE -n "${is_parser}"
+  REQUIRE_FALSE "${is_parser}"  
   bad_parser="$(parseargs_add_argument "${parser}" "short" "o" "name" "positional")"
   CHECK $? -eq 1
   parser_bad="$(parseargs_add_argument "${parser}" "name" "positional" "long" "optional")"
@@ -62,8 +68,87 @@ argument_cannot_be_both_positional_and_optional() {
   CHECK $? -eq 1
 }
 
+argument_needs_name_or_long_and_or_short_attribute() {
+  local parser="$(parseargs_new_argument_parser)"
+  local bad_parser=""
+  local is_parser=false
+  bad_parser="$(parseargs_add_argument "${parser}")"
+  CHECK $? -eq 1
+  is_parser="parseargs_is_argument_parser  ${bad_parser}"
+  REQUIRE -n "${is_parser}"
+  REQUIRE_FALSE "${is_parser}"  
+  bad_parser="$(parseargs_add_argument "${parser}" "default" "FROM")"
+  CHECK $? -eq 1
+  parser_bad="$(parseargs_add_argument "${parser}" "destination" "source")"
+  CHECK $? -eq 1
+}
+
+short_option_must_be_single_character() {
+  local parser="$(parseargs_new_argument_parser)"
+  local bad_parser=""
+  local is_parser=false
+  parser="$(parseargs_add_argument "${parser}" "short" "X" "destination" "x")"
+  CHECK $? -eq 0
+  is_parser="parseargs_is_argument_parser  ${parser}"
+  REQUIRE -n "${is_parser}"
+  REQUIRE "${is_parser}"  
+  parser="$(parseargs_add_argument "${parser}" "short" "XX" "destination" "x")"
+  CHECK $? -eq 1
+  is_parser="parseargs_is_argument_parser  ${parser}"
+  REQUIRE -n "${is_parser}"
+  REQUIRE_FALSE "${is_parser}"  
+}
+
+options_may_have_short_and_or_long_names_but_each_must_be_unique_in_its_namespace() {
+  local parser="$(parseargs_new_argument_parser)"
+  local bad_parser=""
+  local is_parser=false
+  parser="$(parseargs_add_argument "${parser}" "short" "X" "long" "eggs")"
+  CHECK $? -eq 0
+  is_parser="parseargs_is_argument_parser  ${parser}"
+  REQUIRE -n "${is_parser}"
+  REQUIRE "${is_parser}"  
+  parser_bad="$(parseargs_add_argument "${parser}" "short" "X" "destination" "eggs")"
+  CHECK $? -eq 1
+  is_parser="parseargs_is_argument_parser  ${parser_bad}"
+  REQUIRE -n "${is_parser}"
+  REQUIRE_FALSE "${is_parser}"  
+  parser_bad="$(parseargs_add_argument "${parser}" "long" "eggs")"
+  CHECK $? -eq 1
+  is_parser="parseargs_is_argument_parser  ${parser_bad}"
+  REQUIRE -n "${is_parser}"
+  REQUIRE_FALSE "${is_parser}"  
+}
+
+argument_attributes_cannot_be_repeated_in_single_parseargs_add_argument_call() {
+  local parser="$(parseargs_new_argument_parser)"
+  local bad_parser=""
+  local is_parser=false
+  parser_bad="$(parseargs_add_argument "${parser}" "name" "X" "name" "Y")"
+  CHECK $? -eq 1
+  is_parser="parseargs_is_argument_parser  ${parser_bad}"
+  REQUIRE -n "${is_parser}"
+  REQUIRE_FALSE "${is_parser}"  
+  parser_bad="$(parseargs_add_argument "${parser}" "short" "X" "short" "Y")"
+  CHECK $? -eq 1
+  is_parser="parseargs_is_argument_parser  ${parser_bad}"
+  REQUIRE -n "${is_parser}"
+  REQUIRE_FALSE "${is_parser}"  
+  parser_bad="$(parseargs_add_argument "${parser}" "long" "eggs" "long" "why")"
+  CHECK $? -eq 1
+  is_parser="parseargs_is_argument_parser  ${parser_bad}"
+  REQUIRE -n "${is_parser}"
+  REQUIRE_FALSE "${is_parser}"  
+
+# add other attributes as support is added...
+}
+
 #set -x
 TEST parsearg_functions_complain_if_parameter_not_a_parseargs_parser
 TEST make_arg_parser_with_positional_arguments_and_parse_some_arguments
 TEST argument_cannot_be_both_positional_and_optional
+TEST argument_needs_name_or_long_and_or_short_attribute
+TEST short_option_must_be_single_character
+TEST options_may_have_short_and_or_long_names_but_each_must_be_unique_in_its_namespace
+TEST argument_attributes_cannot_be_repeated_in_single_parseargs_add_argument_call
 PRINT_TEST_COUNTS
