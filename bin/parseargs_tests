@@ -25,15 +25,20 @@ PATH=${PATH}:${SHARED_DIR}:${EXEC_DIR}
 . parseargs
 
 parsearg_functions_complain_if_parameter_not_a_parseargs_parser(){
-  dict="$(dict_declare_simple)"
-  ret="$(parseargs_add_argument "not a parser" "name" "source")"
+  local dict="$(dict_declare_simple)"
+  local returned_error=""
+  returned_error="$(parseargs_add_argument "not a parser" "name" "source" 2>&1)"
   CHECK $? -eq 1
-  ret="$(parseargs_add_argument "${dict}" "name" "source")"
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "irst" "argument" "parser"
+  returned_error="$(parseargs_add_argument "${dict}" "name" "source" 2>&1)"
   CHECK $? -eq 1
-  ret="$(parseargs_parse_arguments "not a parser" "FROM" "TO")"
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "irst" "argument" "parser"
+  returned_error="$(parseargs_parse_arguments "not a parser" "FROM" "TO" 2>&1)"
   CHECK $? -eq 1
-  ret="$(parseargs_parse_arguments "${dict}" "FROM" "TO")"
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "irst" "argument" "parser"
+  returned_error="$(parseargs_parse_arguments "${dict}" "FROM" "TO" 2>&1)"
   CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "irst" "argument" "parser"
 }
 
 make_arg_parser_with_positional_arguments_and_parse_some_arguments() {
@@ -51,92 +56,106 @@ make_arg_parser_with_positional_arguments_and_parse_some_arguments() {
 
 argument_cannot_be_both_positional_and_optional() {
   local parser="$(parseargs_new_argument_parser)"
-  local bad_parser=""
+  local returned_error=""
   local is_parser=false
-  bad_parser="$(parseargs_add_argument "${parser}" "name" "positional" "short" "o")"
+  returned_error="$(parseargs_add_argument "${parser}" "name" "positional" "short" "o" 2>&1)"
   CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "positional" "optional"
 
+  contains_expected="{CONTAINS_ALL ${returned_error}}"
   # errors exit and we lose the usual returned parser value
-  is_parser="parseargs_is_argument_parser  ${bad_parser}"
+  is_parser="parseargs_is_argument_parser  ${returned_error}"
   REQUIRE -n "${is_parser}"
   REQUIRE_FALSE "${is_parser}"  
-  bad_parser="$(parseargs_add_argument "${parser}" "short" "o" "name" "positional")"
+  returned_error="$(parseargs_add_argument "${parser}" "short" "o" "name" "positional" 2>&1)"
   CHECK $? -eq 1
-  parser_bad="$(parseargs_add_argument "${parser}" "name" "positional" "long" "optional")"
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "positional" "optional"
+  returned_error="$(parseargs_add_argument "${parser}" "name" "positional" "long" "optional" 2>&1)"
   CHECK $? -eq 1
-  parser_bad="$(parseargs_add_argument "${parser}" "long" "optional" "name" "positional")"
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "positional" "optional"
+  returned_error="$(parseargs_add_argument "${parser}" "long" "optional" "name" "positional" 2>&1)"
   CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "positional" "optional"
 }
 
 argument_needs_name_or_long_and_or_short_attribute() {
   local parser="$(parseargs_new_argument_parser)"
-  local bad_parser=""
+  local returned_error=""
   local is_parser=false
-  bad_parser="$(parseargs_add_argument "${parser}")"
+  returned_error="$(parseargs_add_argument "${parser}" 2>&1)"
   CHECK $? -eq 1
-  is_parser="parseargs_is_argument_parser  ${bad_parser}"
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "destination" "name" "long"
+  is_parser="parseargs_is_argument_parser  ${returned_error}"
   REQUIRE -n "${is_parser}"
   REQUIRE_FALSE "${is_parser}"  
-  bad_parser="$(parseargs_add_argument "${parser}" "default" "FROM")"
+  returned_error="$(parseargs_add_argument "${parser}" "default" "FROM" 2>&1)"
   CHECK $? -eq 1
-  parser_bad="$(parseargs_add_argument "${parser}" "destination" "source")"
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "destination" "name" "long"
+  returned_error="$(parseargs_add_argument "${parser}" "destination" "source" 2>&1)"
   CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "short" "name" "long"
 }
 
 short_option_must_be_single_character() {
   local parser="$(parseargs_new_argument_parser)"
-  local bad_parser=""
+  local returned_error=""
   local is_parser=false
   parser="$(parseargs_add_argument "${parser}" "short" "X" "destination" "x")"
   CHECK $? -eq 0
   is_parser="parseargs_is_argument_parser  ${parser}"
   REQUIRE -n "${is_parser}"
   REQUIRE "${is_parser}"  
-  parser="$(parseargs_add_argument "${parser}" "short" "XX" "destination" "x")"
+  returned_error="$(parseargs_add_argument "${parser}" "short" "XX" "destination" "x" 2>&1)"
   CHECK $? -eq 1
-  is_parser="parseargs_is_argument_parser  ${parser}"
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "short" "single"
+  is_parser="parseargs_is_argument_parser  ${returned_error}"
   REQUIRE -n "${is_parser}"
   REQUIRE_FALSE "${is_parser}"  
 }
 
 options_may_have_short_and_or_long_names_but_each_must_be_unique_in_its_namespace() {
   local parser="$(parseargs_new_argument_parser)"
-  local bad_parser=""
+  local returned_error=""
   local is_parser=false
   parser="$(parseargs_add_argument "${parser}" "short" "X" "long" "eggs")"
   CHECK $? -eq 0
   is_parser="parseargs_is_argument_parser  ${parser}"
   REQUIRE -n "${is_parser}"
   REQUIRE "${is_parser}"  
-  parser_bad="$(parseargs_add_argument "${parser}" "short" "X" "destination" "eggs")"
+  returned_error="$(parseargs_add_argument "${parser}" "short" "X" "destination" "eggs" 2>&1)"
   CHECK $? -eq 1
-  is_parser="parseargs_is_argument_parser  ${parser_bad}"
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "short" "previously"
+  is_parser="parseargs_is_argument_parser  ${returned_error}"
   REQUIRE -n "${is_parser}"
   REQUIRE_FALSE "${is_parser}"  
-  parser_bad="$(parseargs_add_argument "${parser}" "long" "eggs")"
+  returned_error="$(parseargs_add_argument "${parser}" "long" "eggs" 2>&1)"
   CHECK $? -eq 1
-  is_parser="parseargs_is_argument_parser  ${parser_bad}"
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "long" "previously"
+  is_parser="parseargs_is_argument_parser  ${returned_error}"
   REQUIRE -n "${is_parser}"
   REQUIRE_FALSE "${is_parser}"  
 }
 
 argument_attributes_cannot_be_repeated_in_single_parseargs_add_argument_call() {
   local parser="$(parseargs_new_argument_parser)"
-  local bad_parser=""
+  local returned_error=""
   local is_parser=false
-  parser_bad="$(parseargs_add_argument "${parser}" "name" "X" "name" "Y")"
+  returned_error="$(parseargs_add_argument "${parser}" "name" "X" "name" "Y" 2>&1)"
   CHECK $? -eq 1
-  is_parser="parseargs_is_argument_parser  ${parser_bad}"
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "name" "once"
+  is_parser="parseargs_is_argument_parser  ${returned_error}"
   REQUIRE -n "${is_parser}"
   REQUIRE_FALSE "${is_parser}"  
-  parser_bad="$(parseargs_add_argument "${parser}" "short" "X" "short" "Y")"
+  returned_error="$(parseargs_add_argument "${parser}" "short" "X" "short" "Y" 2>&1)"
   CHECK $? -eq 1
-  is_parser="parseargs_is_argument_parser  ${parser_bad}"
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "short" "once"
+  is_parser="parseargs_is_argument_parser  ${returned_error}"
   REQUIRE -n "${is_parser}"
   REQUIRE_FALSE "${is_parser}"  
-  parser_bad="$(parseargs_add_argument "${parser}" "long" "eggs" "long" "why")"
+  returned_error="$(parseargs_add_argument "${parser}" "long" "eggs" "long" "why" 2>&1)"
   CHECK $? -eq 1
-  is_parser="parseargs_is_argument_parser  ${parser_bad}"
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "long" "once"
+  is_parser="parseargs_is_argument_parser  ${returned_error}"
   REQUIRE -n "${is_parser}"
   REQUIRE_FALSE "${is_parser}"  
 
