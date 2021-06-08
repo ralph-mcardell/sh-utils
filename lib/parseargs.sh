@@ -51,6 +51,11 @@ then
     local shortopts="$(dict_get "${parser}" "__shortopts__")"
     local optstring="$(dict_get "${parser}" "__optstring__")"
     local readonly err_msg_pos_or_opt="Both name and long/short specified. Argument cannot be both positional and optional."
+    local is_option=""
+    local positional=""
+    local short_opt=""
+    local long_opt=""
+    local dest=""
     shift
     while [ "$#" -gt "1" ]; do
       case ${1} in
@@ -123,7 +128,7 @@ then
         if [ "${#short_opt}" -ne 1 ]; then
           __parseargs_error_exit__ "Argument short option attribute value '${short_opt}' is not a single character."
         fi
-        existing="$(dict_get_simple "${shortopts}" "${short_opt}")"
+        local existing="$(dict_get_simple "${shortopts}" "${short_opt}")"
         if [ -n "${existing}" ]; then
           __parseargs_error_exit__ "Argument short option attribute value '${short_opt}' given previously."
         fi
@@ -132,7 +137,7 @@ then
         optstring="${optstring}${short_opt}"
       fi
       if [ -n "${long_opt}" ]; then
-        existing="$(dict_get_simple "${longopts}" "${long_opt}")"
+        local existing="$(dict_get_simple "${longopts}" "${long_opt}")"
         if [ -n "${existing}" ]; then
           __parseargs_error_exit__ "Argument long option attribute value '${long_opt}' given previously."
         fi
