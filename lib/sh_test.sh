@@ -190,6 +190,9 @@ __sh_test_assert__() {
 __sh_test_contains_all__() {
   local test_str="${1}"
   shift
+  if [ "$#" -gt "0" ] && [ -z "${test_str}" ]; then
+    false; return
+  fi
   local empty_if_contains=""
   while [ "$#" -gt "0" ]; do
     empty_if_contains="${test_str%%*${1}*}"
