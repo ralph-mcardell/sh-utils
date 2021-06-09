@@ -173,6 +173,7 @@ then
 
     arguments="$(dict_declare_simple)"
     shift
+    local expected_number_of_positionals="$(dict_size "${positionals}")"
     while [ "$#" -gt "0" ]; do
       dest="$(dict_get_simple "${positionals}" "${current_positional}")"
       if [ -z "${dest}" ]; then
@@ -188,6 +189,9 @@ then
       arguments="$(dict_set_simple "${arguments}" "${dest}" "${1}")"
       shift
     done
+    if [ "${current_positional}" -ne "${expected_number_of_positionals}" ]; then
+      __parseargs_error_exit__ "Too few required positional arguments provided. Received ${current_positional}, require ${expected_number_of_positionals}."
+    fi
     echo -n "${arguments}"
   }
 

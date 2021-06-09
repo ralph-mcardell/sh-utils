@@ -163,15 +163,21 @@ argument_attributes_cannot_be_repeated_in_single_parseargs_add_argument_call() {
 
 extra_positional_arguments_ignored_when_parsed() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "name" "source")"
   parser="$(parseargs_add_argument "${parser}" "name" "target")"
   local arguments="$(parseargs_parse_arguments "${parser}" "FROM" "TO" "EXTRA" 2>/dev/null)"
   CHECK "$(dict_get "${arguments}" "source")" = "FROM"
   CHECK "$(dict_get "${arguments}" "target")" = "TO"
+}
+
+too_few_positional_arguments_is_an_error() {
+  local parser="$(parseargs_new_argument_parser)"
+  local returned_error=""
+  parser="$(parseargs_add_argument "${parser}" "name" "source")"
+  parser="$(parseargs_add_argument "${parser}" "name" "target")"
+  returned_error="$(parseargs_parse_arguments "${parser}" "FROM" 2>&1)"
+  CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "few" "positional"
 }
 
 #set -x
@@ -183,4 +189,5 @@ TEST short_option_must_be_single_character
 TEST options_may_have_short_and_or_long_names_but_each_must_be_unique_in_its_namespace
 TEST argument_attributes_cannot_be_repeated_in_single_parseargs_add_argument_call
 TEST extra_positional_arguments_ignored_when_parsed
+TEST too_few_positional_arguments_is_an_error
 PRINT_TEST_COUNTS
