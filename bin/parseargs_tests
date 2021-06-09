@@ -54,6 +54,36 @@ make_arg_parser_with_positional_arguments_and_parse_some_arguments() {
   CHECK "$(dict_get "${arguments}" "target")" = "TO"
 }
 
+make_arg_parser_with_short_optional_arguments_and_parse_some_arguments() {
+  local parser="$(parseargs_new_argument_parser)"
+  local is_parser=false
+  is_parser="parseargs_is_argument_parser  ${parser}"
+  REQUIRE -n "${is_parser}"
+  REQUIRE "${is_parser}"
+  parser="$(parseargs_add_argument "${parser}" "short" "s" destination "source")"
+  parser="$(parseargs_add_argument "${parser}" "short" "t" "destination" "target")"
+  local arguments="$(parseargs_parse_arguments "${parser}" "-s" "FROM" "-t" "TO" )"
+  CHECK "$(dict_get "${arguments}" "source")" = "FROM"
+  CHECK "$(dict_get "${arguments}" "target")" = "TO"
+}
+
+make_arg_parser_with_positional_and_short_optional_arguments_and_parse_some_arguments() {
+  local parser="$(parseargs_new_argument_parser)"
+  local is_parser=false
+  is_parser="parseargs_is_argument_parser  ${parser}"
+  REQUIRE -n "${is_parser}"
+  REQUIRE "${is_parser}"
+  parser="$(parseargs_add_argument "${parser}" "name" "source")"
+  parser="$(parseargs_add_argument "${parser}" "name" "target")"
+  parser="$(parseargs_add_argument "${parser}" "short" "p" destination "prefix")"
+  parser="$(parseargs_add_argument "${parser}" "short" "s" "destination" "suffix")"
+  local arguments="$(parseargs_parse_arguments "${parser}" FROM "-s" "EPILOGUE" TO "-p" "PRELUDE" )"
+  CHECK "$(dict_get "${arguments}" "source")" = "FROM"
+  CHECK "$(dict_get "${arguments}" "target")" = "TO"
+  CHECK "$(dict_get "${arguments}" "suffix")" = "EPILOGUE"
+  CHECK "$(dict_get "${arguments}" "prefix")" = "PRELUDE"
+}
+
 argument_cannot_be_both_positional_and_optional() {
   local parser="$(parseargs_new_argument_parser)"
   local returned_error=""
@@ -170,7 +200,7 @@ extra_positional_arguments_ignored_when_parsed() {
   CHECK "$(dict_get "${arguments}" "target")" = "TO"
 }
 
-too_few_positional_arguments_is_an_error() {
+too_few_positional_arguments_is_an_error_when_parsed() {
   local parser="$(parseargs_new_argument_parser)"
   local returned_error=""
   parser="$(parseargs_add_argument "${parser}" "name" "source")"
@@ -183,11 +213,13 @@ too_few_positional_arguments_is_an_error() {
 #set -x
 TEST parsearg_functions_complain_if_parameter_not_a_parseargs_parser
 TEST make_arg_parser_with_positional_arguments_and_parse_some_arguments
+TEST make_arg_parser_with_short_optional_arguments_and_parse_some_arguments
 TEST argument_cannot_be_both_positional_and_optional
 TEST argument_needs_name_or_long_and_or_short_attribute
 TEST short_option_must_be_single_character
 TEST options_may_have_short_and_or_long_names_but_each_must_be_unique_in_its_namespace
 TEST argument_attributes_cannot_be_repeated_in_single_parseargs_add_argument_call
 TEST extra_positional_arguments_ignored_when_parsed
-TEST too_few_positional_arguments_is_an_error
+TEST too_few_positional_arguments_is_an_error_when_parsed
+TEST make_arg_parser_with_positional_and_short_optional_arguments_and_parse_some_arguments
 PRINT_TEST_COUNTS

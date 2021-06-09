@@ -175,19 +175,33 @@ then
     shift
     local expected_number_of_positionals="$(dict_size "${positionals}")"
     while [ "$#" -gt "0" ]; do
-      dest="$(dict_get_simple "${positionals}" "${current_positional}")"
-      if [ -z "${dest}" ]; then
-        __parseargs_warn_continue__ "Too many positional arguments provided, remaining ignored."
-        echo -n "${arguments}"
-        return
+      while getopts "${optstring}" arg; do
+        dest="$(dict_get_simple "${shortopts}" "${arg}")"
+#echo "GETOPTS arg=${arg}; OPTIND=${OPTIND}; dest=${dest}" >&2
+        attributes="$(dict_get "${arg_specs}" "${dest}")"
+        if [ -z "${attributes}" ]; then
+          __parseargs_error_exit__ "(internal). No attrubutes specifying this argument."
+        fi
+        arguments="$(dict_set_simple "${arguments}" "${dest}" "${2}")"
+        shift 2
+        OPTIND=1
+#echo "remaining arguments: $*" >&2        
+      done
+      if [ "$#" -gt "0" ]; then
+        dest="$(dict_get_simple "${positionals}" "${current_positional}")"
+        if [ -z "${dest}" ]; then
+          __parseargs_warn_continue__ "Too many positional arguments provided, remaining ignored."
+          echo -n "${arguments}"
+          return
+        fi
+        current_positional=$((${current_positional}+1))
+        attributes="$(dict_get "${arg_specs}" "${dest}")"
+        if [ -z "${attributes}" ]; then
+          __parseargs_error_exit__ "(internal). No attrubutes specifying this argument."
+        fi
+        arguments="$(dict_set_simple "${arguments}" "${dest}" "${1}")"
+        shift
       fi
-      current_positional=$((${current_positional}+1))
-      attributes="$(dict_get "${arg_specs}" "${dest}")"
-      if [ -z "${attributes}" ]; then
-        __parseargs_error_exit__ "(internal). No attrubutes specifying this argument."
-      fi
-      arguments="$(dict_set_simple "${arguments}" "${dest}" "${1}")"
-      shift
     done
     if [ "${current_positional}" -ne "${expected_number_of_positionals}" ]; then
       __parseargs_error_exit__ "Too few required positional arguments provided. Received ${current_positional}, require ${expected_number_of_positionals}."
