@@ -39,6 +39,7 @@ then
     parser="$(dict_set "${parser}" "__positionals__" "${positionals}")"
     parser="$(dict_set "${parser}" "__longopts__" "${longopts}")"
     parser="$(dict_set "${parser}" "__shortopts__" "${shortopts}")"
+    parser="$(dict_set_simple "${parser}" "__optstring__" ":")"
     echo -n "${parser}"
   }
 
@@ -175,19 +176,24 @@ then
     arguments="$(dict_declare_simple)"
     shift
     local expected_number_of_positionals="$(dict_size "${positionals}")"
+#echo "OPTSTRING:'${optstring}'." >&2
     while [ "$#" -gt "0" ]; do
       while getopts "${optstring}" arg; do
-        dest="$(dict_get_simple "${shortopts}" "${arg}")"
 #echo "GETOPTS arg=${arg}; OPTARG=${OPTARG}; OPTIND=${OPTIND}; dest=${dest}" >&2
+       if [ "${arg}" = "?" ]; then
+          __parseargs_error_exit__ "Unknown short option -${OPTARG}."
+        fi
+        dest="$(dict_get_simple "${shortopts}" "${arg}")"
         attributes="$(dict_get "${arg_specs}" "${dest}")"
         if [ -z "${attributes}" ]; then
-          __parseargs_error_exit__ "(internal). No attrubutes specifying this argument."
+          __parseargs_error_exit__ "(internal). No attrubutes specifying this short option argument."
         fi
         arguments="$(dict_set_simple "${arguments}" "${dest}" "${OPTARG}")"
         shift $(( ${OPTIND}-1 ))
         OPTIND=1
 #echo "remaining arguments: $*" >&2        
       done
+#echo "DONE short options: arg=${arg}; OPTARG=${OPTARG}; OPTIND=${OPTIND}; dest=${dest}" >&2
       if [ "$#" -gt "0" ]; then
         dest="$(dict_get_simple "${positionals}" "${current_positional}")"
         if [ -z "${dest}" ]; then
