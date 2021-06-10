@@ -56,6 +56,7 @@ then
     local short_opt=""
     local long_opt=""
     local dest=""
+    local action=""
     shift
     while [ "$#" -gt "1" ]; do
       case ${1} in
@@ -134,7 +135,7 @@ then
         fi
         argument="$(dict_set_simple "${argument}" "short" "${short_opt}")"
         shortopts="$(dict_set_simple "${shortopts}" "${short_opt}" "${dest}")"
-        optstring="${optstring}${short_opt}"
+        optstring="${optstring}${short_opt}:"
       fi
       if [ -n "${long_opt}" ]; then
         local existing="$(dict_get_simple "${longopts}" "${long_opt}")"
@@ -177,13 +178,13 @@ then
     while [ "$#" -gt "0" ]; do
       while getopts "${optstring}" arg; do
         dest="$(dict_get_simple "${shortopts}" "${arg}")"
-#echo "GETOPTS arg=${arg}; OPTIND=${OPTIND}; dest=${dest}" >&2
+#echo "GETOPTS arg=${arg}; OPTARG=${OPTARG}; OPTIND=${OPTIND}; dest=${dest}" >&2
         attributes="$(dict_get "${arg_specs}" "${dest}")"
         if [ -z "${attributes}" ]; then
           __parseargs_error_exit__ "(internal). No attrubutes specifying this argument."
         fi
-        arguments="$(dict_set_simple "${arguments}" "${dest}" "${2}")"
-        shift 2
+        arguments="$(dict_set_simple "${arguments}" "${dest}" "${OPTARG}")"
+        shift $(( ${OPTIND}-1 ))
         OPTIND=1
 #echo "remaining arguments: $*" >&2        
       done
