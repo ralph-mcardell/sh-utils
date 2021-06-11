@@ -180,8 +180,11 @@ then
     while [ "$#" -gt "0" ]; do
       while getopts "${optstring}" arg; do
 #echo "GETOPTS arg=${arg}; OPTARG=${OPTARG}; OPTIND=${OPTIND}; dest=${dest}" >&2
-       if [ "${arg}" = "?" ]; then
+        if [ "${arg}" = "?" ]; then
           __parseargs_error_exit__ "Unknown short option -${OPTARG}."
+        fi
+        if [ "${arg}" = ":" ]; then
+          __parseargs_error_exit__ "Argument value missing for short option -${OPTARG}."
         fi
         dest="$(dict_get_simple "${shortopts}" "${arg}")"
         attributes="$(dict_get "${arg_specs}" "${dest}")"
