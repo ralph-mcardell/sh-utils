@@ -27,13 +27,23 @@ PATH=${PATH}:${SHARED_DIR}:${EXEC_DIR}
 parsearg_functions_complain_if_parameter_not_a_parseargs_parser(){
   local dict="$(dict_declare_simple)"
   local returned_error=""
-  returned_error="$(parseargs_add_argument "not a parser" "name" "source" 2>&1)"
+  local is_parser=true
+  local string_is_not_a_parser="not a parser"
+  is_parser="parseargs_is_argument_parser  ${string_is_not_a_parser}"
+  REQUIRE -n "${is_parser}"
+  REQUIRE_FALSE "${is_parser}"
+  is_parser=true
+  is_parser="parseargs_is_argument_parser  ${dict}"
+  REQUIRE -n "${is_parser}"
+  REQUIRE_FALSE "${is_parser}"
+
+  returned_error="$(parseargs_add_argument "${string_is_not_a_parser}" "name" "source" 2>&1)"
   CHECK $? -eq 1
   CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "irst" "argument" "parser"
   returned_error="$(parseargs_add_argument "${dict}" "name" "source" 2>&1)"
   CHECK $? -eq 1
   CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "irst" "argument" "parser"
-  returned_error="$(parseargs_parse_arguments "not a parser" "FROM" "TO" 2>&1)"
+  returned_error="$(parseargs_parse_arguments "${string_is_not_a_parser}" "FROM" "TO" 2>&1)"
   CHECK $? -eq 1
   CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "irst" "argument" "parser"
   returned_error="$(parseargs_parse_arguments "${dict}" "FROM" "TO" 2>&1)"
