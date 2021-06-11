@@ -178,25 +178,10 @@ then
     local expected_number_of_positionals="$(dict_size "${positionals}")"
 #echo "OPTSTRING:'${optstring}'." >&2
     while [ "$#" -gt "0" ]; do
-      while getopts "${optstring}" arg; do
-#echo "GETOPTS arg=${arg}; OPTARG=${OPTARG}; OPTIND=${OPTIND}; dest=${dest}" >&2
-        if [ "${arg}" = "?" ]; then
-          __parseargs_error_exit__ "Unknown short option -${OPTARG}."
-        fi
-        if [ "${arg}" = ":" ]; then
-          __parseargs_error_exit__ "Argument value missing for short option -${OPTARG}."
-        fi
-        dest="$(dict_get_simple "${shortopts}" "${arg}")"
-        attributes="$(dict_get "${arg_specs}" "${dest}")"
-        if [ -z "${attributes}" ]; then
-          __parseargs_error_exit__ "(internal). No attrubutes specifying this short option argument."
-        fi
-        arguments="$(dict_set_simple "${arguments}" "${dest}" "${OPTARG}")"
-        shift $(( ${OPTIND}-1 ))
-        OPTIND=1
-#echo "remaining arguments: $*" >&2        
-      done
-#echo "DONE short options: arg=${arg}; OPTARG=${OPTARG}; OPTIND=${OPTIND}; dest=${dest}" >&2
+      __parseargs_parse_short_options__ "${arguments}" "${optstring}" "${shortopts}" "${arg_specs}" "$@"
+      arguments="${__parseargs_return_value__}"
+      shift ${__parseargs_shift_caller_args_by__}
+#echo "$*" >&2
       if [ "$#" -gt "0" ]; then
         dest="$(dict_get_simple "${positionals}" "${current_positional}")"
         if [ -z "${dest}" ]; then
@@ -219,6 +204,11 @@ then
     echo -n "${arguments}"
   }
 
+  # Details
+
+  __parseargs_return_value__=""
+  __parseargs_shift_caller_args_by__="0"
+
   __parseargs_warn_continue__() {
     echo "WARNING: ${1}" >&2
   }
@@ -235,5 +225,34 @@ then
 
   __parseargs_sanitise_destination__() {
     echo -n "${1}" | tr "-" "_"
+  }
+
+  __parseargs_parse_short_options__() {
+      __parseargs_return_value__="${1}"
+      local optstring="${2}"
+      local shortopts="${3}"
+      local arg_specs="${4}"
+      local dest=""
+      shift 4
+      __parseargs_shift_caller_args_by__="0"
+      while getopts "${optstring}" arg; do
+#echo "GETOPTS arg=${arg}; OPTARG=${OPTARG}; OPTIND=${OPTIND}; dest=${dest}" >&2
+        if [ "${arg}" = "?" ]; then
+          __parseargs_error_exit__ "Unknown short option -${OPTARG}."
+        fi
+        if [ "${arg}" = ":" ]; then
+          __parseargs_error_exit__ "Argument value missing for short option -${OPTARG}."
+        fi
+        dest="$(dict_get_simple "${shortopts}" "${arg}")"
+        attributes="$(dict_get "${arg_specs}" "${dest}")"
+        if [ -z "${attributes}" ]; then
+          __parseargs_error_exit__ "(internal). No attrubutes specifying this short option argument."
+        fi
+        __parseargs_return_value__="$(dict_set_simple "${__parseargs_return_value__}" "${dest}" "${OPTARG}")"
+        shift $(( ${OPTIND}-1 ))
+        __parseargs_shift_caller_args_by__=$(( ${__parseargs_shift_caller_args_by__}+${OPTIND}-1  ))
+        OPTIND=1
+#echo "remaining arguments: $*" >&2        
+      done
   }
 fi
