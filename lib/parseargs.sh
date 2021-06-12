@@ -172,7 +172,7 @@ then
     local shortopts="$(dict_get "${parser}" "__shortopts__")"
     local optstring="$(dict_get_simple "${parser}" "__optstring__")"
     local current_positional="0"
-
+    local positionals_to_parse=true
     arguments="$(dict_declare_simple)"
     shift
     local expected_number_of_positionals="$(dict_size "${positionals}")"
@@ -183,16 +183,22 @@ then
       shift ${__parseargs_shift_caller_args_by__}
 #echo "$*" >&2
       if [ "$#" -gt "0" ]; then
-        dest="$(dict_get_simple "${positionals}" "${current_positional}")"
-        if [ -z "${dest}" ]; then
-          __parseargs_warn_continue__ "Too many positional arguments provided, remaining ignored."
-          echo -n "${arguments}"
-          return
+        __parseargs_parse_long_option__ "${arguments}" "${longopts}" "${arg_specs}" "$@"
+        if [ "${__parseargs_shift_caller_args_by__}" -eq "0" ]; then
+          if "${positionals_to_parse}"; then
+            __parseargs_parse_positional_argument__ "${arguments}" "${positionals}" "${current_positional}" "${arg_specs}" "$@"
+            if [ "${__parseargs_shift_caller_args_by__}" -eq "0" ]; then
+              positionals_to_parse=false
+              __parseargs_shift_caller_args_by__=1
+            else
+              current_positional=$((${current_positional}+1))
+            fi
+          else
+            __parseargs_shift_caller_args_by__=1
+          fi
         fi
-        current_positional=$((${current_positional}+1))
-        __parseargs_add_argument__ "${arguments}" "${dest}" "${1}" "positional"
         arguments="${__parseargs_return_value__}"
-        shift
+        shift ${__parseargs_shift_caller_args_by__}
       fi
     done
     if [ "${current_positional}" -ne "${expected_number_of_positionals}" ]; then
@@ -219,9 +225,13 @@ then
       __parseargs_error_exit__ "First argument passed to ${2} is not an argument parser type. Quitting current (sub-)shell."
     fi
   }
-
+  
   __parseargs_sanitise_destination__() {
     echo -n "${1}" | tr "-" "_"
+  }
+
+  __parseargs_option_name_from_long_option_string__() {
+    __parseargs_return_value__="${1#--}"
   }
 
   __parseargs_parse_short_options__() {
@@ -235,6 +245,10 @@ then
     while getopts "${optstring}" arg; do
 #echo "GETOPTS arg=${arg}; OPTARG=${OPTARG}; OPTIND=${OPTIND}; dest=${dest}" >&2
       if [ "${arg}" = "?" ]; then
+        if [ "${OPTARG}" = "-" ]; then
+        # found --, long option prefix
+          break
+        fi
         __parseargs_error_exit__ "Unknown short option -${OPTARG}."
       fi
       if [ "${arg}" = ":" ]; then
@@ -247,6 +261,45 @@ then
       OPTIND=1
 #echo "remaining arguments: $*" >&2        
     done
+  }
+
+  __parseargs_parse_long_option__() {
+    arguments="${1}"
+    local longopts="${2}"
+    local arg_specs="${3}"
+    shift 3
+    __parseargs_option_name_from_long_option_string__ "${1}"
+    if [ "${__parseargs_return_value__}" = "${1}" ]; then
+    # Did not find -- prefix, not a long option
+      __parseargs_shift_caller_args_by__=0
+      return
+    fi
+    dest="$(dict_get_simple "${longopts}" "${__parseargs_return_value__}")"
+    if [ -z "${dest}" ]; then
+      __parseargs_error_exit__ "Unknown long option --${__parseargs_return_value__}."
+    fi
+    shift
+    if [ "$#" -eq "0" ]; then
+      __parseargs_error_exit__ "Option --${__parseargs_return_value__} is missing an argument value."
+    fi
+    __parseargs_add_argument__ "${arguments}" "${dest}" "${1}" "long option"
+    __parseargs_shift_caller_args_by__=2
+  }
+
+  __parseargs_parse_positional_argument__() {
+    __parseargs_return_value__="${1}"
+    local positionals="${2}"
+    local current_positional="${3}"
+    local arg_specs="${4}"
+    shift 4
+    dest="$(dict_get_simple "${positionals}" "${current_positional}")"
+    if [ -z "${dest}" ]; then
+      __parseargs_warn_continue__ "Too many positional arguments provided, remaining ignored."
+      __parseargs_shift_caller_args_by__=0
+      return
+    fi
+    __parseargs_add_argument__ "${__parseargs_return_value__}" "${dest}" "${1}" "positional"
+    __parseargs_shift_caller_args_by__=1
   }
 
   __parseargs_add_argument__() {

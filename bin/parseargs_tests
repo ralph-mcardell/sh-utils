@@ -90,6 +90,19 @@ make_arg_parser_with_short_optional_arguments_and_parse_some_arguments_no_space(
   CHECK "$(dict_get "${arguments}" "target")" = "TO"
 }
 
+make_arg_parser_with_long_optional_arguments_and_parse_some_arguments() {
+  local parser="$(parseargs_new_argument_parser)"
+  local is_parser=false
+  is_parser="parseargs_is_argument_parser  ${parser}"
+  REQUIRE -n "${is_parser}"
+  REQUIRE "${is_parser}"
+  parser="$(parseargs_add_argument "${parser}" "long" "source")"
+  parser="$(parseargs_add_argument "${parser}" "long" "target")"
+  local arguments="$(parseargs_parse_arguments "${parser}" "--source" "FROM" "--target" "TO" )"
+  CHECK "$(dict_get "${arguments}" "source")" = "FROM"
+  CHECK "$(dict_get "${arguments}" "target")" = "TO"
+}
+
 make_arg_parser_with_positional_and_short_optional_arguments_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
   local is_parser=false
@@ -265,6 +278,7 @@ TEST parsearg_functions_complain_if_parameter_not_a_parseargs_parser
 TEST make_arg_parser_with_positional_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_short_optional_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_short_optional_arguments_and_parse_some_arguments_no_space
+TEST make_arg_parser_with_long_optional_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_positional_and_short_optional_arguments_and_parse_some_arguments
 TEST argument_cannot_be_both_positional_and_optional
 TEST argument_needs_name_or_long_and_or_short_attribute
