@@ -190,11 +190,8 @@ then
           return
         fi
         current_positional=$((${current_positional}+1))
-        attributes="$(dict_get "${arg_specs}" "${dest}")"
-        if [ -z "${attributes}" ]; then
-          __parseargs_error_exit__ "(internal). No attrubutes specifying this argument."
-        fi
-        arguments="$(dict_set_simple "${arguments}" "${dest}" "${1}")"
+        __parseargs_add_argument__ "${arguments}" "${dest}" "${1}" "positional"
+        arguments="${__parseargs_return_value__}"
         shift
       fi
     done
@@ -228,31 +225,40 @@ then
   }
 
   __parseargs_parse_short_options__() {
-      __parseargs_return_value__="${1}"
-      local optstring="${2}"
-      local shortopts="${3}"
-      local arg_specs="${4}"
-      local dest=""
-      shift 4
-      __parseargs_shift_caller_args_by__="0"
-      while getopts "${optstring}" arg; do
+    __parseargs_return_value__="${1}"
+    local optstring="${2}"
+    local shortopts="${3}"
+    local arg_specs="${4}"
+    local dest=""
+    shift 4
+    __parseargs_shift_caller_args_by__="0"
+    while getopts "${optstring}" arg; do
 #echo "GETOPTS arg=${arg}; OPTARG=${OPTARG}; OPTIND=${OPTIND}; dest=${dest}" >&2
-        if [ "${arg}" = "?" ]; then
-          __parseargs_error_exit__ "Unknown short option -${OPTARG}."
-        fi
-        if [ "${arg}" = ":" ]; then
-          __parseargs_error_exit__ "Argument value missing for short option -${OPTARG}."
-        fi
-        dest="$(dict_get_simple "${shortopts}" "${arg}")"
-        attributes="$(dict_get "${arg_specs}" "${dest}")"
-        if [ -z "${attributes}" ]; then
-          __parseargs_error_exit__ "(internal). No attrubutes specifying this short option argument."
-        fi
-        __parseargs_return_value__="$(dict_set_simple "${__parseargs_return_value__}" "${dest}" "${OPTARG}")"
-        shift $(( ${OPTIND}-1 ))
-        __parseargs_shift_caller_args_by__=$(( ${__parseargs_shift_caller_args_by__}+${OPTIND}-1  ))
-        OPTIND=1
+      if [ "${arg}" = "?" ]; then
+        __parseargs_error_exit__ "Unknown short option -${OPTARG}."
+      fi
+      if [ "${arg}" = ":" ]; then
+        __parseargs_error_exit__ "Argument value missing for short option -${OPTARG}."
+      fi
+      dest="$(dict_get_simple "${shortopts}" "${arg}")"
+      __parseargs_add_argument__ "${__parseargs_return_value__}" "${dest}" "${OPTARG}" "short option"
+      shift $(( ${OPTIND}-1 ))
+      __parseargs_shift_caller_args_by__=$(( ${__parseargs_shift_caller_args_by__}+${OPTIND}-1  ))
+      OPTIND=1
 #echo "remaining arguments: $*" >&2        
-      done
+    done
+  }
+
+  __parseargs_add_argument__() {
+    __parseargs_return_value__="${1}"
+    local dest="${2}"
+    local arg_value="${3}"
+    local arg_type="${4}"
+    local attributes="$(dict_get "${arg_specs}" "${dest}")"
+#echo ">>>> args=${__parseargs_return_value__}; dest=${dest}; value=${arg_value}; type=${arg_type}" >&2
+    if [ -z "${attributes}" ]; then
+      __parseargs_error_exit__ "(internal). No attrubutes specifying this ${arg_type} argument."
+    fi
+    __parseargs_return_value__="$(dict_set_simple "${__parseargs_return_value__}" "${dest}" "${arg_value}")"
   }
 fi
