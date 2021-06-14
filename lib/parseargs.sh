@@ -106,6 +106,11 @@ then
         default)
           argument="$(dict_set_simple "${argument}" "default" "${2}")"
           ;;
+        required)
+          if "${2}"; then
+            argument="$(dict_set_simple "${argument}" "required" "true")"
+          fi
+          ;;
       esac
       shift 2
     done
@@ -204,7 +209,8 @@ then
     if [ "${current_positional}" -ne "${expected_number_of_positionals}" ]; then
       __parseargs_error_exit__ "Too few required positional arguments provided. Received ${current_positional}, require ${expected_number_of_positionals}."
     fi
-    echo -n "${arguments}"
+    __parseargs_validate_and_fixup_arguments__ "${parser}" "${arguments}"
+    echo -n "${__parseargs_return_value__}"
   }
 
   # Details
@@ -313,5 +319,45 @@ then
       __parseargs_error_exit__ "(internal). No attrubutes specifying this ${arg_type} argument."
     fi
     __parseargs_return_value__="$(dict_set_simple "${__parseargs_return_value__}" "${dest}" "${arg_value}")"
+  }
+
+  __parseargs_validate_and_fixup_arguments__() {
+    local parser="${1}"
+    local arguments="${2}"
+    local arg_specs="$(dict_get "${parser}" "__arguments__")"
+    local positionals="$(dict_get "${parser}" "__positionals__")"
+    local longopts="$(dict_get "${parser}" "__longopts__")"
+    local shortopts="$(dict_get "${parser}" "__shortopts__")"
+    __parseargs_return_value__="${arguments}"
+    dict_for_each "${arg_specs}" "__parseargs_op_validate_and_fixup_argument__" "${positionals}" "${shortopts}" "${longopts}"
+  }
+
+  __parseargs_op_validate_and_fixup_argument__() {
+    local dest="${1}"
+    local arg_spec="${2}"
+    local record_number="${3}"
+    local positionals="${4}"
+    local shortopts="${5}"
+    local longopts="${6}"
+    local arguments="${__parseargs_return_value__}"
+    local arg="$(dict_get_simple "${arguments}" "${dest}")"
+    if [ -z "${arg}" ]; then
+      local default="$(dict_get_simple "${arg_spec}" "default")"
+      if [ -n "${default}" ]; then
+        arguments="$(dict_set_simple "${arguments}" "${dest}" "${default}")"
+      else
+        local required="$(dict_get_simple "${arg_spec}" "required")"
+        if "${required}"; then
+          local optname="$(dict_get_simple "${arg_spec}" "long")"
+          if [ -z "${optname}" ]; then
+            optname="-$(dict_get_simple "${arg_spec}" "short")"
+          else
+            optname="--${optname}"
+          fi
+          __parseargs_error_exit__ "Required option ${optname} was not provided."
+        fi
+      fi
+    fi
+    __parseargs_return_value__="${arguments}"
   }
 fi
