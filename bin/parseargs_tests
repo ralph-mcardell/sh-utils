@@ -256,6 +256,14 @@ unknown_short_option_is_an_error_when_parsed() {
   CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "nknown" "option"
 }
 
+unknown_long_option_is_an_error_when_parsed() {
+  local parser="$(parseargs_new_argument_parser)"
+  local returned_error=""
+  returned_error="$(parseargs_parse_arguments "${parser}" "-source" "FROM" 2>&1)"
+  CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "nknown" "option"
+}
+
 missing_short_option_argument_is_an_error_when_parsed() {
   local parser="$(parseargs_new_argument_parser)"
   local returned_error=""
@@ -266,12 +274,31 @@ missing_short_option_argument_is_an_error_when_parsed() {
 
 # The following is currently OK for -o option, has argument value -f but
 # warning on unexpected positional argument "following-value"
-# NOTE: making argument values starting wuth hyphens an error is fraught
+# NOTE: making argument values starting with hyphens an error is fraught
 # with problems - what about negative numbers -123 and the like or cases
 # where another command line (fragment) is passed in or a file name
 # just happens to start with a hyphen ...
   parser="$(parseargs_add_argument "${parser}" "short" "f" destination "following")"
   returned_error="$(parseargs_parse_arguments "${parser}" "-o" "-f" "following-value" 2>&1)"
+  CHECK $? -eq 0
+}
+
+missing_long_option_argument_is_an_error_when_parsed() {
+  local parser="$(parseargs_new_argument_parser)"
+  local returned_error=""
+  parser="$(parseargs_add_argument "${parser}" "long" "option")"
+  returned_error="$(parseargs_parse_arguments "${parser}" "--option" 2>&1)"
+  CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "missing"
+
+# The following is currently OK for --option option, has argument value
+# --following but warning on unexpected positional argument "following-value"
+# NOTE: making argument values starting with double hyphens an error is
+# fraught with problems, though less so than single hyphens - e.g. cases
+# where another command line (fragment) is passed in or a file name
+# just happens to start with a two hyphens ...
+  parser="$(parseargs_add_argument "${parser}" "long" "following")"
+  returned_error="$(parseargs_parse_arguments "${parser}" "--option" "--following" "following-value" 2>&1)"
   CHECK $? -eq 0
 }
 
@@ -290,5 +317,7 @@ TEST argument_attributes_cannot_be_repeated_in_single_parseargs_add_argument_cal
 TEST extra_positional_arguments_ignored_when_parsed
 TEST too_few_positional_arguments_is_an_error_when_parsed
 TEST unknown_short_option_is_an_error_when_parsed
+TEST unknown_long_option_is_an_error_when_parsed
 TEST missing_short_option_argument_is_an_error_when_parsed
+TEST missing_long_option_argument_is_an_error_when_parsed
 PRINT_TEST_COUNTS
