@@ -103,6 +103,13 @@ then
         action)
           argument="$(dict_set_simple "${argument}" "action" "${2}")"
           ;;
+        nargs)
+          if __parseargs_is_valid_nargs_value__ "${2}" "${__PARSEARGS_MAX_NARGS__}"; then
+            argument="$(dict_set_simple "${argument}" "nargs" "${2}")"
+          else
+            __parseargs_error_exit__ "nargs value '${2}' invalid. Must be integer in the range [1, ${__PARSEARGS_MAX_NARGS__}], '?','*' or '+'."
+          fi
+          ;;
         default)
           argument="$(dict_set_simple "${argument}" "default" "${2}")"
           ;;
@@ -215,6 +222,7 @@ then
 
   # Details
 
+  readonly __PARSEARGS_MAX_NARGS__=2000
   __parseargs_return_value__=""
   __parseargs_shift_caller_args_by__="0"
 
@@ -238,6 +246,42 @@ then
 
   __parseargs_option_name_from_long_option_string__() {
     __parseargs_return_value__="${1#--}"
+  }
+
+  __parseargs_is_natural_number__() {
+    case "${1}" in
+      ''|*[!0-9]*)
+        false; return
+        ;;
+      *)
+        true; return
+        ;;
+    esac
+  }
+
+  __parseargs_is_glob_character__() {
+    case "${1}" in
+      '?'|'*'|'+')
+        true; return
+        ;;
+      *)
+        false; return
+        ;;
+    esac
+  }
+
+  __parseargs_is_valid_nargs_number__() {
+    [ "${#1}" -le 18 ] \
+    && __parseargs_is_natural_number__ "${1}" \
+    && [ "${1}" -gt "0" ] \
+    && [ "${1}" -le "${2}" ]
+    return
+  }
+
+  __parseargs_is_valid_nargs_value__() {
+    __parseargs_is_glob_character__  "${1}" \
+    || __parseargs_is_valid_nargs_number__ "${1}" "${2}"
+    return
   }
 
   __parseargs_parse_short_options__() {
