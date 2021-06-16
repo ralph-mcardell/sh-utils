@@ -391,7 +391,7 @@ then
         arguments="$(dict_set_simple "${arguments}" "${dest}" "${default}")"
       else
         local required="$(dict_get_simple "${arg_spec}" "required")"
-        if "${required}"; then
+        if [ -n "${required}" ] && "${required}"; then
           local optname="$(dict_get_simple "${arg_spec}" "long")"
           if [ -z "${optname}" ]; then
             optname="-$(dict_get_simple "${arg_spec}" "short")"
