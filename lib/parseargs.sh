@@ -244,6 +244,15 @@ then
     echo -n "${1}" | tr "-" "_"
   }
 
+  __parseargs_is_option_string__() {
+    local option_name_suffix="${1#-}"
+    if [ "${option_name_suffix}" = "${1}" ]; then
+      false; return
+    else
+      true; return
+    fi
+  }
+
   __parseargs_option_name_from_long_option_string__() {
     __parseargs_return_value__="${1#--}"
   }
@@ -292,19 +301,27 @@ then
     local dest=""
     shift 4
     __parseargs_shift_caller_args_by__="0"
-    while getopts "${optstring}" arg; do
-#echo "GETOPTS arg=${arg}; OPTARG=${OPTARG}; OPTIND=${OPTIND}; dest=${dest}" >&2
-      if [ "${arg}" = "?" ]; then
+    while getopts "${optstring}" opt; do
+echo "GETOPTS opt=${opt}; OPTARG=${OPTARG}; OPTIND=${OPTIND}; dest=${dest} args='$*'" >&2
+      if [ "${opt}" = "?" ]; then
         if [ "${OPTARG}" = "-" ]; then
         # found --, long option prefix
           break
         fi
         __parseargs_error_exit__ "Unknown short option -${OPTARG}."
       fi
-      if [ "${arg}" = ":" ]; then
+      if [ "${opt}" = ":" ] ; then
         __parseargs_error_exit__ "Argument value missing for short option -${OPTARG}."
       fi
-      dest="$(dict_get_simple "${shortopts}" "${arg}")"
+      if __parseargs_is_option_string__ "${OPTARG}"; then
+        if [ "${OPTARG}" = "--" ] && [ "$#" -ge 3 ]; then
+          OPTARG=${3}
+          OPTIND=$(( ${OPTIND}+1 ))
+        else
+          __parseargs_error_exit__ "Argument value missing for short option -${opt}."
+        fi
+      fi
+      dest="$(dict_get_simple "${shortopts}" "${opt}")"
       __parseargs_add_argument__ "${__parseargs_return_value__}" "${dest}" "${OPTARG}" "short option"
       shift $(( ${OPTIND}-1 ))
       __parseargs_shift_caller_args_by__=$(( ${__parseargs_shift_caller_args_by__}+${OPTIND}-1  ))
@@ -319,8 +336,8 @@ then
     local arg_specs="${3}"
     shift 3
     __parseargs_option_name_from_long_option_string__ "${1}"
-    if [ "${__parseargs_return_value__}" = "${1}" ]; then
-    # Did not find -- prefix, not a long option
+    if [ "${1}" = "--" ] || [ "${__parseargs_return_value__}" = "${1}" ]; then
+    # Either just '--' or did not find -- prefix, not a long option
       __parseargs_shift_caller_args_by__=0
       return
     fi
@@ -332,8 +349,17 @@ then
     if [ "$#" -eq "0" ]; then
       __parseargs_error_exit__ "Option --${__parseargs_return_value__} is missing an argument value."
     fi
-    __parseargs_add_argument__ "${arguments}" "${dest}" "${1}" "long option"
-    __parseargs_shift_caller_args_by__=2
+    if __parseargs_is_option_string__ "${1}"; then
+      if [ "${1}" = "--" ] && [ "$#" -ge 2 ]; then
+        __parseargs_add_argument__ "${arguments}" "${dest}" "${2}" "long option"
+        __parseargs_shift_caller_args_by__=3
+      else
+        __parseargs_error_exit__ "Argument value missing for long option --${__parseargs_return_value__}."
+      fi
+    else
+      __parseargs_add_argument__ "${arguments}" "${dest}" "${1}" "long option"
+      __parseargs_shift_caller_args_by__=2
+    fi
   }
 
   __parseargs_parse_positional_argument__() {
@@ -342,6 +368,17 @@ then
     local current_positional="${3}"
     local arg_specs="${4}"
     shift 4
+
+    if [ "${1}" = "--" ]; then
+      if [ $# -gt 1 ]; then
+        shift
+        __parseargs_shift_caller_args_by__=2
+      else
+        __parseargs_error_exit__ "Positional argument missing after '--'."
+      fi
+    else
+      __parseargs_shift_caller_args_by__=1
+    fi
     dest="$(dict_get_simple "${positionals}" "${current_positional}")"
     if [ -z "${dest}" ]; then
       __parseargs_warn_continue__ "Too many positional arguments provided, remaining ignored."
@@ -349,7 +386,6 @@ then
       return
     fi
     __parseargs_add_argument__ "${__parseargs_return_value__}" "${dest}" "${1}" "positional"
-    __parseargs_shift_caller_args_by__=1
   }
 
   __parseargs_add_argument__() {
