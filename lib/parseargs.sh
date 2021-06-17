@@ -302,7 +302,7 @@ then
     shift 4
     __parseargs_shift_caller_args_by__="0"
     while getopts "${optstring}" opt; do
-echo "GETOPTS opt=${opt}; OPTARG=${OPTARG}; OPTIND=${OPTIND}; dest=${dest} args='$*'" >&2
+#echo "GETOPTS opt=${opt}; OPTARG=${OPTARG}; OPTIND=${OPTIND}; dest=${dest} args='$*'" >&2
       if [ "${opt}" = "?" ]; then
         if [ "${OPTARG}" = "-" ]; then
         # found --, long option prefix
