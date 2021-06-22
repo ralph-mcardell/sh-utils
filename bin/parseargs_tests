@@ -64,6 +64,22 @@ make_arg_parser_with_positional_arguments_and_parse_some_arguments() {
   CHECK "$(dict_get "${arguments}" "target")" = "TO"
 }
 
+make_arg_parser_with_positional_multi_arguments_and_parse_some_arguments() {
+  local parser="$(parseargs_new_argument_parser)"
+  local is_parser=false
+  is_parser="parseargs_is_argument_parser  ${parser}"
+  REQUIRE -n "${is_parser}"
+  REQUIRE "${is_parser}"
+  parser="$(parseargs_add_argument "${parser}" "name" "sources" "nargs" "2" )"
+  parser="$(parseargs_add_argument "${parser}" "name" "target")"
+  local arguments="$(parseargs_parse_arguments "${parser}" "LEFT" "RIGHT" "TO" )"
+  local sources="$(dict_get "${arguments}" "sources")"
+  CHECK "$(dict_size "${sources}")" = "2"
+  CHECK "$(dict_get "${sources}" "0")" = "LEFT"
+  CHECK "$(dict_get "${sources}" "1")" = "RIGHT"
+  CHECK "$(dict_get "${arguments}" "target")" = "TO"
+}
+
 make_arg_parser_with_short_optional_arguments_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
   local is_parser=false
@@ -451,6 +467,7 @@ missing_long_option_argument_is_an_error_when_parsed() {
 #set -x
 TEST parsearg_functions_complain_if_parameter_not_a_parseargs_parser
 TEST make_arg_parser_with_positional_arguments_and_parse_some_arguments
+TEST make_arg_parser_with_positional_multi_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_short_optional_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_short_optional_arguments_and_parse_some_arguments_no_space
 TEST make_arg_parser_with_long_optional_arguments_and_parse_some_arguments

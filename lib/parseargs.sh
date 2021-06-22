@@ -323,7 +323,7 @@ then
       fi
       dest="$(dict_get_simple "${shortopts}" "${opt}")"
       shift $(( ${OPTIND}-1 ))
-      __parseargs_add_argument__ "${__parseargs_return_value__}" "${dest}" "Short option -${opt}" "${OPTARG}" "$@"
+      __parseargs_add_arguments__ "${__parseargs_return_value__}" "${arg_specs}" "${dest}" "Short option -${opt}" "${OPTARG}" "$@"
       __parseargs_shift_caller_args_by__=$(( ${__parseargs_shift_caller_args_by__}+${OPTIND}-2 ))
       OPTIND=1
 #echo "Caller shift args by: ${__parseargs_shift_caller_args_by__}; remaining arguments: $*" >&2        
@@ -357,7 +357,7 @@ then
     if [ "$#" -eq "0" ]; then
       __parseargs_error_exit__ "Option --${__parseargs_return_value__} is missing an argument value."
     fi
-    __parseargs_add_argument__ "${arguments}" "${dest}" "Long option --${__parseargs_return_value__}" "$@"
+    __parseargs_add_arguments__ "${arguments}" "${arg_specs}" "${dest}" "Long option --${__parseargs_return_value__}" "$@"
   }
 
   __parseargs_parse_positional_argument__() {
@@ -372,14 +372,58 @@ then
       __parseargs_shift_caller_args_by__=0
       return
     fi
-    __parseargs_add_argument__ "${__parseargs_return_value__}" "${dest}" "Positional #${current_positional}" "$@" 
+    __parseargs_add_arguments__ "${__parseargs_return_value__}" "${arg_specs}" "${dest}" "Positional #${current_positional}" "$@" 
+  }
+
+  __parseargs_add_arguments__() {
+    local arguments="${1}"
+    local arg_specs="${2}"
+    local dest="${3}"
+    local arg_desc="${4}"
+    shift 4
+    local attributes="$(dict_get "${arg_specs}" "${dest}")"
+    if [ -z "${attributes}" ]; then
+      __parseargs_error_exit__ "(internal). ${arg_desc}: no attrubutes specifying this argument."
+    fi
+
+    local nargs="$(dict_get_simple "${attributes}" "nargs" )"
+#echo "> ADD ARGS (${arg_desc}):" >&2
+#echo "  dest:${dest}; attributes:${attributes}" >&2
+    if [ -z "${nargs}" ]; then
+      __parseargs_add_argument__ "${arguments}" "${arg_specs}" "${dest}" "${arg_desc}" "$@"
+#echo "< ADD ARGS(scalar):" >&2
+      return
+    fi
+    local one_argument="$(dict_declare_simple)"
+    local argument_list="$(dict_declare_simple)"
+    local argument_index='0'
+    local stashed_shift_caller_args_by="${__parseargs_shift_caller_args_by__}"
+    local accumulated_shift_count="0"
+    while [ "${nargs}" -ne "0" ]; do
+      __parseargs_shift_caller_args_by__=0
+      __parseargs_add_argument__ "${one_argument}" "${arg_specs}" "${dest}" "${arg_desc}" "$@"
+      local value="$(dict_get_simple "${__parseargs_return_value__}" "${dest}")"
+      if [ -z "${attributes}" ]; then
+        __parseargs_error_exit__ "(internal). ${arg_desc}: cannot retrieve value for argument value #$(( ${argument_index}+1 ))."
+      fi
+      argument_list="$(dict_set_simple "${argument_list}" "${argument_index}" "${value}")"
+      nargs="$(( ${nargs}-1 ))"
+      argument_index="$(( ${argument_index}+1 ))"
+      accumulated_shift_count="$(( ${accumulated_shift_count}+${__parseargs_shift_caller_args_by__} ))"
+      shift "${__parseargs_shift_caller_args_by__}"
+    done
+    __parseargs_shift_caller_args_by__="$(( ${stashed_shift_caller_args_by}+${accumulated_shift_count} ))"
+    __parseargs_return_value__="$(dict_set "${arguments}" "${dest}" "${argument_list}")"
+#echo "  Returning: shift by:${__parseargs_shift_caller_args_by__}; value:${__parseargs_return_value__}" >&2
+#echo "< ADD ARGS(list ${argument_index}):" >&2
   }
 
   __parseargs_add_argument__() {
     __parseargs_return_value__="${1}"
-    local dest="${2}"
-    local arg_desc="${3}"
-    shift 3
+    local arg_specs="${2}"
+    local dest="${3}"
+    local arg_desc="${4}"
+    shift 4
     if [ "$#" -gt "0" ]; then
       if __parseargs_is_option_string__ "${1}"; then
         if [ "${1}" = "--" ]; then
