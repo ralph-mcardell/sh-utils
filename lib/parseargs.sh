@@ -257,6 +257,14 @@ then
     __parseargs_return_value__="${1#--}"
   }
 
+  __parseargs_split_string_on_eq_lhs__() {
+    __parseargs_return_value__="${1%%\=*}"
+  }
+
+  __parseargs_split_string_on_eq_rhs__() {
+    __parseargs_return_value__="${1#*'='}"
+  }
+
   __parseargs_is_natural_number__() {
     case "${1}" in
       ''|*[!0-9]*)
@@ -328,17 +336,24 @@ then
     local arg_specs="${3}"
     shift 3
     __parseargs_option_name_from_long_option_string__ "${1}"
-    if [ "${1}" = "--" ] || [ "${__parseargs_return_value__}" = "${1}" ]; then
+    local readonly option_string="${__parseargs_return_value__}"
+    if [ "${1}" = "--" ] || [ "${option_string}" = "${1}" ]; then
     # Either just '--' or did not find -- prefix, not a long option
       __parseargs_shift_caller_args_by__=0
       return
     fi
+    __parseargs_split_string_on_eq_lhs__ "${option_string}"
     dest="$(dict_get_simple "${longopts}" "${__parseargs_return_value__}")"
     if [ -z "${dest}" ]; then
       __parseargs_error_exit__ "Unknown long option --${__parseargs_return_value__}."
     fi
     shift
-    __parseargs_shift_caller_args_by__=1
+    __parseargs_split_string_on_eq_rhs__ "${option_string}"
+    if [ "${__parseargs_return_value__}" !=  "${option_string}" ]; then
+      set -- "${__parseargs_return_value__}" "$@"
+    else
+        __parseargs_shift_caller_args_by__=1
+    fi
     if [ "$#" -eq "0" ]; then
       __parseargs_error_exit__ "Option --${__parseargs_return_value__} is missing an argument value."
     fi
