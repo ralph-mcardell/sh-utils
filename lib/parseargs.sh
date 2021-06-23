@@ -322,8 +322,11 @@ then
         __parseargs_error_exit__ "Argument value missing for short option -${OPTARG}."
       fi
       dest="$(dict_get_simple "${shortopts}" "${opt}")"
+      if [ -z "${dest}" ]; then
+        __parseargs_error_exit__ "(internal) Argument specification key for short option -${opt} not found."
+      fi
       shift $(( ${OPTIND}-1 ))
-      __parseargs_add_arguments__ "${__parseargs_return_value__}" "${arg_specs}" "${dest}" "Short option -${opt}" "${OPTARG}" "$@"
+      __parseargs_add_arguments__ "${__parseargs_return_value__}" "${arg_specs}" "${dest}" "const" "Short option -${opt}" "${OPTARG}" "$@"
       __parseargs_shift_caller_args_by__=$(( ${__parseargs_shift_caller_args_by__}+${OPTIND}-2 ))
       OPTIND=1
 #echo "Caller shift args by: ${__parseargs_shift_caller_args_by__}; remaining arguments: $*" >&2        
@@ -357,7 +360,7 @@ then
     if [ "$#" -eq "0" ]; then
       __parseargs_error_exit__ "Option --${__parseargs_return_value__} is missing an argument value."
     fi
-    __parseargs_add_arguments__ "${arguments}" "${arg_specs}" "${dest}" "Long option --${__parseargs_return_value__}" "$@"
+    __parseargs_add_arguments__ "${arguments}" "${arg_specs}" "${dest}" "const" "Long option --${__parseargs_return_value__}" "$@"
   }
 
   __parseargs_parse_positional_argument__() {
@@ -372,28 +375,56 @@ then
       __parseargs_shift_caller_args_by__=0
       return
     fi
-    __parseargs_add_arguments__ "${__parseargs_return_value__}" "${arg_specs}" "${dest}" "Positional #${current_positional}" "$@" 
+    __parseargs_add_arguments__ "${__parseargs_return_value__}" "${arg_specs}" "${dest}" "default" "Positional #${current_positional}" "$@" 
   }
 
   __parseargs_add_arguments__() {
     local arguments="${1}"
     local arg_specs="${2}"
     local dest="${3}"
-    local arg_desc="${4}"
-    shift 4
+    local missing_arg_key="${4}"
+    local arg_desc="${5}"
+    shift 5
     local attributes="$(dict_get "${arg_specs}" "${dest}")"
     if [ -z "${attributes}" ]; then
       __parseargs_error_exit__ "(internal). ${arg_desc}: no attrubutes specifying this argument."
     fi
 
     local nargs="$(dict_get_simple "${attributes}" "nargs" )"
+    local missing_arg_value="-"
+    
 #echo "> ADD ARGS (${arg_desc}):" >&2
 #echo "  dest:${dest}; attributes:${attributes}" >&2
+    local on_missing='error'
+
+    case "${nargs}" in
+      '?')
+        nargs=''
+        on_missing='value'
+        ;;
+      '*')
+        nargs='${__PARSEARGS_MAX_NARGS__}'
+        on_missing='break'
+        ;;
+      '+')
+        nargs='${__PARSEARGS_MAX_NARGS__}'
+        on_missing='error_on_first'
+        ;;
+      *)
+        ;;
+    esac
+    if [ "${on_missing}" = "value" ]; then
+      missing_arg_value="$(dict_get_simple "${attributes}" "${missing_arg_key}" )"
+      if [ -z "${missing_arg_value}" ]; then
+        __parseargs_error_exit__ "(internal). ${arg_desc}: cannot retrieve value for missing argument '${missing_arg_key}' value."
+      fi
+    fi
     if [ -z "${nargs}" ]; then
-      __parseargs_add_argument__ "${arguments}" "${arg_specs}" "${dest}" "${arg_desc}" "$@"
+      __parseargs_add_argument__ "${arguments}" "${dest}" "${on_missing}" "${missing_arg_value}" "${arg_desc}" "$@"
 #echo "< ADD ARGS(scalar):" >&2
       return
     fi
+
     local one_argument="$(dict_declare_simple)"
     local argument_list="$(dict_declare_simple)"
     local argument_index='0'
@@ -401,9 +432,15 @@ then
     local accumulated_shift_count="0"
     while [ "${nargs}" -ne "0" ]; do
       __parseargs_shift_caller_args_by__=0
-      __parseargs_add_argument__ "${one_argument}" "${arg_specs}" "${dest}" "${arg_desc}" "$@"
+      __parseargs_add_argument__ "${one_argument}" "${dest}" "${on_missing}" "${missing_arg_value}" "${arg_desc}" "$@"
+      if [ -z "${__parseargs_return_value__}" ]; then
+        break
+      fi
+      if [ "${on_missing}" = 'error_on_first' ]; then
+        on_missing='break'
+      fi
       local value="$(dict_get_simple "${__parseargs_return_value__}" "${dest}")"
-      if [ -z "${attributes}" ]; then
+      if [ -z "${value}" ]; then
         __parseargs_error_exit__ "(internal). ${arg_desc}: cannot retrieve value for argument value #$(( ${argument_index}+1 ))."
       fi
       argument_list="$(dict_set_simple "${argument_list}" "${argument_index}" "${value}")"
@@ -420,10 +457,11 @@ then
 
   __parseargs_add_argument__() {
     __parseargs_return_value__="${1}"
-    local arg_specs="${2}"
-    local dest="${3}"
-    local arg_desc="${4}"
-    shift 4
+    local dest="${2}"
+    local on_missing="${3}"
+    local missing_arg_value="${4}"
+    local arg_desc="${5}"
+    shift 5
     if [ "$#" -gt "0" ]; then
       if __parseargs_is_option_string__ "${1}"; then
         if [ "${1}" = "--" ]; then
@@ -431,7 +469,7 @@ then
           if [ "$#" -gt "0" ]; then
             __parseargs_shift_caller_args_by__=$(( ${__parseargs_shift_caller_args_by__}+1 ))
           fi
-        else
+        elif [ "${optional}" != "optional" ]; then
           # Found option-like string where argument expected:
           # eat all remaining call arguments to force error
           shift $#
@@ -439,16 +477,26 @@ then
       fi
       if [ "$#" -gt "0" ]; then
         local arg_value="${1}"
-        local attributes="$(dict_get "${arg_specs}" "${dest}")"
-        if [ -z "${attributes}" ]; then
-          __parseargs_error_exit__ "(internal). ${arg_desc}: no attrubutes specifying this argument."
-        fi
         __parseargs_return_value__="$(dict_set_simple "${__parseargs_return_value__}" "${dest}" "${arg_value}")"
         __parseargs_shift_caller_args_by__=$(( ${__parseargs_shift_caller_args_by__}+1 ))
         return
       fi
     fi
-    __parseargs_error_exit__ "${arg_desc} is missing an argument value."
+    case "${on_missing}" in
+      'value')
+        __parseargs_return_value__="$(dict_set_simple "${__parseargs_return_value__}" "${dest}" "${missing_arg_value}")"
+        __parseargs_shift_caller_args_by__=$(( ${__parseargs_shift_caller_args_by__}+1 ))
+        ;;
+      'error'|'error_on_first')
+        __parseargs_error_exit__ "${arg_desc} is missing an argument value."
+        ;;
+      'break')
+        __parseargs_return_value__=''
+        ;;
+      *)
+        __parseargs_error_exit__ "(internal) ${arg_desc} : unrecognised missing argument value action '${on_missing}'."
+        ;;
+    esac
   }
 
   __parseargs_validate_and_fixup_arguments__() {
