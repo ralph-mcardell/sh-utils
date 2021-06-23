@@ -222,7 +222,7 @@ then
 
   # Details
 
-  readonly __PARSEARGS_MAX_NARGS__=2000
+  readonly __PARSEARGS_MAX_NARGS__="$(( $(getconf ARG_MAX)/2 ))"
   __parseargs_return_value__=""
   __parseargs_shift_caller_args_by__="0"
 
