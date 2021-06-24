@@ -193,7 +193,7 @@ then
       __parseargs_parse_short_options__ "${arguments}" "${optstring}" "${shortopts}" "${arg_specs}" "$@"
       arguments="${__parseargs_return_value__}"
       shift ${__parseargs_shift_caller_args_by__}
-#echo "$*" >&2
+#echo "PARSE ARGS: shifted by: ${__parseargs_shift_caller_args_by__}; remaining arguments to parse: '$*'" >&2
       if [ "$#" -gt "0" ]; then
         __parseargs_parse_long_option__ "${arguments}" "${longopts}" "${arg_specs}" "$@"
         if [ "${__parseargs_shift_caller_args_by__}" -eq "0" ]; then
@@ -326,7 +326,14 @@ then
         __parseargs_error_exit__ "(internal) Argument specification key for short option -${opt} not found."
       fi
       shift $(( ${OPTIND}-1 ))
+      local shift_by=$(( ${__parseargs_shift_caller_args_by__}+1 ))
+#echo "caller shift by=${__parseargs_shift_caller_args_by__}; local shift by=${shift_by}" >&2
       __parseargs_add_arguments__ "${__parseargs_return_value__}" "${arg_specs}" "${dest}" "const" "Short option -${opt}" "${OPTARG}" "$@"
+      shift_by=$(( ${__parseargs_shift_caller_args_by__}-${shift_by} ))
+#echo "caller shift by=${__parseargs_shift_caller_args_by__}; local shift by=${shift_by}" >&2
+      if [ "${shift_by}" -gt '0' ]; then
+        shift "${shift_by}"
+      fi
       __parseargs_shift_caller_args_by__=$(( ${__parseargs_shift_caller_args_by__}+${OPTIND}-2 ))
       OPTIND=1
 #echo "Caller shift args by: ${__parseargs_shift_caller_args_by__}; remaining arguments: $*" >&2        
@@ -393,7 +400,7 @@ then
     local nargs="$(dict_get_simple "${attributes}" "nargs" )"
     local missing_arg_value="-"
     
-#echo "> ADD ARGS (${arg_desc}):" >&2
+#echo "> ADD ARGS (${arg_desc}; args='$*'):" >&2
 #echo "  dest:${dest}; attributes:${attributes}" >&2
     local on_missing='error'
 

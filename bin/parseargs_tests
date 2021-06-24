@@ -102,7 +102,40 @@ make_arg_parser_with_short_optional_arguments_and_parse_some_arguments_no_space(
   parser="$(parseargs_add_argument "${parser}" "short" "s" "destination" "source")"
   parser="$(parseargs_add_argument "${parser}" "short" "t" "destination" "target")"
   local arguments="$(parseargs_parse_arguments "${parser}" "-sFROM" "-tTO" )"
+  local sources="$(dict_get "${arguments}" "sources")"
   CHECK "$(dict_get "${arguments}" "source")" = "FROM"
+  CHECK "$(dict_get "${arguments}" "target")" = "TO"
+}
+
+make_arg_parser_with_short_optional_multi_arguments_and_parse_some_arguments() {
+  local parser="$(parseargs_new_argument_parser)"
+  local is_parser=false
+  is_parser="parseargs_is_argument_parser  ${parser}"
+  REQUIRE -n "${is_parser}"
+  REQUIRE "${is_parser}"
+  parser="$(parseargs_add_argument "${parser}" "short" "s" destination "sources" "nargs" "2")"
+  parser="$(parseargs_add_argument "${parser}" "short" "t" "destination" "target")"
+  local arguments="$(parseargs_parse_arguments "${parser}" "-s" "LEFT" "RIGHT" "-t" "TO" )"
+  local sources="$(dict_get "${arguments}" "sources")"
+  CHECK "$(dict_size "${sources}")" = "2"
+  CHECK "$(dict_get "${sources}" "0")" = "LEFT"
+  CHECK "$(dict_get "${sources}" "1")" = "RIGHT"
+  CHECK "$(dict_get "${arguments}" "target")" = "TO"
+}
+
+make_arg_parser_with_short_optional_multi_arguments_and_parse_some_arguments_no_space() {
+  local parser="$(parseargs_new_argument_parser)"
+  local is_parser=false
+  is_parser="parseargs_is_argument_parser  ${parser}"
+  REQUIRE -n "${is_parser}"
+  REQUIRE "${is_parser}"
+  parser="$(parseargs_add_argument "${parser}" "short" "s" destination "sources" "nargs" "2")"
+  parser="$(parseargs_add_argument "${parser}" "short" "t" "destination" "target")"
+  local arguments="$(parseargs_parse_arguments "${parser}" "-sLEFT" "RIGHT" "-tTO" )"
+  local sources="$(dict_get "${arguments}" "sources")"
+  CHECK "$(dict_size "${sources}")" = "2"
+  CHECK "$(dict_get "${sources}" "0")" = "LEFT"
+  CHECK "$(dict_get "${sources}" "1")" = "RIGHT"
   CHECK "$(dict_get "${arguments}" "target")" = "TO"
 }
 
@@ -129,6 +162,38 @@ make_arg_parser_with_long_optional_arguments_and_parse_some_arguments_after_equa
   parser="$(parseargs_add_argument "${parser}" "long" "target")"
   local arguments="$(parseargs_parse_arguments "${parser}" "--source=FR=O=M" "--target=TO" )"
   CHECK "$(dict_get "${arguments}" "source")" = "FR=O=M"
+  CHECK "$(dict_get "${arguments}" "target")" = "TO"
+}
+
+make_arg_parser_with_long_optional_multi_arguments_and_parse_some_arguments() {
+  local parser="$(parseargs_new_argument_parser)"
+  local is_parser=false
+  is_parser="parseargs_is_argument_parser  ${parser}"
+  REQUIRE -n "${is_parser}"
+  REQUIRE "${is_parser}"
+  parser="$(parseargs_add_argument "${parser}" "long" "sources" "nargs" "2")"
+  parser="$(parseargs_add_argument "${parser}" "long" "target")"
+  local arguments="$(parseargs_parse_arguments "${parser}" "--sources" "LEFT" "RIGHT" "--target" "TO" )"
+  local sources="$(dict_get "${arguments}" "sources")"
+  CHECK "$(dict_size "${sources}")" = "2"
+  CHECK "$(dict_get "${sources}" "0")" = "LEFT"
+  CHECK "$(dict_get "${sources}" "1")" = "RIGHT"
+  CHECK "$(dict_get "${arguments}" "target")" = "TO"
+}
+
+make_arg_parser_with_long_optional_multi_arguments_and_parse_some_arguments_after_equals() {
+  local parser="$(parseargs_new_argument_parser)"
+  local is_parser=false
+  is_parser="parseargs_is_argument_parser  ${parser}"
+  REQUIRE -n "${is_parser}"
+  REQUIRE "${is_parser}"
+  parser="$(parseargs_add_argument "${parser}" "long" "sources" "nargs" "2")"
+  parser="$(parseargs_add_argument "${parser}" "long" "target")"
+  local arguments="$(parseargs_parse_arguments "${parser}" "--sources=LE=F=T" "RIGHT" "--target=TO" )"
+  local sources="$(dict_get "${arguments}" "sources")"
+  CHECK "$(dict_size "${sources}")" = "2"
+  CHECK "$(dict_get "${sources}" "0")" = "LE=F=T"
+  CHECK "$(dict_get "${sources}" "1")" = "RIGHT"
   CHECK "$(dict_get "${arguments}" "target")" = "TO"
 }
 
@@ -470,8 +535,12 @@ TEST make_arg_parser_with_positional_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_positional_multi_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_short_optional_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_short_optional_arguments_and_parse_some_arguments_no_space
+TEST make_arg_parser_with_short_optional_multi_arguments_and_parse_some_arguments
+TEST make_arg_parser_with_short_optional_multi_arguments_and_parse_some_arguments_no_space
 TEST make_arg_parser_with_long_optional_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_long_optional_arguments_and_parse_some_arguments_after_equals
+TEST make_arg_parser_with_long_optional_multi_arguments_and_parse_some_arguments
+TEST make_arg_parser_with_long_optional_multi_arguments_and_parse_some_arguments_after_equals
 TEST make_arg_parser_with_positional_and_short_and_long_optional_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_optional_arguments_with_defaults_and_parse_some_arguments
 TEST make_arg_parser_with_required_optional_arguments_and_parse_some_arguments
