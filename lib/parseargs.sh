@@ -382,7 +382,7 @@ then
       __parseargs_shift_caller_args_by__=0
       return
     fi
-    __parseargs_add_arguments__ "${__parseargs_return_value__}" "${arg_specs}" "${dest}" "default" "Positional #${current_positional}" "$@" 
+    __parseargs_add_arguments__ "${__parseargs_return_value__}" "${arg_specs}" "${dest}" "default" "Positional #$(( ${current_positional}+1 ))" "$@" 
   }
 
   __parseargs_add_arguments__() {
