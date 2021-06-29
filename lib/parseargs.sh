@@ -213,9 +213,11 @@ then
         shift ${__parseargs_shift_caller_args_by__}
       fi
     done
-    if [ "${current_positional}" -ne "${expected_number_of_positionals}" ]; then
-      __parseargs_error_exit__ "Too few required positional arguments provided. Received ${current_positional}, require ${expected_number_of_positionals}."
-    fi
+    while [ "${current_positional}" -ne "${expected_number_of_positionals}" ]; do
+      __parseargs_parse_positional_argument__ "${arguments}" "${positionals}" "${current_positional}" "${arg_specs}"
+      arguments="${__parseargs_return_value__}"
+      current_positional=$((${current_positional}+1))
+    done
     __parseargs_validate_and_fixup_arguments__ "${parser}" "${arguments}"
     echo -n "${__parseargs_return_value__}"
   }
@@ -382,7 +384,7 @@ then
       __parseargs_shift_caller_args_by__=0
       return
     fi
-    __parseargs_add_arguments__ "${__parseargs_return_value__}" "${arg_specs}" "${dest}" "default" "Positional #$(( ${current_positional}+1 ))" "$@" 
+    __parseargs_add_arguments__ "${__parseargs_return_value__}" "${arg_specs}" "${dest}" "default" "Positional #$(( ${current_positional}+1 )), '${dest}'," "$@" 
   }
 
   __parseargs_add_arguments__() {
@@ -401,7 +403,7 @@ then
     local missing_arg_value="-"
     
 #echo "> ADD ARGS (${arg_desc}; args='$*'):" >&2
-#echo "  dest:${dest}; attributes:${attributes}" >&2
+#echo "  dest:${dest}; attributes:${attributes}; missing_arg_key:${missing_arg_key}" >&2
     local on_missing='error'
 
     case "${nargs}" in
@@ -423,7 +425,8 @@ then
     if [ "${on_missing}" = "value" ]; then
       missing_arg_value="$(dict_get_simple "${attributes}" "${missing_arg_key}" )"
       if [ -z "${missing_arg_value}" ]; then
-        __parseargs_error_exit__ "(internal). ${arg_desc}: cannot retrieve value for missing argument '${missing_arg_key}' value."
+      #  __parseargs_error_exit__ "(internal). ${arg_desc}: cannot retrieve value for missing argument '${missing_arg_key}' value."
+        on_missing='error'
       fi
     fi
     if [ -z "${nargs}" ]; then

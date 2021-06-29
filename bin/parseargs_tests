@@ -95,6 +95,22 @@ make_arg_parser_with_positional_multi_argument_of_1_and_parse_some_arguments() {
   CHECK "$(dict_get "${arguments}" "target")" = "TO"
 }
 
+make_arg_parser_with_positional_multi_0_or_1_arguments_and_parse_some_arguments() {
+  local parser="$(parseargs_new_argument_parser)"
+  local is_parser=false
+  is_parser="parseargs_is_argument_parser  ${parser}"
+  REQUIRE -n "${is_parser}"
+  REQUIRE "${is_parser}"
+  parser="$(parseargs_add_argument "${parser}" "name" "source")"
+  parser="$(parseargs_add_argument "${parser}" "name" "target" "nargs" "?" "default" "VOIDSPACE")"
+  local arguments="$(parseargs_parse_arguments "${parser}" "FROM" "TO" )"
+  CHECK "$(dict_get "${arguments}" "source")" = "FROM"
+  CHECK "$(dict_get "${arguments}" "target")" = "TO"
+  arguments="$(parseargs_parse_arguments "${parser}" "FROM")"
+  CHECK "$(dict_get "${arguments}" "source")" = "FROM"
+  CHECK "$(dict_get "${arguments}" "target")" = "VOIDSPACE"
+}
+
 make_arg_parser_with_short_optional_arguments_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
   local is_parser=false
@@ -561,7 +577,7 @@ too_few_positional_arguments_is_an_error_when_parsed() {
   parser="$(parseargs_add_argument "${parser}" "name" "target")"
   returned_error="$(parseargs_parse_arguments "${parser}" "FROM" 2>&1)"
   CHECK $? -eq 1
-  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "few" "ositional"
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "missing" "ositional"
 }
 
 too_few_positional_multi_arguments_is_an_error_when_parsed() {
@@ -673,6 +689,7 @@ TEST parsearg_functions_complain_if_parameter_not_a_parseargs_parser
 TEST make_arg_parser_with_positional_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_positional_multi_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_positional_multi_argument_of_1_and_parse_some_arguments
+TEST make_arg_parser_with_positional_multi_0_or_1_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_short_optional_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_short_optional_arguments_and_parse_some_arguments_no_space
 TEST make_arg_parser_with_short_optional_multi_arguments_and_parse_some_arguments
