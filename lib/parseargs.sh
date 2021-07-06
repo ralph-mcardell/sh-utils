@@ -110,6 +110,9 @@ then
             __parseargs_error_exit__ "nargs value '${2}' invalid. Must be integer in the range [1, ${__PARSEARGS_MAX_NARGS__}], '?','*' or '+'."
           fi
           ;;
+        const)
+          argument="$(dict_set_simple "${argument}" "const" "${2}")"
+          ;;
         default)
           argument="$(dict_set_simple "${argument}" "default" "${2}")"
           ;;
@@ -327,12 +330,19 @@ then
       if [ -z "${dest}" ]; then
         __parseargs_error_exit__ "(internal) Argument specification key for short option -${opt} not found."
       fi
-      shift $(( ${OPTIND}-1 ))
+      if __parseargs_is_option_string__ "${OPTARG}" && [ "${OPTARG}" != '--' ]; then
+      # adjustments for missing/optional argument
+        shift $(( ${OPTIND}-2 ))
+        __parseargs_shift_caller_args_by__=$(( ${__parseargs_shift_caller_args_by__}-1 ))
+      else
+        shift $(( ${OPTIND}-1 ))
+      fi
       local shift_by=$(( ${__parseargs_shift_caller_args_by__}+1 ))
-#echo "caller shift by=${__parseargs_shift_caller_args_by__}; local shift by=${shift_by}" >&2
+
+#echo "remaining arg count: $#; caller shift by=${__parseargs_shift_caller_args_by__}; local shift by=${shift_by}" >&2
       __parseargs_add_arguments__ "${__parseargs_return_value__}" "${arg_specs}" "${dest}" "const" "Short option -${opt}" "${OPTARG}" "$@"
       shift_by=$(( ${__parseargs_shift_caller_args_by__}-${shift_by} ))
-#echo "caller shift by=${__parseargs_shift_caller_args_by__}; local shift by=${shift_by}" >&2
+#echo "caller shift by=${__parseargs_shift_caller_args_by__}; local shift by=${shift_by}; args='$*'" >&2
       if [ "${shift_by}" -gt '0' ]; then
         shift "${shift_by}"
       fi
@@ -403,7 +413,7 @@ then
     local missing_arg_value="-"
     
 #echo "> ADD ARGS (${arg_desc}; args='$*'):" >&2
-#echo "  dest:${dest}; attributes:${attributes}; missing_arg_key:${missing_arg_key}" >&2
+#echo "  dest:${dest}; shift by:${__parseargs_shift_caller_args_by__}; attributes:${attributes}; missing_arg_key:${missing_arg_key}" >&2
     local on_missing='error'
 
     case "${nargs}" in
@@ -431,7 +441,8 @@ then
     fi
     if [ -z "${nargs}" ]; then
       __parseargs_add_argument__ "${arguments}" "${dest}" "${on_missing}" "${missing_arg_value}" "${arg_desc}" "$@"
-#echo "< ADD ARGS(scalar):" >&2
+#echo "  Returning: shift by:${__parseargs_shift_caller_args_by__}; value:${__parseargs_return_value__}" >&2
+#echo "< ADD ARGS(scalar)" >&2
       return
     fi
 
@@ -479,7 +490,7 @@ then
           if [ "$#" -gt "0" ]; then
             __parseargs_shift_caller_args_by__=$(( ${__parseargs_shift_caller_args_by__}+1 ))
           fi
-        elif [ "${optional}" != "optional" ]; then
+        else
           # Found option-like string where argument expected:
           # eat all remaining call arguments to force error
           shift $#
@@ -487,11 +498,13 @@ then
       fi
       if [ "$#" -gt "0" ]; then
         local arg_value="${1}"
+#echo "Argument found" >&2
         __parseargs_return_value__="$(dict_set_simple "${__parseargs_return_value__}" "${dest}" "${arg_value}")"
         __parseargs_shift_caller_args_by__=$(( ${__parseargs_shift_caller_args_by__}+1 ))
         return
       fi
     fi
+#echo "Argument missing" >&2
     case "${on_missing}" in
       'value')
         __parseargs_return_value__="$(dict_set_simple "${__parseargs_return_value__}" "${dest}" "${missing_arg_value}")"
