@@ -324,11 +324,27 @@ then
         __parseargs_error_exit__ "Unknown short option -${OPTARG}."
       fi
       if [ "${opt}" = ":" ] ; then
-        __parseargs_error_exit__ "Argument value missing for short option -${OPTARG}."
-      fi
-      dest="$(dict_get_simple "${shortopts}" "${opt}")"
-      if [ -z "${dest}" ]; then
-        __parseargs_error_exit__ "(internal) Argument specification key for short option -${opt} not found."
+        dest="$(dict_get_simple "${shortopts}" "${OPTARG}")"
+        if [ -z "${dest}" ]; then
+          __parseargs_error_exit__ "(internal) Argument specification key for short option -${OPTARG} not found."
+        fi
+        local attributes="$(dict_get "${arg_specs}" "${dest}")"
+        if [ -z "${attributes}" ]; then
+          __parseargs_error_exit__ "(internal). ${arg_desc}: no attrubutes specifying this argument."
+        fi
+
+        local nargs="$(dict_get_simple "${attributes}" "nargs" )"
+#echo "@@@@@ nargs='${nargs}'" >&2
+        if [ "${nargs}" != '?' ];  then
+          __parseargs_error_exit__ "Argument value missing for short option -${OPTARG}."
+        fi
+        opt="${OPTARG}"
+        OPTARG=''
+      else
+        dest="$(dict_get_simple "${shortopts}" "${opt}")"
+        if [ -z "${dest}" ]; then
+          __parseargs_error_exit__ "(internal) YYY Argument specification key for short option -${opt} not found."
+        fi
       fi
       if __parseargs_is_option_string__ "${OPTARG}" && [ "${OPTARG}" != '--' ]; then
       # adjustments for missing/optional argument
@@ -404,6 +420,10 @@ then
     local missing_arg_key="${4}"
     local arg_desc="${5}"
     shift 5
+    if [ $# -gt 0 ] && [ -z "$*" ]; then
+      # if all remaining arguments empty, consume them
+      shift $#
+    fi
     local attributes="$(dict_get "${arg_specs}" "${dest}")"
     if [ -z "${attributes}" ]; then
       __parseargs_error_exit__ "(internal). ${arg_desc}: no attrubutes specifying this argument."
@@ -412,7 +432,7 @@ then
     local nargs="$(dict_get_simple "${attributes}" "nargs" )"
     local missing_arg_value="-"
     
-#echo "> ADD ARGS (${arg_desc}; args='$*'):" >&2
+#echo "> ADD ARGS (${arg_desc}; args='$*', count=$#):" >&2
 #echo "  dest:${dest}; shift by:${__parseargs_shift_caller_args_by__}; attributes:${attributes}; missing_arg_key:${missing_arg_key}" >&2
     local on_missing='error'
 
@@ -498,7 +518,7 @@ then
       fi
       if [ "$#" -gt "0" ]; then
         local arg_value="${1}"
-#echo "Argument found" >&2
+#echo "Argument found: '${arg_value}'" >&2
         __parseargs_return_value__="$(dict_set_simple "${__parseargs_return_value__}" "${dest}" "${arg_value}")"
         __parseargs_shift_caller_args_by__=$(( ${__parseargs_shift_caller_args_by__}+1 ))
         return

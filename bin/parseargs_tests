@@ -193,10 +193,13 @@ make_arg_parser_with_short_optional_multi_0_or_1_arguments_and_parse_some_argume
   REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "short" "s" "destination" "source" "nargs" "?" "const" "VOIDSPACE")"
   parser="$(parseargs_add_argument "${parser}" "short" "t" "destination" "target")"
-  local arguments="$(parseargs_parse_arguments "${parser}" -s"FROM" -t"TO" )"
+  local arguments="$(parseargs_parse_arguments "${parser}" -t"TO" -s"FROM" )"
   CHECK "$(dict_get "${arguments}" "source")" = "FROM"
   CHECK "$(dict_get "${arguments}" "target")" = "TO"
-  local arguments="$(parseargs_parse_arguments "${parser}" -s -t"TO" )"
+  arguments="$(parseargs_parse_arguments "${parser}" -s -t"TO" )"
+  CHECK "$(dict_get "${arguments}" "source")" = "VOIDSPACE"
+  CHECK "$(dict_get "${arguments}" "target")" = "TO"
+  arguments="$(parseargs_parse_arguments "${parser}" -t"TO" -s )"
   CHECK "$(dict_get "${arguments}" "source")" = "VOIDSPACE"
   CHECK "$(dict_get "${arguments}" "target")" = "TO"
 }
@@ -701,6 +704,9 @@ missing_long_option_multi_argument_is_an_error_when_parsed() {
 }
 
 #set -x
+#TEST make_arg_parser_with_short_optional_multi_0_or_1_arguments_and_parse_some_arguments
+#PRINT_TEST_COUNTS
+#exit 0
 TEST parsearg_functions_complain_if_parameter_not_a_parseargs_parser
 TEST make_arg_parser_with_positional_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_positional_multi_arguments_and_parse_some_arguments
