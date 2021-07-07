@@ -250,11 +250,19 @@ then
   }
 
   __parseargs_is_option_string__() {
-    local option_name_suffix="${1#-}"
+    local readonly option_name_suffix="${1#-}"
     if [ "${option_name_suffix}" = "${1}" ]; then
       false; return
     else
       true; return
+    fi
+  }
+
+  __parseargs_is_option_string_or_empty__() {
+    if [ -z "${1}" ] || __parseargs_is_option_string__ "${1}"; then
+      true; return
+    else
+      false; return
     fi
   }
 
@@ -334,7 +342,6 @@ then
         fi
 
         local nargs="$(dict_get_simple "${attributes}" "nargs" )"
-#echo "@@@@@ nargs='${nargs}'" >&2
         if [ "${nargs}" != '?' ];  then
           __parseargs_error_exit__ "Argument value missing for short option -${OPTARG}."
         fi
@@ -392,7 +399,15 @@ then
     else
         __parseargs_shift_caller_args_by__=1
     fi
-    if [ "$#" -eq "0" ]; then
+    local attributes="$(dict_get "${arg_specs}" "${dest}")"
+    if [ -z "${attributes}" ]; then
+      __parseargs_error_exit__ "(internal). No attrubutes specifying long option --${__parseargs_return_value__}."
+    fi
+
+    local nargs="$(dict_get_simple "${attributes}" "nargs" )"
+    if [ "${nargs}" = '?' ] && __parseargs_is_option_string_or_empty__ "${1}"; then
+      __parseargs_shift_caller_args_by__=0
+    elif [ "$#" -eq "0" ]; then
       __parseargs_error_exit__ "Option --${__parseargs_return_value__} is missing an argument value."
     fi
     __parseargs_add_arguments__ "${arguments}" "${arg_specs}" "${dest}" "const" "Long option --${__parseargs_return_value__}" "$@"
@@ -518,13 +533,13 @@ then
       fi
       if [ "$#" -gt "0" ]; then
         local arg_value="${1}"
-#echo "Argument found: '${arg_value}'" >&2
+#echo "    Argument found: '${arg_value}'" >&2
         __parseargs_return_value__="$(dict_set_simple "${__parseargs_return_value__}" "${dest}" "${arg_value}")"
         __parseargs_shift_caller_args_by__=$(( ${__parseargs_shift_caller_args_by__}+1 ))
         return
       fi
     fi
-#echo "Argument missing" >&2
+#echo "    Argument missing" >&2
     case "${on_missing}" in
       'value')
         __parseargs_return_value__="$(dict_set_simple "${__parseargs_return_value__}" "${dest}" "${missing_arg_value}")"
