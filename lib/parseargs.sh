@@ -192,11 +192,12 @@ then
     shift
     local expected_number_of_positionals="$(dict_size "${positionals}")"
 #echo "OPTSTRING:'${optstring}'." >&2
+#echo "PARSING:'$*'." >&2
     while [ "$#" -gt "0" ]; do
       __parseargs_parse_short_options__ "${arguments}" "${optstring}" "${shortopts}" "${arg_specs}" "$@"
       arguments="${__parseargs_return_value__}"
       shift ${__parseargs_shift_caller_args_by__}
-#echo "PARSE ARGS: shifted by: ${__parseargs_shift_caller_args_by__}; remaining arguments to parse: '$*'" >&2
+#echo "  PARSE ARGS: shifted by: ${__parseargs_shift_caller_args_by__}; remaining arguments to parse: '$*'" >&2
       if [ "$#" -gt "0" ]; then
         __parseargs_parse_long_option__ "${arguments}" "${longopts}" "${arg_specs}" "$@"
         if [ "${__parseargs_shift_caller_args_by__}" -eq "0" ]; then
@@ -331,47 +332,33 @@ then
         fi
         __parseargs_error_exit__ "Unknown short option -${OPTARG}."
       fi
+      local call_shift_by_increment=$(( ${OPTIND}-2 ))
       if [ "${opt}" = ":" ] ; then
-        dest="$(dict_get_simple "${shortopts}" "${OPTARG}")"
-        if [ -z "${dest}" ]; then
-          __parseargs_error_exit__ "(internal) Argument specification key for short option -${OPTARG} not found."
-        fi
-        local attributes="$(dict_get "${arg_specs}" "${dest}")"
-        if [ -z "${attributes}" ]; then
-          __parseargs_error_exit__ "(internal). ${arg_desc}: no attrubutes specifying this argument."
-        fi
-
-        local nargs="$(dict_get_simple "${attributes}" "nargs" )"
-        if [ "${nargs}" != '?' ];  then
-          __parseargs_error_exit__ "Argument value missing for short option -${OPTARG}."
-        fi
         opt="${OPTARG}"
         OPTARG=''
-      else
-        dest="$(dict_get_simple "${shortopts}" "${opt}")"
-        if [ -z "${dest}" ]; then
-          __parseargs_error_exit__ "(internal) YYY Argument specification key for short option -${opt} not found."
-        fi
+        call_shift_by_increment=$(( ${call_shift_by_increment}+1 ))
       fi
-      if __parseargs_is_option_string__ "${OPTARG}" && [ "${OPTARG}" != '--' ]; then
-      # adjustments for missing/optional argument
-        shift $(( ${OPTIND}-2 ))
-        __parseargs_shift_caller_args_by__=$(( ${__parseargs_shift_caller_args_by__}-1 ))
-      else
-        shift $(( ${OPTIND}-1 ))
+      dest="$(dict_get_simple "${shortopts}" "${opt}")"
+      if [ -z "${dest}" ]; then
+        __parseargs_error_exit__ "(internal) YYY Argument specification key for short option -${opt} not found."
       fi
-      local shift_by=$(( ${__parseargs_shift_caller_args_by__}+1 ))
+      shift $(( ${OPTIND}-1 ))
+      local shift_by="${__parseargs_shift_caller_args_by__}"
+      if [ -n "${OPTARG}" ]; then
+        set -- "${OPTARG}" "$@"
+      fi
 
 #echo "remaining arg count: $#; caller shift by=${__parseargs_shift_caller_args_by__}; local shift by=${shift_by}" >&2
-      __parseargs_add_arguments__ "${__parseargs_return_value__}" "${arg_specs}" "${dest}" "const" "Short option -${opt}" "${OPTARG}" "$@"
+#echo "  BEFORE: caller shift by=${__parseargs_shift_caller_args_by__}; local shift by=${shift_by}; args='$*'" >&2
+      __parseargs_add_arguments__ "${__parseargs_return_value__}" "${arg_specs}" "${dest}" "const" "Short option -${opt}" "$@"
       shift_by=$(( ${__parseargs_shift_caller_args_by__}-${shift_by} ))
-#echo "caller shift by=${__parseargs_shift_caller_args_by__}; local shift by=${shift_by}; args='$*'" >&2
+#echo "   AFTER: caller shift by=${__parseargs_shift_caller_args_by__}; local shift by=${shift_by}; args='$*'" >&2
       if [ "${shift_by}" -gt '0' ]; then
         shift "${shift_by}"
       fi
-      __parseargs_shift_caller_args_by__=$(( ${__parseargs_shift_caller_args_by__}+${OPTIND}-2 ))
+      __parseargs_shift_caller_args_by__=$(( ${__parseargs_shift_caller_args_by__}+${call_shift_by_increment} ))
       OPTIND=1
-#echo "Caller shift args by: ${__parseargs_shift_caller_args_by__}; remaining arguments: $*" >&2        
+#echo "    END: Caller shift args by: ${__parseargs_shift_caller_args_by__}; remaining arguments: '$*'" >&2        
     done
   }
 
@@ -398,17 +385,6 @@ then
       set -- "${__parseargs_return_value__}" "$@"
     else
         __parseargs_shift_caller_args_by__=1
-    fi
-    local attributes="$(dict_get "${arg_specs}" "${dest}")"
-    if [ -z "${attributes}" ]; then
-      __parseargs_error_exit__ "(internal). No attrubutes specifying long option --${__parseargs_return_value__}."
-    fi
-
-    local nargs="$(dict_get_simple "${attributes}" "nargs" )"
-    if [ "${nargs}" = '?' ] && __parseargs_is_option_string_or_empty__ "${1}"; then
-      __parseargs_shift_caller_args_by__=0
-    elif [ "$#" -eq "0" ]; then
-      __parseargs_error_exit__ "Option --${__parseargs_return_value__} is missing an argument value."
     fi
     __parseargs_add_arguments__ "${arguments}" "${arg_specs}" "${dest}" "const" "Long option --${__parseargs_return_value__}" "$@"
   }
@@ -543,7 +519,6 @@ then
     case "${on_missing}" in
       'value')
         __parseargs_return_value__="$(dict_set_simple "${__parseargs_return_value__}" "${dest}" "${missing_arg_value}")"
-        __parseargs_shift_caller_args_by__=$(( ${__parseargs_shift_caller_args_by__}+1 ))
         ;;
       'error'|'error_on_first')
         __parseargs_error_exit__ "${arg_desc} is missing an argument value."
