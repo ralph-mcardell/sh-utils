@@ -58,6 +58,9 @@ then
     local long_opt=""
     local dest=""
     local action=""
+    local num_args=''
+    local have_default=false
+    local have_const=false
     shift
     while [ "$#" -gt "1" ]; do
       case ${1} in
@@ -104,16 +107,19 @@ then
           argument="$(dict_set_simple "${argument}" "action" "${2}")"
           ;;
         nargs)
-          if __parseargs_is_valid_nargs_value__ "${2}" "${__PARSEARGS_MAX_NARGS__}"; then
-            argument="$(dict_set_simple "${argument}" "nargs" "${2}")"
+          num_args="${2}"
+          if __parseargs_is_valid_nargs_value__ "${num_args}" "${__PARSEARGS_MAX_NARGS__}"; then
+            argument="$(dict_set_simple "${argument}" "nargs" "${num_args}")"
           else
-            __parseargs_error_exit__ "nargs value '${2}' invalid. Must be integer in the range [1, ${__PARSEARGS_MAX_NARGS__}], '?','*' or '+'."
+            __parseargs_error_exit__ "nargs value '${num_args}' invalid. Must be integer in the range [1, ${__PARSEARGS_MAX_NARGS__}], '?','*' or '+'."
           fi
           ;;
         const)
+          have_const=true
           argument="$(dict_set_simple "${argument}" "const" "${2}")"
           ;;
         default)
+          have_default=true
           argument="$(dict_set_simple "${argument}" "default" "${2}")"
           ;;
         required)
@@ -138,9 +144,16 @@ then
     fi
 
     if [ -n "${positional}" ]; then
+      if [ "${num_args}" = '?' ] && ! ${have_default}; then
+        __parseargs_error_exit__ "A default attribute value is required for optional positional argument (nargs=?) '${dest}'." >&2
+      fi
       argument="$(dict_set_simple "${argument}" "name" "${2}")"
       positionals="$(dict_set_simple "${positionals}" "$(dict_size "${positionals}")" "${dest}")"
     elif  [ -n "${is_option}" ]; then
+      if [ "${num_args}" = '?' ] && ! ${have_const}; then
+        __parseargs_error_exit__ "A const attribute value is required for optional arguments with optional value (nargs=?) '${dest}'." >&2
+      fi
+
       if [ -n "${short_opt}" ]; then
         if [ "${#short_opt}" -ne 1 ]; then
           __parseargs_error_exit__ "Argument short option attribute value '${short_opt}' is not a single character."

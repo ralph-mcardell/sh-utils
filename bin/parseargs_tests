@@ -477,7 +477,7 @@ argument_nargs_attribute_can_be_single_glob_character() {
   is_parser="parseargs_is_argument_parser  ${parser}"
   REQUIRE -n "${is_parser}"
   REQUIRE "${is_parser}"
-  parser="$(parseargs_add_argument "${parser}" "name" "arguments" "nargs" "?")"
+  parser="$(parseargs_add_argument "${parser}" "name" "arguments" "nargs" "?" "default" "x")"
   CHECK $? -eq 0
   is_parser="parseargs_is_argument_parser  ${parser}"
   REQUIRE -n "${is_parser}"
@@ -781,8 +781,32 @@ missing_long_option_multi_argument_is_an_error_when_parsed() {
   CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "missing"
 }
 
+positional_specified_with_nargs_0_or_1_but_no_default_is_an_error() {
+  local parser="$(parseargs_new_argument_parser)"
+  local returned_error=''
+  returned_error="$(parseargs_add_argument "${parser}" "name" "arg1" "nargs" "?" 2>&1)"
+  CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "default"
+}
+
+short_optional_specified_with_nargs_0_or_1_but_no_const_is_an_error() {
+  local parser="$(parseargs_new_argument_parser)"
+  local returned_error=''
+  returned_error="$(parseargs_add_argument "${parser}" "short" "a" "destination" "arg1" "nargs" "?" 2>&1)"
+  CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "const"
+}
+
+long_optional_specified_with_nargs_0_or_1_but_no_const_is_an_error() {
+  local parser="$(parseargs_new_argument_parser)"
+  local returned_error=''
+  returned_error="$(parseargs_add_argument "${parser}" "long" "arg1" "nargs" "?" 2>&1)"
+  CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "const"
+}
+
 #set -x
-#TEST make_arg_parser_with_long_optional_multi_0_or_1_arguments_and_parse_some_arguments
+#TEST positional_specified_with_nargs_0_or_1_but_no_default_is_an_error
 #PRINT_TEST_COUNTS
 #exit 0
 TEST parsearg_functions_complain_if_parameter_not_a_parseargs_parser
@@ -831,4 +855,7 @@ TEST missing_short_option_argument_is_an_error_when_parsed
 TEST missing_short_option_multi_argument_is_an_error_when_parsed
 TEST missing_long_option_argument_is_an_error_when_parsed
 TEST missing_long_option_multi_argument_is_an_error_when_parsed
+TEST positional_specified_with_nargs_0_or_1_but_no_default_is_an_error
+TEST short_optional_specified_with_nargs_0_or_1_but_no_const_is_an_error
+TEST long_optional_specified_with_nargs_0_or_1_but_no_const_is_an_error
 PRINT_TEST_COUNTS
