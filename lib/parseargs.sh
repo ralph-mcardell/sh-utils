@@ -446,11 +446,11 @@ then
         on_missing='value'
         ;;
       '*')
-        nargs='${__PARSEARGS_MAX_NARGS__}'
+        nargs="${__PARSEARGS_MAX_NARGS__}"
         on_missing='break'
         ;;
       '+')
-        nargs='${__PARSEARGS_MAX_NARGS__}'
+        nargs="${__PARSEARGS_MAX_NARGS__}"
         on_missing='error_on_first'
         ;;
       *)
