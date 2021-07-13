@@ -127,6 +127,12 @@ then
             argument="$(dict_set_simple "${argument}" "required" "true")"
           fi
           ;;
+        choices)
+          if dict_is_dict "${2}"; then
+            argument="$(dict_set "${argument}" "choices" "${2}")"
+          else
+            __parseargs_error_exit__ "Argument choices attribute value is not a dict(ionary)."
+          fi
       esac
       shift 2
     done
@@ -564,7 +570,7 @@ then
     local shortopts="${5}"
     local longopts="${6}"
     local arguments="${__parseargs_return_value__}"
-    local arg="$(dict_get_simple "${arguments}" "${dest}")"
+    local arg="$(dict_get "${arguments}" "${dest}")"
     if [ -z "${arg}" ]; then
       local default="$(dict_get_simple "${arg_spec}" "default")"
       if [ -n "${default}" ]; then
@@ -572,16 +578,63 @@ then
       else
         local required="$(dict_get_simple "${arg_spec}" "required")"
         if [ -n "${required}" ] && "${required}"; then
-          local optname="$(dict_get_simple "${arg_spec}" "long")"
-          if [ -z "${optname}" ]; then
-            optname="-$(dict_get_simple "${arg_spec}" "short")"
-          else
-            optname="--${optname}"
-          fi
+          __parseargs_get_option_name__ "${arg_spec}"
+          local optname="${__parseargs_return_value__}"
           __parseargs_error_exit__ "Required option ${optname} was not provided."
         fi
       fi
     fi
+    local choices="$(dict_get "${arg_spec}" "choices")"
+    if [ -n "${choices}" ]; then
+      if dict_is_dict "${arg}"; then
+        dict_for_each "${arg}" "__parseargs_op_check_value_valid_choice__" "${choices}" "${arg_spec}" "${positionals}"
+      else
+        __parseargs_op_check_value_valid_choice__ '_' "${arg}" '_' "${choices}" "${arg_spec}" "${positionals}"
+      fi
+    fi
     __parseargs_return_value__="${arguments}"
   }
+
+  __parseargs_op_check_value_valid_choice__() {
+    local value="${2}"
+    local choices="${4}"
+    local arg_spec="${5}"
+    local positionals="${6}"
+    local chosen="$(dict_get "${choices}" "${value}")"
+    if [ -z "${chosen}" ]; then
+      __parseargs_get_option_name__ "${arg_spec}"
+      local optname="${__parseargs_return_value__}"
+      if [ -z "${optname}" ]; then
+        local i='0'
+        local end="$(dict_size "${positionals}")"
+        local dest="$(dict_get_simple "${arg_spec}" "destination")"
+        while [ "${i}" -lt "${end}" ]; do
+          local dest_i="$(dict_get_simple "${positionals}" "${i}")"
+          if [ "${dest_i}" = "${dest}" ]; then
+            optname="positional argument #${i}"
+            break
+          fi
+          i=$(( ${i}+1 ))
+        done
+      else
+        optname="option ${optname}"
+      fi
+      __parseargs_error_exit__ "Value '${value}' is not a valid choice for ${optname}."
+    fi
+  }
+
+  __parseargs_get_option_name__() {
+    local arg_spec="${1}"
+    local optname="$(dict_get_simple "${arg_spec}" "long")"
+    if [ -z "${optname}" ]; then
+      optname="$(dict_get_simple "${arg_spec}" "short")"
+      if [ -n "${optname}" ]; then
+        optname="-${optname}"
+      fi
+    else
+      optname="--${optname}"
+    fi
+    __parseargs_return_value__="${optname}"
+  }
+
 fi
