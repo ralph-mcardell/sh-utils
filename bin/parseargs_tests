@@ -1150,6 +1150,66 @@ missing_long_option_multi_argument_is_an_error_when_parsed() {
   CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "missing"
 }
 
+positional_argument_value_not_one_of_specified_choices_is_an_error() {
+  local parser="$(parseargs_new_argument_parser)"
+  local returned_error=''
+  local choices="$(dict_declare_simple "FROM" "_" "HERE" "_")"
+  parser="$(parseargs_add_argument "${parser}" "name" "source" "choices" "${choices}")"
+  returned_error="$(parseargs_parse_arguments "${parser}" "THERE" 2>&1)"
+  CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "positional" "0" "choice"
+}
+
+positional_multi_argument_value_not_one_of_specified_choices_is_an_error() {
+  local parser="$(parseargs_new_argument_parser)"
+  local returned_error=''
+  local choices="$(dict_declare_simple "FROM" "_" "HERE" "_")"
+  parser="$(parseargs_add_argument "${parser}" "name" "source" "nargs" "2" "choices" "${choices}")"
+  returned_error="$(parseargs_parse_arguments "${parser}" "HERE" "THERE" 2>&1)"
+  CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "positional" "0" "choice"
+}
+
+short_optional_argument_value_not_one_of_specified_choices_is_an_error() {
+  local parser="$(parseargs_new_argument_parser)"
+  local returned_error=''
+  local choices="$(dict_declare_simple "FROM" "_" "HERE" "_")"
+  parser="$(parseargs_add_argument "${parser}" "short" "s" "destination" "source" "choices" "${choices}")"
+  returned_error="$(parseargs_parse_arguments "${parser}" "-s" "THERE" 2>&1)"
+  CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "option" "-s" "choice"
+}
+
+short_optional_multi_argument_value_not_one_of_specified_choices_is_an_error() {
+  local parser="$(parseargs_new_argument_parser)"
+  local returned_error=''
+  local choices="$(dict_declare_simple "FROM" "_" "HERE" "_")"
+  parser="$(parseargs_add_argument "${parser}" "short" "s" "destination" "source" "nargs" "2" "choices" "${choices}")"
+  returned_error="$(parseargs_parse_arguments "${parser}" "-sHERE" "THERE" 2>&1)"
+  CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "option" "-s" "choice"
+}
+
+long_optional_argument_value_not_one_of_specified_choices_is_an_error() {
+  local parser="$(parseargs_new_argument_parser)"
+  local returned_error=''
+  local choices="$(dict_declare_simple "FROM" "_" "HERE" "_")"
+  parser="$(parseargs_add_argument "${parser}" "long" "source" "choices" "${choices}")"
+  returned_error="$(parseargs_parse_arguments "${parser}" "--source" "THERE" 2>&1)"
+  CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "option" "--source" "choice"
+}
+
+long_optional_multi_argument_value_not_one_of_specified_choices_is_an_error() {
+  local parser="$(parseargs_new_argument_parser)"
+  local returned_error=''
+  local choices="$(dict_declare_simple "FROM" "_" "HERE" "_")"
+  parser="$(parseargs_add_argument "${parser}" "long" "source" "nargs" "2" "choices" "${choices}")"
+  returned_error="$(parseargs_parse_arguments "${parser}" "--source=HERE" "THERE" 2>&1)"
+  CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "option" "--source" "choice"
+}
+
 positional_specified_with_nargs_0_or_1_but_no_default_is_an_error() {
   local parser="$(parseargs_new_argument_parser)"
   local returned_error=''
@@ -1175,7 +1235,7 @@ long_optional_specified_with_nargs_0_or_1_but_no_const_is_an_error() {
 }
 
 #set -x
-#TEST make_arg_parser_with_long_optional_multi_arguments_from_choices_set_and_parse_some_arguments
+#TEST long_optional_multi_argument_value_not_one_of_specified_choices_is_an_error
 #PRINT_TEST_COUNTS
 #exit 0
 TEST parsearg_functions_complain_if_parameter_not_a_parseargs_parser
@@ -1248,6 +1308,12 @@ TEST missing_short_option_argument_is_an_error_when_parsed
 TEST missing_short_option_multi_argument_is_an_error_when_parsed
 TEST missing_long_option_argument_is_an_error_when_parsed
 TEST missing_long_option_multi_argument_is_an_error_when_parsed
+TEST positional_argument_value_not_one_of_specified_choices_is_an_error
+TEST positional_multi_argument_value_not_one_of_specified_choices_is_an_error
+TEST short_optional_argument_value_not_one_of_specified_choices_is_an_error
+TEST short_optional_multi_argument_value_not_one_of_specified_choices_is_an_error
+TEST long_optional_argument_value_not_one_of_specified_choices_is_an_error
+TEST long_optional_multi_argument_value_not_one_of_specified_choices_is_an_error
 TEST positional_specified_with_nargs_0_or_1_but_no_default_is_an_error
 TEST short_optional_specified_with_nargs_0_or_1_but_no_const_is_an_error
 TEST long_optional_specified_with_nargs_0_or_1_but_no_const_is_an_error
