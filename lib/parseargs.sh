@@ -61,6 +61,7 @@ then
     local num_args=''
     local have_default=false
     local have_const=false
+    local action="store"
     shift
     while [ "$#" -gt "1" ]; do
       case ${1} in
@@ -104,7 +105,7 @@ then
           dest="${2}"
           ;;
         action)
-          argument="$(dict_set_simple "${argument}" "action" "${2}")"
+          action="${2}"
           ;;
         nargs)
           num_args="${2}"
@@ -145,11 +146,45 @@ then
     fi
     dest="$(__parseargs_sanitise_destination__ "${dest}")"
 
+    case "${action}" in
+      store)
+        ;;
+      store_const)
+        if ! have_const; then
+          __parseargs_error_exit__ "A const attribute value is required for arguments with 'store_const' action attribute '${dest}'." >&2
+        fi
+        if [ -n "${num_args}" ]; then
+          __parseargs_error_exit__ "Cannot specify nargs attribute value for arguments with 'store_const' action attribute '${dest}'." >&2
+        fi
+        ;;
+      store_true|store_false)
+        if have_default || have_const; then
+          __parseargs_error_exit__ "Cannot specify a default or const attribute value for arguments with 'store_true' or 'store_false' action attributes '${dest}'." >&2
+        fi
+        if [ -n "${num_args}" ]; then
+          __parseargs_error_exit__ "Cannot specify nargs attribute value for arguments with 'store_true' or 'store_false' action attributes '${dest}'." >&2
+        fi
+        have_default=true
+        if [ "${action}" = 'store_true' ]; then
+          argument="$(dict_set_simple "${argument}" "default" 'false')"
+        else
+          argument="$(dict_set_simple "${argument}" "default" 'true')"
+        fi
+        ;;
+      *)
+        __parseargs_error_exit__ "Unrecognised action attribute value '${action}' for argument '${dest}'." >&2
+        ;;
+    esac
+    argument="$(dict_set_simple "${argument}" "action" "${action}")"
+
     if [ -z "${dest}" ]; then
       __parseargs_error_exit__ "Unable to deduce destination name for argument value from destination, name or long attribute values." >&2
     fi
 
     if [ -n "${positional}" ]; then
+      if [ "${action}" != 'store' ]; then
+        __parseargs_error_exit__ "Action attribute value '${action}' cannot be used for positional arguments '${dest}'." >&2
+      fi
       if [ "${num_args}" = '?' ] && ! ${have_default}; then
         __parseargs_error_exit__ "A default attribute value is required for optional positional argument (nargs=?) '${dest}'." >&2
       fi
@@ -369,7 +404,7 @@ then
 
 #echo "remaining arg count: $#; caller shift by=${__parseargs_shift_caller_args_by__}; local shift by=${shift_by}" >&2
 #echo "  BEFORE: caller shift by=${__parseargs_shift_caller_args_by__}; local shift by=${shift_by}; args='$*'" >&2
-      __parseargs_add_arguments__ "${__parseargs_return_value__}" "${arg_specs}" "${dest}" "const" "Short option -${opt}" "$@"
+      __parseargs_process_argument_action__ "${__parseargs_return_value__}" "${arg_specs}" "${dest}" "const" "Short option -${opt}" "$@"
       shift_by=$(( ${__parseargs_shift_caller_args_by__}-${shift_by} ))
 #echo "   AFTER: caller shift by=${__parseargs_shift_caller_args_by__}; local shift by=${shift_by}; args='$*'" >&2
       if [ "${shift_by}" -gt '0' ]; then
@@ -405,7 +440,7 @@ then
     else
         __parseargs_shift_caller_args_by__=1
     fi
-    __parseargs_add_arguments__ "${arguments}" "${arg_specs}" "${dest}" "const" "Long option --${__parseargs_return_value__}" "$@"
+    __parseargs_process_argument_action__ "${arguments}" "${arg_specs}" "${dest}" "const" "Long option --${__parseargs_return_value__}" "$@"
   }
 
   __parseargs_parse_positional_argument__() {
@@ -420,12 +455,49 @@ then
       __parseargs_shift_caller_args_by__=0
       return
     fi
-    __parseargs_add_arguments__ "${__parseargs_return_value__}" "${arg_specs}" "${dest}" "default" "Positional #$(( ${current_positional}+1 )), '${dest}'," "$@" 
+    __parseargs_process_argument_action__ "${__parseargs_return_value__}" "${arg_specs}" "${dest}" "default" "Positional #$(( ${current_positional}+1 )), '${dest}'," "$@" 
+  }
+
+  __parseargs_process_argument_action__() {
+    local arguments="${1}"
+    local arg_specs="${2}"
+    local dest="${3}"
+    local missing_arg_key="${4}"
+    local arg_desc="${5}"
+    shift 5
+    local attributes="$(dict_get "${arg_specs}" "${dest}")"
+    if [ -z "${attributes}" ]; then
+      __parseargs_error_exit__ "(internal). ${arg_desc}: no attrubutes specifying this argument."
+    fi
+    local action="$(dict_get_simple "${attributes}" "action" )"
+    case "${action}" in
+      store)
+        __parseargs_add_arguments__ "${arguments}" "${attributes}" "${dest}" "${missing_arg_key}" "${arg_desc}" "$@"
+        ;;
+      store_const)
+        local value="$(dict_get_simple "${attributes}" "conbst" )"
+        __parseargs_add_arguments__ "${arguments}" "${attributes}" "${dest}" "${missing_arg_key}" "${arg_desc}" "${value}" "$@"
+        __parseargs_shift_caller_args_by__="$(( ${__parseargs_shift_caller_args_by__}-1 ))"
+        ;;
+      store_true)
+        local value="$(dict_get_simple "${attributes}" "conbst" )"
+        __parseargs_add_arguments__ "${arguments}" "${attributes}" "${dest}" "${missing_arg_key}" "${arg_desc}" "true" "$@"
+        __parseargs_shift_caller_args_by__="$(( ${__parseargs_shift_caller_args_by__}-1 ))"
+        ;;
+      store_false)
+        local value="$(dict_get_simple "${attributes}" "conbst" )"
+        __parseargs_add_arguments__ "${arguments}" "${attributes}" "${dest}" "${missing_arg_key}" "${arg_desc}" "false" "$@"
+        __parseargs_shift_caller_args_by__="$(( ${__parseargs_shift_caller_args_by__}-1 ))"
+        ;;
+      *)
+        __parseargs_error_exit__ "(internal) Unexpected unrecognised action '${action}'"
+        ;;
+      esac
   }
 
   __parseargs_add_arguments__() {
     local arguments="${1}"
-    local arg_specs="${2}"
+    local attributes="${2}"
     local dest="${3}"
     local missing_arg_key="${4}"
     local arg_desc="${5}"
@@ -433,10 +505,6 @@ then
     if [ $# -gt 0 ] && [ -z "$*" ]; then
       # if all remaining arguments empty, consume them
       shift $#
-    fi
-    local attributes="$(dict_get "${arg_specs}" "${dest}")"
-    if [ -z "${attributes}" ]; then
-      __parseargs_error_exit__ "(internal). ${arg_desc}: no attrubutes specifying this argument."
     fi
 
     local nargs="$(dict_get_simple "${attributes}" "nargs" )"
