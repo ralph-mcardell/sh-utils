@@ -146,11 +146,13 @@ then
     fi
     dest="$(__parseargs_sanitise_destination__ "${dest}")"
 
+    local opt_string_arg_char=''
     case "${action}" in
       store)
+        opt_string_arg_char=':'
         ;;
       store_const)
-        if ! have_const; then
+        if ! "${have_const}"; then
           __parseargs_error_exit__ "A const attribute value is required for arguments with 'store_const' action attribute '${dest}'." >&2
         fi
         if [ -n "${num_args}" ]; then
@@ -158,7 +160,7 @@ then
         fi
         ;;
       store_true|store_false)
-        if have_default || have_const; then
+        if "${have_default}" || "${have_const}"; then
           __parseargs_error_exit__ "Cannot specify a default or const attribute value for arguments with 'store_true' or 'store_false' action attributes '${dest}'." >&2
         fi
         if [ -n "${num_args}" ]; then
@@ -166,9 +168,9 @@ then
         fi
         have_default=true
         if [ "${action}" = 'store_true' ]; then
-          argument="$(dict_set_simple "${argument}" "default" 'false')"
+          argument="$(dict_set_simple "${argument}" "default" false)"
         else
-          argument="$(dict_set_simple "${argument}" "default" 'true')"
+          argument="$(dict_set_simple "${argument}" "default" true)"
         fi
         ;;
       *)
@@ -205,7 +207,7 @@ then
         fi
         argument="$(dict_set_simple "${argument}" "short" "${short_opt}")"
         shortopts="$(dict_set_simple "${shortopts}" "${short_opt}" "${dest}")"
-        optstring="${optstring}${short_opt}:"
+        optstring="${optstring}${short_opt}${opt_string_arg_char}"
       fi
       if [ -n "${long_opt}" ]; then
         local existing="$(dict_get_simple "${longopts}" "${long_opt}")"
@@ -246,8 +248,8 @@ then
     shift
     local expected_number_of_positionals="$(dict_size "${positionals}")"
 #echo "OPTSTRING:'${optstring}'." >&2
-#echo "PARSING:'$*'." >&2
     while [ "$#" -gt "0" ]; do
+#echo "PARSING:'$*'." >&2
       __parseargs_parse_short_options__ "${arguments}" "${optstring}" "${shortopts}" "${arg_specs}" "$@"
       arguments="${__parseargs_return_value__}"
       shift ${__parseargs_shift_caller_args_by__}
@@ -325,6 +327,10 @@ then
     __parseargs_return_value__="${1#--}"
   }
 
+  __parseargs_split_string_on_arg_rhs__() {
+    __parseargs_return_value__="${1#*"${2}"}"
+  }
+
   __parseargs_split_string_on_eq_lhs__() {
     __parseargs_return_value__="${1%%\=*}"
   }
@@ -370,7 +376,7 @@ then
   }
 
   __parseargs_parse_short_options__() {
-    __parseargs_return_value__="${1}"
+    arguments="${1}"
     local optstring="${2}"
     local shortopts="${3}"
     local arg_specs="${4}"
@@ -387,33 +393,53 @@ then
         __parseargs_error_exit__ "Unknown short option -${OPTARG}."
       fi
       local call_shift_by_increment=$(( ${OPTIND}-2 ))
+      local reset_optind=false
+      if [ -n "${OPTARG}" ]; then
+        reset_optind=true
+      fi
       if [ "${opt}" = ":" ] ; then
         opt="${OPTARG}"
         OPTARG=''
+      fi
+
+      if ! ${reset_optind}; then
+        __parseargs_split_string_on_arg_rhs__ "${1}" "${opt}"
+#echo "__parseargs_split_string_on_arg_rhs__ '${1}' '${opt}' -> '${__parseargs_return_value__}'" >&2
+       if [ -z "${__parseargs_return_value__}" ]; then
+          reset_optind=true
+        fi
+      fi
+      if  ${reset_optind}; then
+        shift $(( ${OPTIND}-1 ))
+      fi
+      if [ -z "${OPTARG}" ] && ${reset_optind}; then
         call_shift_by_increment=$(( ${call_shift_by_increment}+1 ))
       fi
       dest="$(dict_get_simple "${shortopts}" "${opt}")"
       if [ -z "${dest}" ]; then
         __parseargs_error_exit__ "(internal) YYY Argument specification key for short option -${opt} not found."
       fi
-      shift $(( ${OPTIND}-1 ))
+
       local shift_by="${__parseargs_shift_caller_args_by__}"
       if [ -n "${OPTARG}" ]; then
         set -- "${OPTARG}" "$@"
       fi
-
 #echo "remaining arg count: $#; caller shift by=${__parseargs_shift_caller_args_by__}; local shift by=${shift_by}" >&2
 #echo "  BEFORE: caller shift by=${__parseargs_shift_caller_args_by__}; local shift by=${shift_by}; args='$*'" >&2
-      __parseargs_process_argument_action__ "${__parseargs_return_value__}" "${arg_specs}" "${dest}" "const" "Short option -${opt}" "$@"
+      __parseargs_process_argument_action__ "${arguments}" "${arg_specs}" "${dest}" "const" "Short option -${opt}" "$@"
+      arguments="${__parseargs_return_value__}"
       shift_by=$(( ${__parseargs_shift_caller_args_by__}-${shift_by} ))
-#echo "   AFTER: caller shift by=${__parseargs_shift_caller_args_by__}; local shift by=${shift_by}; args='$*'" >&2
+#echo "   AFTER: next optind=${next_optind}; caller shift by=${__parseargs_shift_caller_args_by__}; local shift by=${shift_by}; args='$*'" >&2
       if [ "${shift_by}" -gt '0' ]; then
         shift "${shift_by}"
       fi
       __parseargs_shift_caller_args_by__=$(( ${__parseargs_shift_caller_args_by__}+${call_shift_by_increment} ))
-      OPTIND=1
-#echo "    END: Caller shift args by: ${__parseargs_shift_caller_args_by__}; remaining arguments: '$*'" >&2        
+      if ${reset_optind}; then
+        OPTIND=1
+      fi
+#echo "     END: Caller shift args by: ${__parseargs_shift_caller_args_by__}; remaining arguments: '$*'" >&2        
     done
+    __parseargs_return_value__="${arguments}"
   }
 
   __parseargs_parse_long_option__() {
@@ -475,17 +501,15 @@ then
         __parseargs_add_arguments__ "${arguments}" "${attributes}" "${dest}" "${missing_arg_key}" "${arg_desc}" "$@"
         ;;
       store_const)
-        local value="$(dict_get_simple "${attributes}" "conbst" )"
+        local value="$(dict_get_simple "${attributes}" "const" )"
         __parseargs_add_arguments__ "${arguments}" "${attributes}" "${dest}" "${missing_arg_key}" "${arg_desc}" "${value}" "$@"
         __parseargs_shift_caller_args_by__="$(( ${__parseargs_shift_caller_args_by__}-1 ))"
         ;;
       store_true)
-        local value="$(dict_get_simple "${attributes}" "conbst" )"
         __parseargs_add_arguments__ "${arguments}" "${attributes}" "${dest}" "${missing_arg_key}" "${arg_desc}" "true" "$@"
         __parseargs_shift_caller_args_by__="$(( ${__parseargs_shift_caller_args_by__}-1 ))"
         ;;
       store_false)
-        local value="$(dict_get_simple "${attributes}" "conbst" )"
         __parseargs_add_arguments__ "${arguments}" "${attributes}" "${dest}" "${missing_arg_key}" "${arg_desc}" "false" "$@"
         __parseargs_shift_caller_args_by__="$(( ${__parseargs_shift_caller_args_by__}-1 ))"
         ;;
