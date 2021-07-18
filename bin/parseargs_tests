@@ -51,12 +51,16 @@ parsearg_functions_complain_if_parameter_not_a_parseargs_parser(){
   CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "irst" "argument" "parser"
 }
 
-make_arg_parser_with_positional_arguments_and_parse_some_arguments() {
+requesting_a_new_parser_returns_a_valid_parser() {
   local parser="$(parseargs_new_argument_parser)"
   local is_parser=false
   is_parser="parseargs_is_argument_parser  ${parser}"
   REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
+  CHECK "${is_parser}"
+}
+
+make_arg_parser_with_positional_arguments_and_parse_some_arguments() {
+  local parser="$(parseargs_new_argument_parser)"
   parser="$(parseargs_add_argument "${parser}" "name" "source")"
   parser="$(parseargs_add_argument "${parser}" "name" "target")"
   local arguments="$(parseargs_parse_arguments "${parser}" "FROM" "TO" )"
@@ -66,10 +70,6 @@ make_arg_parser_with_positional_arguments_and_parse_some_arguments() {
 
 make_arg_parser_with_positional_arguments_and_explicit_action_store_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "name" "source" "action" "store")"
   parser="$(parseargs_add_argument "${parser}" "name" "target" "action" "store")"
   local arguments="$(parseargs_parse_arguments "${parser}" "FROM" "TO" )"
@@ -79,10 +79,6 @@ make_arg_parser_with_positional_arguments_and_explicit_action_store_and_parse_so
 
 make_arg_parser_with_positional_arguments_from_chioces_set_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   local choices="$(dict_declare_simple "FROM" "_" "TO" "_")"
   parser="$(parseargs_add_argument "${parser}" "name" "source" "choices" "${choices}")"
   parser="$(parseargs_add_argument "${parser}" "name" "target" "choices" "${choices}")"
@@ -93,10 +89,6 @@ make_arg_parser_with_positional_arguments_from_chioces_set_and_parse_some_argume
 
 make_arg_parser_with_positional_multi_arguments_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "name" "sources" "nargs" "2" )"
   parser="$(parseargs_add_argument "${parser}" "name" "target")"
   local arguments="$(parseargs_parse_arguments "${parser}" "LEFT" "RIGHT" "TO" )"
@@ -109,10 +101,6 @@ make_arg_parser_with_positional_multi_arguments_and_parse_some_arguments() {
 
 make_arg_parser_with_positional_multi_arguments_from_chioces_set_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   local choices="$(dict_declare_simple "LEFT" "_" "TO" "_" "RIGHT" "_")"
   parser="$(parseargs_add_argument "${parser}" "name" "sources" "nargs" "2" "choices" "${choices}")"
   parser="$(parseargs_add_argument "${parser}" "name" "target" "choices" "${choices}")"
@@ -126,10 +114,6 @@ make_arg_parser_with_positional_multi_arguments_from_chioces_set_and_parse_some_
 
 make_arg_parser_with_positional_multi_argument_of_1_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "name" "source" "nargs" "1" )"
   parser="$(parseargs_add_argument "${parser}" "name" "target")"
   local arguments="$(parseargs_parse_arguments "${parser}" "FROM" "TO" )"
@@ -141,10 +125,6 @@ make_arg_parser_with_positional_multi_argument_of_1_and_parse_some_arguments() {
 
 make_arg_parser_with_positional_multi_0_or_1_arguments_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "name" "source")"
   parser="$(parseargs_add_argument "${parser}" "name" "target" "nargs" "?" "default" "VOIDSPACE")"
   local arguments="$(parseargs_parse_arguments "${parser}" "FROM" "TO" )"
@@ -157,10 +137,6 @@ make_arg_parser_with_positional_multi_0_or_1_arguments_and_parse_some_arguments(
 
 make_arg_parser_with_positional_multi_0_or_many_arguments_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "name" "source")"
   parser="$(parseargs_add_argument "${parser}" "name" "target" "nargs" "*")"
   local arguments="$(parseargs_parse_arguments "${parser}" "FROM" "HERE" "TO" "THERE" )"
@@ -174,10 +150,6 @@ make_arg_parser_with_positional_multi_0_or_many_arguments_and_parse_some_argumen
 
 make_arg_parser_with_positional_multi_0_or_many_arguments_and_parse_1_argument() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "name" "source")"
   parser="$(parseargs_add_argument "${parser}" "name" "target" "nargs" "*")"
   local arguments="$(parseargs_parse_arguments "${parser}" "FROM" "TO")"
@@ -189,10 +161,6 @@ make_arg_parser_with_positional_multi_0_or_many_arguments_and_parse_1_argument()
 
 make_arg_parser_with_positional_multi_0_or_many_arguments_and_parse_no_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "name" "source")"
   parser="$(parseargs_add_argument "${parser}" "name" "target" "nargs" "*")"
   local arguments="$(parseargs_parse_arguments "${parser}" "FROM")"
@@ -203,10 +171,6 @@ make_arg_parser_with_positional_multi_0_or_many_arguments_and_parse_no_arguments
 
 make_arg_parser_with_positional_multi_1_or_many_arguments_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "name" "source")"
   parser="$(parseargs_add_argument "${parser}" "name" "target" "nargs" "+")"
   local arguments="$(parseargs_parse_arguments "${parser}" "FROM" "HERE" "TO" "THERE" )"
@@ -220,10 +184,6 @@ make_arg_parser_with_positional_multi_1_or_many_arguments_and_parse_some_argumen
 
 make_arg_parser_with_positional_multi_1_or_many_arguments_and_parse_1_argument() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "name" "source")"
   parser="$(parseargs_add_argument "${parser}" "name" "target" "nargs" "+")"
   local arguments="$(parseargs_parse_arguments "${parser}" "FROM" "TO")"
@@ -235,10 +195,6 @@ make_arg_parser_with_positional_multi_1_or_many_arguments_and_parse_1_argument()
 
 parse_no_arguments_for_parser_with_positional_multi_1_or_many_arguments_is_an_error() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "name" "source")"
   parser="$(parseargs_add_argument "${parser}" "name" "target" "nargs" "+")"
   local returned_error=""
@@ -249,10 +205,6 @@ parse_no_arguments_for_parser_with_positional_multi_1_or_many_arguments_is_an_er
 
 make_arg_parser_with_short_optional_arguments_and_parse_all_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "short" "s" destination "source")"
   parser="$(parseargs_add_argument "${parser}" "short" "t" "destination" "target")"
   local arguments="$(parseargs_parse_arguments "${parser}" "-s" "FROM" "-t" "TO" )"
@@ -262,10 +214,6 @@ make_arg_parser_with_short_optional_arguments_and_parse_all_arguments() {
 
 make_arg_parser_with_short_optional_arguments_and_explicit_action_store_and_parse_all_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "short" "s" destination "source" "action" "store")"
   parser="$(parseargs_add_argument "${parser}" "short" "t" "destination" "target" "action" "store")"
   local arguments="$(parseargs_parse_arguments "${parser}" "-s" "FROM" "-t" "TO" )"
@@ -275,10 +223,6 @@ make_arg_parser_with_short_optional_arguments_and_explicit_action_store_and_pars
 
 make_arg_parser_with_short_optional_arguments_from_chioces_set_and_parse_all_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   local choices="$(dict_declare_simple "FROM" "_" "TO" "_")"
   parser="$(parseargs_add_argument "${parser}" "short" "s" destination "source" "choices" "${choices}")"
   parser="$(parseargs_add_argument "${parser}" "short" "t" "destination" "target" "choices" "${choices}")"
@@ -289,10 +233,6 @@ make_arg_parser_with_short_optional_arguments_from_chioces_set_and_parse_all_arg
 
 make_arg_parser_with_short_optional_arguments_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "short" "s" destination "source")"
   parser="$(parseargs_add_argument "${parser}" "short" "t" "destination" "target")"
   local arguments="$(parseargs_parse_arguments "${parser}" "-t" "TO" )"
@@ -305,10 +245,6 @@ make_arg_parser_with_short_optional_arguments_and_parse_some_arguments() {
 
 make_arg_parser_with_short_optional_arguments_and_parse_no_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "short" "s" destination "source")"
   parser="$(parseargs_add_argument "${parser}" "short" "t" "destination" "target")"
   local arguments="$(parseargs_parse_arguments "${parser}")"
@@ -318,10 +254,6 @@ make_arg_parser_with_short_optional_arguments_and_parse_no_arguments() {
 
 make_arg_parser_with_short_optional_arguments_and_parse_some_arguments_no_space() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "short" "s" "destination" "source")"
   parser="$(parseargs_add_argument "${parser}" "short" "t" "destination" "target")"
   local arguments="$(parseargs_parse_arguments "${parser}" "-sFROM" "-tTO" )"
@@ -332,10 +264,6 @@ make_arg_parser_with_short_optional_arguments_and_parse_some_arguments_no_space(
 
 make_arg_parser_with_short_optional_flags_and_parse_all_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "short" "y" destination "yes" "action" "store_true")"
   parser="$(parseargs_add_argument "${parser}" "short" "n" "destination" "no" "action" "store_false")"
   local arguments="$(parseargs_parse_arguments "${parser}" "-y" "-n" )"
@@ -348,10 +276,6 @@ make_arg_parser_with_short_optional_flags_and_parse_all_arguments() {
 
 make_arg_parser_with_short_optional_flags_and_parse_all_arguments_grouped() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "short" "y" destination "yes" "action" "store_true")"
   parser="$(parseargs_add_argument "${parser}" "short" "n" "destination" "no" "action" "store_false")"
   local arguments="$(parseargs_parse_arguments "${parser}")"
@@ -362,10 +286,6 @@ make_arg_parser_with_short_optional_flags_and_parse_all_arguments_grouped() {
 
 make_arg_parser_with_short_optional_flags_and_parse_no_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "short" "y" destination "yes" "action" "store_true")"
   parser="$(parseargs_add_argument "${parser}" "short" "n" "destination" "no" "action" "store_false")"
   local arguments="$(parseargs_parse_arguments "${parser}")"
@@ -376,10 +296,6 @@ make_arg_parser_with_short_optional_flags_and_parse_no_arguments() {
 
 make_arg_parser_with_short_optional_multi_arguments_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "short" "s" destination "sources" "nargs" "2")"
   parser="$(parseargs_add_argument "${parser}" "short" "t" "destination" "target")"
   local arguments="$(parseargs_parse_arguments "${parser}" "-s" "LEFT" "RIGHT" "-t" "TO" )"
@@ -392,10 +308,6 @@ make_arg_parser_with_short_optional_multi_arguments_and_parse_some_arguments() {
 
 make_arg_parser_with_short_optional_multi_arguments_from_choices_set_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   local choices="$(dict_declare_simple "LEFT" "_" "TO" "_" "RIGHT" "_")"
   parser="$(parseargs_add_argument "${parser}" "short" "s" destination "sources" "nargs" "2" "choices" "${choices}")"
   parser="$(parseargs_add_argument "${parser}" "short" "t" "destination" "target" "choices" "${choices}")"
@@ -409,10 +321,6 @@ make_arg_parser_with_short_optional_multi_arguments_from_choices_set_and_parse_s
 
 make_arg_parser_with_short_optional_multi_arguments_and_parse_some_arguments_no_space() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "short" "s" destination "sources" "nargs" "2")"
   parser="$(parseargs_add_argument "${parser}" "short" "t" "destination" "target")"
   local arguments="$(parseargs_parse_arguments "${parser}" "-sLEFT" "RIGHT" "-tTO" )"
@@ -425,10 +333,6 @@ make_arg_parser_with_short_optional_multi_arguments_and_parse_some_arguments_no_
 
 make_arg_parser_with_short_optional_multi_argument_of_1_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "short" "s" "destination" "source" "nargs" "1" )"
   parser="$(parseargs_add_argument "${parser}" "short" "t" "destination" "target")"
   local arguments="$(parseargs_parse_arguments "${parser}" -s"FROM" -t"TO" )"
@@ -440,10 +344,6 @@ make_arg_parser_with_short_optional_multi_argument_of_1_and_parse_some_arguments
 
 make_arg_parser_with_short_optional_multi_0_or_1_arguments_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "short" "s" "destination" "source" "nargs" "?" "const" "VOIDSPACE")"
   parser="$(parseargs_add_argument "${parser}" "short" "t" "destination" "target")"
   local arguments="$(parseargs_parse_arguments "${parser}" -t"TO" -s"FROM" )"
@@ -459,10 +359,6 @@ make_arg_parser_with_short_optional_multi_0_or_1_arguments_and_parse_some_argume
 
 make_arg_parser_with_short_optional_multi_0_or_many_argument_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "short" "s" "destination" "source" "nargs" "*" )"
   parser="$(parseargs_add_argument "${parser}" "short" "t" "destination" "target")"
   local arguments="$(parseargs_parse_arguments "${parser}" -s"GO" "FROM" "HERE" -t"TO" )"
@@ -476,10 +372,6 @@ make_arg_parser_with_short_optional_multi_0_or_many_argument_and_parse_some_argu
 
 make_arg_parser_with_short_optional_multi_0_or_many_argument_and_parse_1_argument() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "short" "s" "destination" "source" "nargs" "*" )"
   parser="$(parseargs_add_argument "${parser}" "short" "t" "destination" "target")"
   local arguments="$(parseargs_parse_arguments "${parser}" -s"FROM" -t"TO" )"
@@ -491,10 +383,6 @@ make_arg_parser_with_short_optional_multi_0_or_many_argument_and_parse_1_argumen
 
 make_arg_parser_with_short_optional_multi_0_or_many_argument_and_parse_no_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "short" "s" "destination" "source" "nargs" "*" )"
   parser="$(parseargs_add_argument "${parser}" "short" "t" "destination" "target")"
   local arguments="$(parseargs_parse_arguments "${parser}" -s -t"TO" )"
@@ -505,10 +393,6 @@ make_arg_parser_with_short_optional_multi_0_or_many_argument_and_parse_no_argume
 
 make_arg_parser_with_short_optional_multi_1_or_many_argument_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "short" "s" "destination" "source" "nargs" "+" )"
   parser="$(parseargs_add_argument "${parser}" "short" "t" "destination" "target")"
   local arguments="$(parseargs_parse_arguments "${parser}" -s"GO" "FROM" "HERE" -t"TO" )"
@@ -522,10 +406,6 @@ make_arg_parser_with_short_optional_multi_1_or_many_argument_and_parse_some_argu
 
 make_arg_parser_with_short_optional_multi_1_or_many_argument_and_parse_1_argument() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "short" "s" "destination" "source" "nargs" "+" )"
   parser="$(parseargs_add_argument "${parser}" "short" "t" "destination" "target")"
   local arguments="$(parseargs_parse_arguments "${parser}" -s"FROM" -t"TO" )"
@@ -537,10 +417,6 @@ make_arg_parser_with_short_optional_multi_1_or_many_argument_and_parse_1_argumen
 
 parse_no_arguments_for_parser_with_short_optional_multi_1_or_many_arguments_is_an_error() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "short" "s" "destination" "source" "nargs" "+" )"
   parser="$(parseargs_add_argument "${parser}" "short" "t" "destination" "target")"
   local returned_error=""
@@ -551,10 +427,6 @@ parse_no_arguments_for_parser_with_short_optional_multi_1_or_many_arguments_is_a
 
 make_arg_parser_with_long_optional_arguments_and_parse_all_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "long" "source")"
   parser="$(parseargs_add_argument "${parser}" "long" "target")"
   local arguments="$(parseargs_parse_arguments "${parser}" "--source" "FROM" "--target" "TO" )"
@@ -564,10 +436,6 @@ make_arg_parser_with_long_optional_arguments_and_parse_all_arguments() {
 
 make_arg_parser_with_long_optional_arguments_and_explicit_action_store_and_parse_all_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "long" "source" "action" "store")"
   parser="$(parseargs_add_argument "${parser}" "long" "target" "action" "store")"
   local arguments="$(parseargs_parse_arguments "${parser}" "--source" "FROM" "--target" "TO" )"
@@ -577,10 +445,6 @@ make_arg_parser_with_long_optional_arguments_and_explicit_action_store_and_parse
 
 make_arg_parser_with_long_optional_arguments_from_choices_set_and_parse_all_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   local choices="$(dict_declare_simple "FROM" "_" "TO" "_")"
   parser="$(parseargs_add_argument "${parser}" "long" "source" "choices" "${choices}")"
   parser="$(parseargs_add_argument "${parser}" "long" "target" "choices" "${choices}")"
@@ -591,10 +455,6 @@ make_arg_parser_with_long_optional_arguments_from_choices_set_and_parse_all_argu
 
 make_arg_parser_with_long_optional_arguments_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "long" "source")"
   parser="$(parseargs_add_argument "${parser}" "long" "target")"
   local arguments="$(parseargs_parse_arguments "${parser}" "--target" "TO" )"
@@ -607,10 +467,6 @@ make_arg_parser_with_long_optional_arguments_and_parse_some_arguments() {
 
 make_arg_parser_with_long_optional_arguments_and_parse_no_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "long" "source")"
   parser="$(parseargs_add_argument "${parser}" "long" "target")"
   local arguments="$(parseargs_parse_arguments "${parser}")"
@@ -621,10 +477,6 @@ make_arg_parser_with_long_optional_arguments_and_parse_no_arguments() {
 
 make_arg_parser_with_long_optional_arguments_and_parse_some_arguments_after_equals() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "long" "source")"
   parser="$(parseargs_add_argument "${parser}" "long" "target")"
   local arguments="$(parseargs_parse_arguments "${parser}" "--source=FR=O=M" "--target=TO" )"
@@ -634,10 +486,6 @@ make_arg_parser_with_long_optional_arguments_and_parse_some_arguments_after_equa
 
 make_arg_parser_with_long_optional_flags_and_parse_all_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "long" "yes" "action" "store_true")"
   parser="$(parseargs_add_argument "${parser}" "long" "no" "action" "store_false")"
   local arguments="$(parseargs_parse_arguments "${parser}" "--yes" "--no" )"
@@ -650,10 +498,6 @@ make_arg_parser_with_long_optional_flags_and_parse_all_arguments() {
 
 make_arg_parser_with_long_optional_flags_and_parse_no_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "long" "yes" "action" "store_true")"
   parser="$(parseargs_add_argument "${parser}" "long" "no" "action" "store_false")"
   local arguments="$(parseargs_parse_arguments "${parser}")"
@@ -664,10 +508,6 @@ make_arg_parser_with_long_optional_flags_and_parse_no_arguments() {
 
 make_arg_parser_with_long_optional_multi_arguments_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "long" "sources" "nargs" "2")"
   parser="$(parseargs_add_argument "${parser}" "long" "target")"
   local arguments="$(parseargs_parse_arguments "${parser}" "--sources" "LEFT" "RIGHT" "--target" "TO" )"
@@ -680,10 +520,6 @@ make_arg_parser_with_long_optional_multi_arguments_and_parse_some_arguments() {
 
 make_arg_parser_with_long_optional_multi_arguments_from_choices_set_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   local choices="$(dict_declare_simple "LEFT" "_" "TO" "_" "RIGHT" "_")"
   parser="$(parseargs_add_argument "${parser}" "long" "sources" "nargs" "2" "choices" "${choices}")"
   parser="$(parseargs_add_argument "${parser}" "long" "target" "choices" "${choices}")"
@@ -697,10 +533,6 @@ make_arg_parser_with_long_optional_multi_arguments_from_choices_set_and_parse_so
 
 make_arg_parser_with_long_optional_multi_arguments_and_parse_some_arguments_after_equals() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "long" "sources" "nargs" "2")"
   parser="$(parseargs_add_argument "${parser}" "long" "target")"
   local arguments="$(parseargs_parse_arguments "${parser}" "--sources=LE=F=T" "RIGHT" "--target=TO" )"
@@ -713,10 +545,6 @@ make_arg_parser_with_long_optional_multi_arguments_and_parse_some_arguments_afte
 
 make_arg_parser_with_long_optional_multi_argument_of_1_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "long"  "source" "nargs" "1" )"
   parser="$(parseargs_add_argument "${parser}" "long"  "target")"
   local arguments="$(parseargs_parse_arguments "${parser}" --source "FROM" --target "TO" )"
@@ -728,10 +556,6 @@ make_arg_parser_with_long_optional_multi_argument_of_1_and_parse_some_arguments(
 
 make_arg_parser_with_long_optional_multi_0_or_1_arguments_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "long" "source" "nargs" "?" "const" "VOIDSPACE")"
   parser="$(parseargs_add_argument "${parser}" "long" "target")"
   local arguments="$(parseargs_parse_arguments "${parser}" "--source" "FROM" "--target" "TO" )"
@@ -747,10 +571,6 @@ make_arg_parser_with_long_optional_multi_0_or_1_arguments_and_parse_some_argumen
 
 make_arg_parser_with_long_optional_multi_0_or_many_arguments_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "long"  "source" "nargs" "*" )"
   parser="$(parseargs_add_argument "${parser}" "long"  "target")"
   local arguments="$(parseargs_parse_arguments "${parser}" --source="GO" "FROM" "HERE" --target "TO" )"
@@ -764,10 +584,6 @@ make_arg_parser_with_long_optional_multi_0_or_many_arguments_and_parse_some_argu
 
 make_arg_parser_with_long_optional_multi_0_or_many_arguments_and_parse_1_argument() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "long"  "source" "nargs" "*" )"
   parser="$(parseargs_add_argument "${parser}" "long"  "target")"
   local arguments="$(parseargs_parse_arguments "${parser}" --source "FROM" --target "TO" )"
@@ -779,10 +595,6 @@ make_arg_parser_with_long_optional_multi_0_or_many_arguments_and_parse_1_argumen
 
 make_arg_parser_with_long_optional_multi_0_or_many_arguments_and_parse_no_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "long"  "source" "nargs" "*" )"
   parser="$(parseargs_add_argument "${parser}" "long"  "target")"
   local arguments="$(parseargs_parse_arguments "${parser}" --source --target "TO" )"
@@ -793,10 +605,6 @@ make_arg_parser_with_long_optional_multi_0_or_many_arguments_and_parse_no_argume
 
 make_arg_parser_with_long_optional_multi_1_or_many_arguments_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "long"  "source" "nargs" "+" )"
   parser="$(parseargs_add_argument "${parser}" "long"  "target")"
   local arguments="$(parseargs_parse_arguments "${parser}" --source="GO" "FROM" "HERE" --target "TO" )"
@@ -810,10 +618,6 @@ make_arg_parser_with_long_optional_multi_1_or_many_arguments_and_parse_some_argu
 
 make_arg_parser_with_long_optional_multi_1_or_many_arguments_and_parse_1_argument() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "long"  "source" "nargs" "+" )"
   parser="$(parseargs_add_argument "${parser}" "long"  "target")"
   local arguments="$(parseargs_parse_arguments "${parser}" --source "FROM" --target "TO" )"
@@ -825,10 +629,6 @@ make_arg_parser_with_long_optional_multi_1_or_many_arguments_and_parse_1_argumen
 
 parse_no_arguments_for_parser_with_long_optional_multi_1_or_many_arguments_is_an_error() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "long"  "source" "nargs" "+" )"
   parser="$(parseargs_add_argument "${parser}" "long"  "target")"
   local returned_error="" 
@@ -839,10 +639,6 @@ parse_no_arguments_for_parser_with_long_optional_multi_1_or_many_arguments_is_an
 
 make_arg_parser_with_short_and_long_optional_arguments_forms_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "long" "source" "short" "s")"
   parser="$(parseargs_add_argument "${parser}" "long" "target" "short" "t")"
   local arguments="$(parseargs_parse_arguments "${parser}" "--source" "FROM" "--target=TO" )"
@@ -855,10 +651,6 @@ make_arg_parser_with_short_and_long_optional_arguments_forms_and_parse_some_argu
 
 make_arg_parser_with_positional_and_short_and_long_optional_arguments_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "name" "source")"
   parser="$(parseargs_add_argument "${parser}" "name" "target")"
   parser="$(parseargs_add_argument "${parser}" "short" "p" destination "prefix")"
@@ -874,10 +666,6 @@ make_arg_parser_with_positional_and_short_and_long_optional_arguments_and_parse_
 
 make_arg_parser_with_positional_and_short_and_long_optional_multi_arguments_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "name" "sources" "nargs" "2")"
   parser="$(parseargs_add_argument "${parser}" "name" "target")"
   parser="$(parseargs_add_argument "${parser}" "short" "p" destination "prefixes" "nargs" "2")"
@@ -906,10 +694,6 @@ make_arg_parser_with_positional_and_short_and_long_optional_multi_arguments_and_
 
 make_arg_parser_with_optional_arguments_with_defaults_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "short" "s" "destination" "source" "default" "FROM")"
   parser="$(parseargs_add_argument "${parser}" "long" "target" "default" "TO")"
   local arguments="$(parseargs_parse_arguments "${parser}")"
@@ -919,10 +703,6 @@ make_arg_parser_with_optional_arguments_with_defaults_and_parse_some_arguments()
 
 make_arg_parser_with_required_optional_arguments_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   parser="$(parseargs_add_argument "${parser}" "short" "s" "destination" "source" "required" "true")"
   parser="$(parseargs_add_argument "${parser}" "long" "target" "required" "true")"
   local returned_error=""
@@ -978,11 +758,7 @@ argument_nargs_attribute_can_be_single_glob_character() {
 
 argument_nargs_attribute_cannot_be_out_of_range_integer() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
   local returned_error=""
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   returned_error="$(parseargs_add_argument "${parser}" "name" "arguments" "nargs" "0" 2>&1)"
   CHECK $? -eq 1
   CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "nargs" "invalid"
@@ -993,11 +769,7 @@ argument_nargs_attribute_cannot_be_out_of_range_integer() {
 
 argument_nargs_attribute_cannot_be_non_glob_non_interger_value() {
   local parser="$(parseargs_new_argument_parser)"
-  local is_parser=false
   local returned_error=""
-  is_parser="parseargs_is_argument_parser  ${parser}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE "${is_parser}"
   returned_error="$(parseargs_add_argument "${parser}" "name" "arguments" "nargs" "three" 2>&1)"
   CHECK $? -eq 1
   CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "nargs" "invalid"
@@ -1348,10 +1120,11 @@ long_optional_specified_with_nargs_0_or_1_but_no_const_is_an_error() {
 }
 
 #set -x
-#TEST make_arg_parser_with_long_optional_flags_and_parse_no_arguments
+#TEST requesting_a_new_parser_returns_a_valid_parser
 #PRINT_TEST_COUNTS
 #exit 0
 TEST parsearg_functions_complain_if_parameter_not_a_parseargs_parser
+TEST requesting_a_new_parser_returns_a_valid_parser
 TEST make_arg_parser_with_positional_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_positional_arguments_and_explicit_action_store_and_parse_some_arguments
 TEST make_arg_parser_with_positional_arguments_from_chioces_set_and_parse_some_arguments
