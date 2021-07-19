@@ -294,6 +294,47 @@ make_arg_parser_with_short_optional_flags_and_parse_no_arguments() {
 
 }
 
+make_arg_parser_with_short_optional_const_flags_and_parse_all_arguments() {
+  local parser="$(parseargs_new_argument_parser)"
+  parser="$(parseargs_add_argument "${parser}" "short" "y" destination "yes" "action" "store_const" "const" "yes")"
+  parser="$(parseargs_add_argument "${parser}" "short" "n" "destination" "no" "action" "store_const" "const" "no")"
+  local arguments="$(parseargs_parse_arguments "${parser}" "-y" "-n" )"
+  CHECK "$(dict_get "${arguments}" "yes")" = "yes"
+  CHECK "$(dict_get "${arguments}" "no")" = "no"
+  arguments="$(parseargs_parse_arguments "${parser}" "-n" "-y" )"
+  CHECK "$(dict_get "${arguments}" "yes")" = "yes"
+  CHECK "$(dict_get "${arguments}" "no")" = "no"
+}
+
+make_arg_parser_with_short_optional_const_flags_and_parse_all_arguments_grouped() {
+  local parser="$(parseargs_new_argument_parser)"
+  parser="$(parseargs_add_argument "${parser}" "short" "y" destination "yes" "action" "store_const" "const" "yes")"
+  parser="$(parseargs_add_argument "${parser}" "short" "n" "destination" "no" "action" "store_const" "const" "no")"
+  local arguments="$(parseargs_parse_arguments "${parser}")"
+  arguments="$(parseargs_parse_arguments "${parser}" "-yn" )"
+  CHECK "$(dict_get "${arguments}" "yes")" = "yes"
+  CHECK "$(dict_get "${arguments}" "no")" = "no"
+}
+
+make_arg_parser_with_short_optional_const_flags_and_parse_no_arguments() {
+  local parser="$(parseargs_new_argument_parser)"
+  parser="$(parseargs_add_argument "${parser}" "short" "y" destination "yes" "action" "store_const" "const" "yes")"
+  parser="$(parseargs_add_argument "${parser}" "short" "n" "destination" "no" "action" "store_const" "const" "no")"
+  local arguments="$(parseargs_parse_arguments "${parser}")"
+  CHECK -z "$(dict_get "${arguments}" "yes")" 
+  CHECK -z "$(dict_get "${arguments}" "no")"
+}
+
+make_arg_parser_with_short_optional_const_flags_same_dest_and_parse_arguments() {
+  local parser="$(parseargs_new_argument_parser)"
+  parser="$(parseargs_add_argument "${parser}" "short" "y" destination "answer" "action" "store_const" "const" "yes")"
+  parser="$(parseargs_add_argument "${parser}" "short" "n" "destination" "answer" "action" "store_const" "const" "no")"
+  local arguments="$(parseargs_parse_arguments "${parser}" "-y" )"
+  CHECK "$(dict_get "${arguments}" "answer")" = "yes"
+  arguments="$(parseargs_parse_arguments "${parser}" "-n")"
+  CHECK "$(dict_get "${arguments}" "answer")" = "no"
+}
+
 make_arg_parser_with_short_optional_multi_arguments_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
   parser="$(parseargs_add_argument "${parser}" "short" "s" destination "sources" "nargs" "2")"
@@ -1120,7 +1161,7 @@ long_optional_specified_with_nargs_0_or_1_but_no_const_is_an_error() {
 }
 
 #set -x
-#TEST requesting_a_new_parser_returns_a_valid_parser
+#TEST positional_argument_value_not_one_of_specified_choices_is_an_error
 #PRINT_TEST_COUNTS
 #exit 0
 TEST parsearg_functions_complain_if_parameter_not_a_parseargs_parser
@@ -1147,6 +1188,10 @@ TEST make_arg_parser_with_short_optional_arguments_and_parse_some_arguments_no_s
 TEST make_arg_parser_with_short_optional_flags_and_parse_all_arguments
 TEST make_arg_parser_with_short_optional_flags_and_parse_all_arguments_grouped
 TEST make_arg_parser_with_short_optional_flags_and_parse_no_arguments
+TEST make_arg_parser_with_short_optional_const_flags_and_parse_all_arguments
+TEST make_arg_parser_with_short_optional_const_flags_and_parse_all_arguments_grouped
+TEST make_arg_parser_with_short_optional_const_flags_and_parse_no_arguments
+TEST make_arg_parser_with_short_optional_const_flags_same_dest_and_parse_arguments
 TEST make_arg_parser_with_short_optional_multi_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_short_optional_multi_arguments_from_choices_set_and_parse_some_arguments
 TEST make_arg_parser_with_short_optional_multi_arguments_and_parse_some_arguments_no_space
