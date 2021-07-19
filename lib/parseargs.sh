@@ -145,6 +145,7 @@ then
       fi
     fi
     dest="$(__parseargs_sanitise_destination__ "${dest}")"
+    local argument_key="${dest}"
 
     local opt_string_arg_char=''
     case "${action}" in
@@ -191,7 +192,9 @@ then
         __parseargs_error_exit__ "A default attribute value is required for optional positional argument (nargs=?) '${dest}'." >&2
       fi
       argument="$(dict_set_simple "${argument}" "name" "${2}")"
-      positionals="$(dict_set_simple "${positionals}" "$(dict_size "${positionals}")" "${dest}")"
+      local pos_id="$(dict_size "${positionals}")"
+      argument_key="${argument_key}${pos_id}"
+      positionals="$(dict_set_simple "${positionals}" "${pos_id}" "${argument_key}")"
     elif  [ -n "${is_option}" ]; then
       if [ "${num_args}" = '?' ] && ! ${have_const}; then
         __parseargs_error_exit__ "A const attribute value is required for optional arguments with optional value (nargs=?) '${dest}'." >&2
@@ -206,7 +209,8 @@ then
           __parseargs_error_exit__ "Argument short option attribute value '${short_opt}' given previously."
         fi
         argument="$(dict_set_simple "${argument}" "short" "${short_opt}")"
-        shortopts="$(dict_set_simple "${shortopts}" "${short_opt}" "${dest}")"
+        argument_key="${argument_key}${short_opt}"
+        shortopts="$(dict_set_simple "${shortopts}" "${short_opt}" "${argument_key}")"
         optstring="${optstring}${short_opt}${opt_string_arg_char}"
       fi
       if [ -n "${long_opt}" ]; then
@@ -215,7 +219,12 @@ then
           __parseargs_error_exit__ "Argument long option attribute value '${long_opt}' given previously."
         fi
         argument="$(dict_set_simple "${argument}" "long" "${long_opt}")"
-        longopts="$(dict_set_simple "${longopts}" "${long_opt}" "${dest}")"
+        if [ "${argument_key}" =  "${dest}" ]; then
+        # not set already by short option handling, set here
+        # Note: argument can have short and long option forms
+          argument_key="${argument_key}${long_opt}"
+        fi
+        longopts="$(dict_set_simple "${longopts}" "${long_opt}" "${argument_key}")"
       fi
     else
       __parseargs_error_exit__ "None of name, long or short attributes provided for argument."
@@ -224,7 +233,7 @@ then
     argument="$(dict_set_simple "${argument}" "destination" "${dest}")"
 
     args="$(dict_get "${parser}" "__arguments__")"
-    args="$(dict_set "${args}" "${dest}" "${argument}")"
+    args="$(dict_set "${args}" "${argument_key}" "${argument}")"
     parser="$(dict_set "${parser}" "__arguments__" "${args}")"
     parser="$(dict_set "${parser}" "__positionals__" "${positionals}")"
     parser="$(dict_set "${parser}" "__longopts__" "${longopts}")"
@@ -380,11 +389,11 @@ then
     local optstring="${2}"
     local shortopts="${3}"
     local arg_specs="${4}"
-    local dest=""
+    local arg_spec_key=""
     shift 4
     __parseargs_shift_caller_args_by__="0"
     while getopts "${optstring}" opt; do
-#echo "GETOPTS opt=${opt}; OPTARG=${OPTARG}; OPTIND=${OPTIND}; dest=${dest} args='$*'" >&2
+#echo "GETOPTS opt=${opt}; OPTARG=${OPTARG}; OPTIND=${OPTIND}; arg_spec_key=${arg_spec_key} args='$*'" >&2
       if [ "${opt}" = "?" ]; then
         if [ "${OPTARG}" = "-" ]; then
         # found --, long option prefix
@@ -415,9 +424,9 @@ then
       if [ -z "${OPTARG}" ] && ${reset_optind}; then
         call_shift_by_increment=$(( ${call_shift_by_increment}+1 ))
       fi
-      dest="$(dict_get_simple "${shortopts}" "${opt}")"
-      if [ -z "${dest}" ]; then
-        __parseargs_error_exit__ "(internal) YYY Argument specification key for short option -${opt} not found."
+      arg_spec_key="$(dict_get_simple "${shortopts}" "${opt}")"
+      if [ -z "${arg_spec_key}" ]; then
+        __parseargs_error_exit__ "(internal) Argument specification key for short option -${opt} not found."
       fi
 
       local shift_by="${__parseargs_shift_caller_args_by__}"
@@ -426,7 +435,7 @@ then
       fi
 #echo "remaining arg count: $#; caller shift by=${__parseargs_shift_caller_args_by__}; local shift by=${shift_by}" >&2
 #echo "  BEFORE: caller shift by=${__parseargs_shift_caller_args_by__}; local shift by=${shift_by}; args='$*'" >&2
-      __parseargs_process_argument_action__ "${arguments}" "${arg_specs}" "${dest}" "const" "Short option -${opt}" "$@"
+      __parseargs_process_argument_action__ "${arguments}" "${arg_specs}" "${arg_spec_key}" "const" "Short option -${opt}" "$@"
       arguments="${__parseargs_return_value__}"
       shift_by=$(( ${__parseargs_shift_caller_args_by__}-${shift_by} ))
 #echo "   AFTER: next optind=${next_optind}; caller shift by=${__parseargs_shift_caller_args_by__}; local shift by=${shift_by}; args='$*'" >&2
@@ -455,8 +464,8 @@ then
       return
     fi
     __parseargs_split_string_on_eq_lhs__ "${option_string}"
-    dest="$(dict_get_simple "${longopts}" "${__parseargs_return_value__}")"
-    if [ -z "${dest}" ]; then
+    arg_spec_key="$(dict_get_simple "${longopts}" "${__parseargs_return_value__}")"
+    if [ -z "${arg_spec_key}" ]; then
       __parseargs_error_exit__ "Unknown long option --${__parseargs_return_value__}."
     fi
     shift
@@ -466,7 +475,7 @@ then
     else
         __parseargs_shift_caller_args_by__=1
     fi
-    __parseargs_process_argument_action__ "${arguments}" "${arg_specs}" "${dest}" "const" "Long option --${__parseargs_return_value__}" "$@"
+    __parseargs_process_argument_action__ "${arguments}" "${arg_specs}" "${arg_spec_key}" "const" "Long option --${__parseargs_return_value__}" "$@"
   }
 
   __parseargs_parse_positional_argument__() {
@@ -475,27 +484,28 @@ then
     local current_positional="${3}"
     local arg_specs="${4}"
     shift 4
-    dest="$(dict_get_simple "${positionals}" "${current_positional}")"
-    if [ -z "${dest}" ]; then
+    local arg_spec_key="$(dict_get_simple "${positionals}" "${current_positional}")"
+    if [ -z "${arg_spec_key}" ]; then
       __parseargs_warn_continue__ "Too many positional arguments provided, remaining ignored."
       __parseargs_shift_caller_args_by__=0
       return
     fi
-    __parseargs_process_argument_action__ "${__parseargs_return_value__}" "${arg_specs}" "${dest}" "default" "Positional #$(( ${current_positional}+1 )), '${dest}'," "$@" 
+    __parseargs_process_argument_action__ "${__parseargs_return_value__}" "${arg_specs}" "${arg_spec_key}" "default" "Positional #$(( ${current_positional}+1 )), '${arg_spec_key}'," "$@" 
   }
 
   __parseargs_process_argument_action__() {
     local arguments="${1}"
     local arg_specs="${2}"
-    local dest="${3}"
+    local arg_spec_key="${3}"
     local missing_arg_key="${4}"
     local arg_desc="${5}"
     shift 5
-    local attributes="$(dict_get "${arg_specs}" "${dest}")"
+    local attributes="$(dict_get "${arg_specs}" "${arg_spec_key}")"
     if [ -z "${attributes}" ]; then
       __parseargs_error_exit__ "(internal). ${arg_desc}: no attrubutes specifying this argument."
     fi
     local action="$(dict_get_simple "${attributes}" "action" )"
+    local dest="$(dict_get_simple "${attributes}" "destination" )"
     case "${action}" in
       store)
         __parseargs_add_arguments__ "${arguments}" "${attributes}" "${dest}" "${missing_arg_key}" "${arg_desc}" "$@"
@@ -649,13 +659,13 @@ then
   }
 
   __parseargs_op_validate_and_fixup_argument__() {
-    local dest="${1}"
     local arg_spec="${2}"
     local record_number="${3}"
     local positionals="${4}"
     local shortopts="${5}"
     local longopts="${6}"
     local arguments="${__parseargs_return_value__}"
+    local dest="$(dict_get_simple "${arg_spec}" "destination" )"
     local arg="$(dict_get "${arguments}" "${dest}")"
     if [ -z "${arg}" ]; then
       local default="$(dict_get_simple "${arg_spec}" "default")"
@@ -696,7 +706,7 @@ then
         local dest="$(dict_get_simple "${arg_spec}" "destination")"
         while [ "${i}" -lt "${end}" ]; do
           local dest_i="$(dict_get_simple "${positionals}" "${i}")"
-          if [ "${dest_i}" = "${dest}" ]; then
+          if [ "${dest_i}" = "${dest}${i}" ]; then
             optname="positional argument #${i}"
             break
           fi
