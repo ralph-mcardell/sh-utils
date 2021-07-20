@@ -547,6 +547,37 @@ make_arg_parser_with_long_optional_flags_and_parse_no_arguments() {
 
 }
 
+make_arg_parser_with_long_optional_const_flags_and_parse_all_arguments() {
+  local parser="$(parseargs_new_argument_parser)"
+  parser="$(parseargs_add_argument "${parser}" "long" "yes" "action" "store_const" "const" "yes")"
+  parser="$(parseargs_add_argument "${parser}" "long" "no" "action" "store_const" "const" "no")"
+  local arguments="$(parseargs_parse_arguments "${parser}" "--yes" '--no' )"
+  CHECK "$(dict_get "${arguments}" "yes")" = 'yes'
+  CHECK "$(dict_get "${arguments}" "no")" = 'no'
+  arguments="$(parseargs_parse_arguments "${parser}" "--no" --yes )"
+  CHECK "$(dict_get "${arguments}" "yes")" = 'yes'
+  CHECK "$(dict_get "${arguments}" "no")" = 'no'
+}
+
+make_arg_parser_with_long_optional_const_flags_and_parse_no_arguments() {
+  local parser="$(parseargs_new_argument_parser)"
+  parser="$(parseargs_add_argument "${parser}" "long" "yes" "action" "store_const" "const" "yes")"
+  parser="$(parseargs_add_argument "${parser}" "long" "no" "action" "store_const" "const" "no")"
+  local arguments="$(parseargs_parse_arguments "${parser}")"
+  CHECK -z "$(dict_get "${arguments}" "yes")" 
+  CHECK -z "$(dict_get "${arguments}" "no")"
+}
+
+make_arg_parser_with_long_optional_const_flags_same_dest_and_parse_arguments() {
+  local parser="$(parseargs_new_argument_parser)"
+  parser="$(parseargs_add_argument "${parser}" "long" "yes" destination "answer" "action" "store_const" "const" "yes")"
+  parser="$(parseargs_add_argument "${parser}" "long" "no" "destination" "answer" "action" "store_const" "const" "no")"
+  local arguments="$(parseargs_parse_arguments "${parser}" "--yes" )"
+  CHECK "$(dict_get "${arguments}" "answer")" = 'yes'
+  arguments="$(parseargs_parse_arguments "${parser}" "--no" )"
+  CHECK "$(dict_get "${arguments}" "answer")" = 'no'
+}
+
 make_arg_parser_with_long_optional_multi_arguments_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
   parser="$(parseargs_add_argument "${parser}" "long" "sources" "nargs" "2")"
@@ -1161,7 +1192,7 @@ long_optional_specified_with_nargs_0_or_1_but_no_const_is_an_error() {
 }
 
 #set -x
-#TEST positional_argument_value_not_one_of_specified_choices_is_an_error
+#TEST make_arg_parser_with_long_optional_const_flags_same_dest_and_parse_arguments
 #PRINT_TEST_COUNTS
 #exit 0
 TEST parsearg_functions_complain_if_parameter_not_a_parseargs_parser
@@ -1212,6 +1243,9 @@ TEST make_arg_parser_with_long_optional_arguments_and_parse_some_arguments_after
 TEST make_arg_parser_with_long_optional_multi_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_long_optional_flags_and_parse_all_arguments
 TEST make_arg_parser_with_long_optional_flags_and_parse_no_arguments
+TEST make_arg_parser_with_long_optional_const_flags_and_parse_all_arguments
+TEST make_arg_parser_with_long_optional_const_flags_and_parse_no_arguments
+TEST make_arg_parser_with_long_optional_const_flags_same_dest_and_parse_arguments
 TEST make_arg_parser_with_long_optional_multi_arguments_from_choices_set_and_parse_some_arguments
 TEST make_arg_parser_with_long_optional_multi_arguments_and_parse_some_arguments_after_equals
 TEST make_arg_parser_with_long_optional_multi_argument_of_1_and_parse_some_arguments
