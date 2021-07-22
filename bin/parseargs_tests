@@ -946,125 +946,60 @@ options_may_have_short_and_or_long_names_but_each_must_be_unique_in_its_namespac
   REQUIRE_FALSE "${is_parser}"  
 }
 
-argument_name_attribute_cannot_be_repeated_in_single_parseargs_add_argument_call() {
+__check_repeated_argument_attribute_for_single_argument__() {
+  local attribute="${1}"
+  local value_1="${2}"
+  local value_2="${3}"
   local parser="$(parseargs_new_argument_parser)"
   local returned_error=""
   local is_parser=false
-  returned_error="$(parseargs_add_argument "${parser}" "name" "X" "name" "Y" 2>&1)"
+  returned_error="$(parseargs_add_argument "${parser}" "${attribute}" "${value_1}" "${attribute}" "${value_1}" 2>&1)"
   CHECK $? -eq 1
-  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "name" "once"
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "${attribute}" "once"
   is_parser="parseargs_is_argument_parser  ${returned_error}"
   REQUIRE -n "${is_parser}"
   REQUIRE_FALSE "${is_parser}"
 }
 
+argument_name_attribute_cannot_be_repeated_in_single_parseargs_add_argument_call() {
+  __check_repeated_argument_attribute_for_single_argument__ "name" "X" "Y"
+}
+
 argument_short_attribute_cannot_be_repeated_in_single_parseargs_add_argument_call() {
-  local parser="$(parseargs_new_argument_parser)"
-  local returned_error=""
-  local is_parser=false
-  returned_error="$(parseargs_add_argument "${parser}" "short" "X" "short" "Y" 2>&1)"
-  CHECK $? -eq 1
-  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "short" "once"
-  is_parser="parseargs_is_argument_parser  ${returned_error}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE_FALSE "${is_parser}"  
+  __check_repeated_argument_attribute_for_single_argument__ "short" "X" "Y"
 }
 
 argument_long_attribute_cannot_be_repeated_in_single_parseargs_add_argument_call() {
-  local parser="$(parseargs_new_argument_parser)"
-  local returned_error=""
-  local is_parser=false
-  returned_error="$(parseargs_add_argument "${parser}" "long" "eggs" "long" "why" 2>&1)"
-  CHECK $? -eq 1
-  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "long" "once"
-  is_parser="parseargs_is_argument_parser  ${returned_error}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE_FALSE "${is_parser}"  
+  __check_repeated_argument_attribute_for_single_argument__ "long" "eggs" "why"
 }
 
 argument_destination_attribute_cannot_be_repeated_in_single_parseargs_add_argument_call() {
-  local parser="$(parseargs_new_argument_parser)"
-  local returned_error=""
-  local is_parser=false
-  returned_error="$(parseargs_add_argument "${parser}" "destination" "eggs" "destination" "why" 2>&1)"
-  CHECK $? -eq 1
-  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "destination" "once"
-  is_parser="parseargs_is_argument_parser  ${returned_error}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE_FALSE "${is_parser}"  
+  __check_repeated_argument_attribute_for_single_argument__ "destination" "eggs" "why"
 }
 
 argument_action_attribute_cannot_be_repeated_in_single_parseargs_add_argument_call() {
-  local parser="$(parseargs_new_argument_parser)"
-  local returned_error=""
-  local is_parser=false
-  returned_error="$(parseargs_add_argument "${parser}" "action" "store_true" "action" "store_false" 2>&1)"
-  CHECK $? -eq 1
-  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "action" "once"
-  is_parser="parseargs_is_argument_parser  ${returned_error}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE_FALSE "${is_parser}"  
+  __check_repeated_argument_attribute_for_single_argument__ "action" "store_true" "store_false"
 }
 
 argument_nargs_attribute_cannot_be_repeated_in_single_parseargs_add_argument_call() {
-  local parser="$(parseargs_new_argument_parser)"
-  local returned_error=""
-  local is_parser=false
-  returned_error="$(parseargs_add_argument "${parser}" "nargs" "2" "nargs" "*" 2>&1)"
-  CHECK $? -eq 1
-  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "nargs" "once"
-  is_parser="parseargs_is_argument_parser  ${returned_error}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE_FALSE "${is_parser}"  
+  __check_repeated_argument_attribute_for_single_argument__ "nargs" "2" "*"
 }
 
 argument_const_attribute_cannot_be_repeated_in_single_parseargs_add_argument_call() {
-  local parser="$(parseargs_new_argument_parser)"
-  local returned_error=""
-  local is_parser=false
-  returned_error="$(parseargs_add_argument "${parser}" "const" "yes" "const" "no" 2>&1)"
-  CHECK $? -eq 1
-  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "const" "once"
-  is_parser="parseargs_is_argument_parser  ${returned_error}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE_FALSE "${is_parser}"  
+   __check_repeated_argument_attribute_for_single_argument__ "const" "yes" "no"
 }
 
 argument_default_attribute_cannot_be_repeated_in_single_parseargs_add_argument_call() {
-  local parser="$(parseargs_new_argument_parser)"
-  local returned_error=""
-  local is_parser=false
-  returned_error="$(parseargs_add_argument "${parser}" "default" "yes" "default" "no" 2>&1)"
-  CHECK $? -eq 1
-  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "default" "once"
-  is_parser="parseargs_is_argument_parser  ${returned_error}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE_FALSE "${is_parser}"  
+   __check_repeated_argument_attribute_for_single_argument__ "default" "yes" "no"
 }
 
 argument_required_attribute_cannot_be_repeated_in_single_parseargs_add_argument_call() {
-  local parser="$(parseargs_new_argument_parser)"
-  local returned_error=""
-  local is_parser=false
-  returned_error="$(parseargs_add_argument "${parser}" "required" "true" "required" "True" 2>&1)"
-  CHECK $? -eq 1
-  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "required" "once"
-  is_parser="parseargs_is_argument_parser  ${returned_error}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE_FALSE "${is_parser}"  
+   __check_repeated_argument_attribute_for_single_argument__ "required" "true" "True"
 }
 
 argument_choices_attribute_cannot_be_repeated_in_single_parseargs_add_argument_call() {
-  local parser="$(parseargs_new_argument_parser)"
-  local returned_error=""
-  local is_parser=false
   local choices="$(dict_declare_simple "FROM" "_" "TO" "_")"
-  returned_error="$(parseargs_add_argument "${parser}" "choices" "${choices}" "choices" "${choices}" 2>&1)"
-  CHECK $? -eq 1
-  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "choices" "once"
-  is_parser="parseargs_is_argument_parser  ${returned_error}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE_FALSE "${is_parser}"  
+  __check_repeated_argument_attribute_for_single_argument__ "choices" "${choices}" "${choices}"
 }
 
 # add other xxx_attribute_cannot_be_repeated tests as support is added...
