@@ -61,53 +61,48 @@ then
     local num_args=''
     local have_default=false
     local have_const=false
-    local action="store"
+    local have_required=false
+    local have_choices=false
     shift
     while [ "$#" -gt "1" ]; do
       case ${1} in
         name)
           if [ -z "${is_option}" ]; then
-            if [ -z "${positional}" ]; then
-              positional="${2}"
-            else
-              __parseargs_error_exit__ "Argument name attribute specified more than once."
-            fi
+            __parseargs_abort_if_have_attribute_value__ "${positional}" 'name'
+            positional="${2}"
           else
             __parseargs_error_exit__ "${err_msg_pos_or_opt}"
           fi
           ;;
         short)
           if [ -z "${positional}" ]; then
-            if [ -z "${short_opt}" ]; then
-              is_option="true"
-              short_opt="${2}"
-            else
-              __parseargs_error_exit__ "Argument short attribute specified more than once."
-            fi
+            __parseargs_abort_if_have_attribute_value__ "${short_opt}" 'short'
+            is_option="true"
+            short_opt="${2}"
           else
             __parseargs_error_exit__ "${err_msg_pos_or_opt}"
           fi
           ;;
         long)
           if [ -z "${positional}" ]; then
-            if [ -z "${long_opt}" ]; then
-              argument="$(dict_set_simple "${argument}" "long" "${2}")"
-              is_option="true"
-              long_opt="${2}"
-            else
-              __parseargs_error_exit__ "Argument long attribute specified more than once."
-            fi
+            __parseargs_abort_if_have_attribute_value__ "${long_opt}" 'long'
+            argument="$(dict_set_simple "${argument}" "long" "${2}")"
+            is_option="true"
+            long_opt="${2}"
           else
             __parseargs_error_exit__ "${err_msg_pos_or_opt}"
           fi
           ;;
         destination)
+          __parseargs_abort_if_have_attribute_value__ "${dest}" 'destination'
           dest="${2}"
           ;;
         action)
+          __parseargs_abort_if_have_attribute_value__ "${action}" 'action'
           action="${2}"
           ;;
         nargs)
+          __parseargs_abort_if_have_attribute_value__ "${num_args}" 'nargs'
           num_args="${2}"
           if __parseargs_is_valid_nargs_value__ "${num_args}" "${__PARSEARGS_MAX_NARGS__}"; then
             argument="$(dict_set_simple "${argument}" "nargs" "${num_args}")"
@@ -116,21 +111,27 @@ then
           fi
           ;;
         const)
+          __parseargs_abort_if_attribute_flag_set__ ${have_const} 'const'
           have_const=true
           argument="$(dict_set_simple "${argument}" "const" "${2}")"
           ;;
         default)
+          __parseargs_abort_if_attribute_flag_set__ ${have_default} 'default'
           have_default=true
           argument="$(dict_set_simple "${argument}" "default" "${2}")"
           ;;
         required)
+          __parseargs_abort_if_attribute_flag_set__ ${have_required} 'required'
           if "${2}"; then
             argument="$(dict_set_simple "${argument}" "required" "true")"
+            have_required=true
           fi
           ;;
         choices)
+          __parseargs_abort_if_attribute_flag_set__ ${have_choices} 'choices'
           if dict_is_dict "${2}"; then
             argument="$(dict_set "${argument}" "choices" "${2}")"
+            have_choices=true
           else
             __parseargs_error_exit__ "Argument choices attribute value is not a dict(ionary)."
           fi
@@ -148,6 +149,10 @@ then
     local argument_key="${dest}"
 
     local opt_string_arg_char=''
+    if [ -z "${action}" ]; then
+      action="store"
+    fi
+
     case "${action}" in
       store)
         opt_string_arg_char=':'
@@ -308,6 +313,18 @@ then
   __parseargs_abort_if_not_parser__() {
     if ! parseargs_is_argument_parser "${1}"; then
       __parseargs_error_exit__ "First argument passed to ${2} is not an argument parser type. Quitting current (sub-)shell."
+    fi
+  }
+  
+  __parseargs_abort_if_have_attribute_value__() {
+    if [ -n "${1}" ]; then
+      __parseargs_error_exit__ "Argument ${2} attribute specified more than once."
+    fi
+  }
+  
+  __parseargs_abort_if_attribute_flag_set__() {
+    if "${1}"; then
+      __parseargs_error_exit__ "Argument ${2} attribute specified more than once."
     fi
   }
   
