@@ -1223,8 +1223,72 @@ long_optional_specified_with_nargs_0_or_1_but_no_const_is_an_error() {
   CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "const"
 }
 
+__positional_argument_cannot_have_action__() {
+  local parser="$(parseargs_new_argument_parser)"
+  local returned_error=''
+  returned_error="$(parseargs_add_argument "${parser}" "name" "arg1" "action" "${1}" "${2}" "${3}" 2>&1)"
+  CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "${1}" "positional"
+}
+
+positional_argument_cannot_have_store_true_action() {
+  __positional_argument_cannot_have_action__ 'store_true'
+}
+
+positional_argument_cannot_have_store_false_action() {
+  __positional_argument_cannot_have_action__ 'store_false'
+}
+
+positional_argument_cannot_have_store_const_action() {
+  __positional_argument_cannot_have_action__ 'store_const' 'const' 'blah'
+}
+
+__long_optional_argument_with_action_cannot_have_attribute__(){
+  local parser="$(parseargs_new_argument_parser)"
+  local returned_error=''
+  returned_error="$(parseargs_add_argument "${parser}" "long" "arg1" "action" "${1}" "${2}" "2" "${3}" "${4}" 2>&1)"
+  CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "${1}" "${2}"
+}
+
+optional_argument_with_store_true_action_cannot_specify_default() {
+  __long_optional_argument_with_action_cannot_have_attribute__ 'store_true' 'default'
+}
+
+optional_argument_with_store_false_action_cannot_specify_default() {
+  __long_optional_argument_with_action_cannot_have_attribute__ 'store_false' 'default'
+}
+
+optional_argument_with_store_true_action_cannot_specify_const() {
+  __long_optional_argument_with_action_cannot_have_attribute__ 'store_true' 'const'
+}
+
+optional_argument_with_store_false_action_cannot_specify_const() {
+  __long_optional_argument_with_action_cannot_have_attribute__ 'store_false' 'const'
+}
+
+optional_argument_with_store_true_action_cannot_specify_nargs() {
+  __long_optional_argument_with_action_cannot_have_attribute__ 'store_true' 'nargs'
+}
+
+optional_argument_with_store_false_action_cannot_specify_nargs() {
+  __long_optional_argument_with_action_cannot_have_attribute__ 'store_false' 'nargs'
+}
+
+optional_argument_with_store_const_action_cannot_specify_nargs() {
+  __long_optional_argument_with_action_cannot_have_attribute__ 'store_const' 'nargs' 'const' 'blah'
+}
+
+optional_argument_with_store_const_action_must_specify_const() {
+  local parser="$(parseargs_new_argument_parser)"
+  local returned_error=''
+  returned_error="$(parseargs_add_argument "${parser}" "long" "arg1" "action" 'store_const' 2>&1)"
+  CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" 'store_const' 'const' 'required'
+}
+
 #set -x
-#TEST make_arg_parser_with_long_optional_const_flags_same_dest_and_parse_arguments
+#TEST optional_argument_with_store_const_action_cannot_specify_nargs
 #PRINT_TEST_COUNTS
 #exit 0
 TEST parsearg_functions_complain_if_parameter_not_a_parseargs_parser
@@ -1331,4 +1395,15 @@ TEST long_optional_multi_argument_value_not_one_of_specified_choices_is_an_error
 TEST positional_specified_with_nargs_0_or_1_but_no_default_is_an_error
 TEST short_optional_specified_with_nargs_0_or_1_but_no_const_is_an_error
 TEST long_optional_specified_with_nargs_0_or_1_but_no_const_is_an_error
+TEST positional_argument_cannot_have_store_true_action
+TEST positional_argument_cannot_have_store_false_action
+TEST positional_argument_cannot_have_store_const_action
+TEST optional_argument_with_store_true_action_cannot_specify_default
+TEST optional_argument_with_store_false_action_cannot_specify_default
+TEST optional_argument_with_store_true_action_cannot_specify_const
+TEST optional_argument_with_store_false_action_cannot_specify_const
+TEST optional_argument_with_store_true_action_cannot_specify_nargs
+TEST optional_argument_with_store_false_action_cannot_specify_nargs
+TEST optional_argument_with_store_const_action_cannot_specify_nargs
+TEST optional_argument_with_store_const_action_must_specify_const
 PRINT_TEST_COUNTS
