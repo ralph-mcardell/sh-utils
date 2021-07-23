@@ -47,10 +47,10 @@ then
     __parseargs_abort_if_not_parser__ "${1}" "parseargs_add_argument"
     local argument="$(dict_declare_simple)"
     local parser="${1}"
-    local positionals="$(dict_get "${parser}" "__positionals__")"
-    local longopts="$(dict_get "${parser}" "__longopts__")"
-    local shortopts="$(dict_get "${parser}" "__shortopts__")"
-    local optstring="$(dict_get "${parser}" "__optstring__")"
+    local positionals=''
+    local longopts=''
+    local shortopts=''
+    local optstring=''
     local readonly err_msg_pos_or_opt="Both name and long/short specified. Argument cannot be both positional and optional."
     local is_option=""
     local positional=""
@@ -138,7 +138,6 @@ then
       esac
       shift 2
     done
-
     if [ -z "${dest}" ]; then
       dest="${positional}"
       if [ -z "${dest}" ]; then
@@ -148,14 +147,71 @@ then
     dest="$(__parseargs_sanitise_destination__ "${dest}")"
     local argument_key="${dest}"
 
-    local opt_string_arg_char=''
     if [ -z "${action}" ]; then
       action="store"
     fi
 
+    if [ -z "${dest}" ]; then
+      __parseargs_error_exit__ "Unable to deduce destination name for argument value from destination, name or long attribute values." >&2
+    fi
+
+    if [ -n "${positional}" ]; then
+      if [ "${action}" != 'store' ]; then
+        __parseargs_error_exit__ "Action attribute value '${action}' cannot be used for positional arguments '${dest}'." >&2
+      fi
+      if [ "${num_args}" = '?' ] && ! ${have_default}; then
+        __parseargs_error_exit__ "A default attribute value is required for optional positional argument (nargs=?) '${dest}'." >&2
+      fi
+      argument="$(dict_set_simple "${argument}" "name" "${2}")"
+      positionals="$(dict_get "${parser}" "__positionals__")"
+      local pos_id="$(dict_size "${positionals}")"
+      argument_key="${argument_key}${pos_id}"
+      positionals="$(dict_set_simple "${positionals}" "${pos_id}" "${argument_key}")"
+    elif  [ -n "${is_option}" ]; then
+      if [ "${num_args}" = '?' ] && ! ${have_const}; then
+        __parseargs_error_exit__ "A const attribute value is required for optional arguments with optional value (nargs=?) '${dest}'." >&2
+      fi
+
+      if [ -n "${short_opt}" ]; then
+        if [ "${#short_opt}" -ne 1 ]; then
+          __parseargs_error_exit__ "Argument short option attribute value '${short_opt}' is not a single character."
+        fi
+        shortopts="$(dict_get "${parser}" "__shortopts__")"
+        local existing="$(dict_get_simple "${shortopts}" "${short_opt}")"
+        if [ -n "${existing}" ]; then
+          __parseargs_error_exit__ "Argument short option attribute value '${short_opt}' given previously."
+        fi
+        argument="$(dict_set_simple "${argument}" "short" "${short_opt}")"
+        argument_key="${argument_key}${short_opt}"
+        optstring="$(dict_get "${parser}" "__optstring__")"
+        shortopts="$(dict_set_simple "${shortopts}" "${short_opt}" "${argument_key}")"
+        optstring="${optstring}${short_opt}${opt_string_arg_char}"
+      fi
+      if [ -n "${long_opt}" ]; then
+        longopts="$(dict_get "${parser}" "__longopts__")"
+        local existing="$(dict_get_simple "${longopts}" "${long_opt}")"
+        if [ -n "${existing}" ]; then
+          __parseargs_error_exit__ "Argument long option attribute value '${long_opt}' given previously."
+        fi
+        argument="$(dict_set_simple "${argument}" "long" "${long_opt}")"
+        if [ "${argument_key}" =  "${dest}" ]; then
+        # not set already by short option handling, set here
+        # Note: argument can have short and long option forms
+          argument_key="${argument_key}${long_opt}"
+        fi
+        longopts="$(dict_set_simple "${longopts}" "${long_opt}" "${argument_key}")"
+      fi
+    else
+      __parseargs_error_exit__ "None of name, long or short attributes provided for argument."
+    fi
+
+    argument="$(dict_set_simple "${argument}" "destination" "${dest}")"
+
     case "${action}" in
       store)
-        opt_string_arg_char=':'
+        if [ -n "${short_opt}" ]; then
+          optstring="${optstring}:"
+        fi
         ;;
       store_const)
         if ! "${have_const}"; then
@@ -185,66 +241,19 @@ then
     esac
     argument="$(dict_set_simple "${argument}" "action" "${action}")"
 
-    if [ -z "${dest}" ]; then
-      __parseargs_error_exit__ "Unable to deduce destination name for argument value from destination, name or long attribute values." >&2
-    fi
-
-    if [ -n "${positional}" ]; then
-      if [ "${action}" != 'store' ]; then
-        __parseargs_error_exit__ "Action attribute value '${action}' cannot be used for positional arguments '${dest}'." >&2
-      fi
-      if [ "${num_args}" = '?' ] && ! ${have_default}; then
-        __parseargs_error_exit__ "A default attribute value is required for optional positional argument (nargs=?) '${dest}'." >&2
-      fi
-      argument="$(dict_set_simple "${argument}" "name" "${2}")"
-      local pos_id="$(dict_size "${positionals}")"
-      argument_key="${argument_key}${pos_id}"
-      positionals="$(dict_set_simple "${positionals}" "${pos_id}" "${argument_key}")"
-    elif  [ -n "${is_option}" ]; then
-      if [ "${num_args}" = '?' ] && ! ${have_const}; then
-        __parseargs_error_exit__ "A const attribute value is required for optional arguments with optional value (nargs=?) '${dest}'." >&2
-      fi
-
-      if [ -n "${short_opt}" ]; then
-        if [ "${#short_opt}" -ne 1 ]; then
-          __parseargs_error_exit__ "Argument short option attribute value '${short_opt}' is not a single character."
-        fi
-        local existing="$(dict_get_simple "${shortopts}" "${short_opt}")"
-        if [ -n "${existing}" ]; then
-          __parseargs_error_exit__ "Argument short option attribute value '${short_opt}' given previously."
-        fi
-        argument="$(dict_set_simple "${argument}" "short" "${short_opt}")"
-        argument_key="${argument_key}${short_opt}"
-        shortopts="$(dict_set_simple "${shortopts}" "${short_opt}" "${argument_key}")"
-        optstring="${optstring}${short_opt}${opt_string_arg_char}"
-      fi
-      if [ -n "${long_opt}" ]; then
-        local existing="$(dict_get_simple "${longopts}" "${long_opt}")"
-        if [ -n "${existing}" ]; then
-          __parseargs_error_exit__ "Argument long option attribute value '${long_opt}' given previously."
-        fi
-        argument="$(dict_set_simple "${argument}" "long" "${long_opt}")"
-        if [ "${argument_key}" =  "${dest}" ]; then
-        # not set already by short option handling, set here
-        # Note: argument can have short and long option forms
-          argument_key="${argument_key}${long_opt}"
-        fi
-        longopts="$(dict_set_simple "${longopts}" "${long_opt}" "${argument_key}")"
-      fi
-    else
-      __parseargs_error_exit__ "None of name, long or short attributes provided for argument."
-    fi
-
-    argument="$(dict_set_simple "${argument}" "destination" "${dest}")"
-
     args="$(dict_get "${parser}" "__arguments__")"
     args="$(dict_set "${args}" "${argument_key}" "${argument}")"
     parser="$(dict_set "${parser}" "__arguments__" "${args}")"
-    parser="$(dict_set "${parser}" "__positionals__" "${positionals}")"
-    parser="$(dict_set "${parser}" "__longopts__" "${longopts}")"
-    parser="$(dict_set "${parser}" "__shortopts__" "${shortopts}")"
-    parser="$(dict_set_simple "${parser}" "__optstring__" "${optstring}")"
-
+    if [ -n "${positional}" ]; then    
+      parser="$(dict_set "${parser}" "__positionals__" "${positionals}")"
+    fi
+    if [ -n "${long_opt}" ]; then
+      parser="$(dict_set "${parser}" "__longopts__" "${longopts}")"
+    fi
+    if [ -n "${short_opt}" ]; then
+      parser="$(dict_set "${parser}" "__shortopts__" "${shortopts}")"
+      parser="$(dict_set_simple "${parser}" "__optstring__" "${optstring}")"
+    fi
     echo -n "${parser}"
   }
 
