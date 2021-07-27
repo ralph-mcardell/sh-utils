@@ -208,17 +208,17 @@ then
     argument="$(dict_set_simple "${argument}" "destination" "${dest}")"
 
     case "${action}" in
-      store)
+      store|append|extend)
         if [ -n "${short_opt}" ]; then
           optstring="${optstring}:"
         fi
         ;;
-      store_const)
+      store_const|append_const)
         if ! "${have_const}"; then
-          __parseargs_error_exit__ "A const attribute value is required for arguments with 'store_const' action attribute '${dest}'." >&2
+          __parseargs_error_exit__ "A const attribute value is required for arguments with 'store_const' or 'append_const' action attribute '${dest}'." >&2
         fi
         if [ -n "${num_args}" ]; then
-          __parseargs_error_exit__ "Cannot specify nargs attribute value for arguments with 'store_const' action attribute '${dest}'." >&2
+          __parseargs_error_exit__ "Cannot specify nargs attribute value for arguments with 'store_const' or 'append_const' action attribute '${dest}'." >&2
         fi
         ;;
       store_true|store_false)
@@ -519,6 +519,27 @@ then
     __parseargs_process_argument_action__ "${__parseargs_return_value__}" "${arg_specs}" "${arg_spec_key}" "default" "Positional #$(( ${current_positional}+1 )), '${arg_spec_key}'," "$@" 
   }
 
+
+  __parseargs_extend_argument_index__='0'
+  __parseargs_extend_argument__() {
+      local argument="${1}"
+      local value="${2}"
+      if dict_is_dict "${value}"; then
+        __parseargs_return_value__="${argument}"
+        __parseargs_extend_argument_index__="$(dict_size "${existing_argument}" "${dest}" )"
+        dict_for_each "${value}" '__parseargs_extend_dict_fn__'
+      else
+        local next_index="$(dict_size "${existing_argument}" "${dest}" )"
+        __parseargs_return_value__="$(dict_set_simple "${argument}" "${next_index}" "${value}" )"
+      fi
+  }
+
+  __parseargs_extend_dict_fn__() {
+    local value="${2}"
+    __parseargs_return_value__="$(dict_set_simple "${__parseargs_return_value__}" "${__parseargs_extend_argument_index__}" "${value}")"
+    __parseargs_extend_argument_index__=$(( ${__parseargs_extend_argument_index__}+1 ))
+  }
+
   __parseargs_process_argument_action__() {
     local arguments="${1}"
     local arg_specs="${2}"
@@ -526,6 +547,8 @@ then
     local missing_arg_key="${4}"
     local arg_desc="${5}"
     shift 5
+#echo "> PROCESS ARGS (${arg_desc}; args='$*', count=$#):" >&2
+#echo "  dest:${dest}; shift by:${__parseargs_shift_caller_args_by__}; attributes:${attributes}; missing_arg_key:${missing_arg_key}" >&2
     local attributes="$(dict_get "${arg_specs}" "${arg_spec_key}")"
     if [ -z "${attributes}" ]; then
       __parseargs_error_exit__ "(internal). ${arg_desc}: no attrubutes specifying this argument."
@@ -534,34 +557,55 @@ then
     local dest="$(dict_get_simple "${attributes}" "destination" )"
     case "${action}" in
       store)
-        __parseargs_add_arguments__ "${arguments}" "${attributes}" "${dest}" "${missing_arg_key}" "${arg_desc}" "$@"
+        __parseargs_get_arguments__ "${attributes}" "${missing_arg_key}" "${arg_desc}" "$@"
+        ;;
+      append)
+        __parseargs_get_arguments__ "${attributes}" "${missing_arg_key}" "${arg_desc}" "$@"
+        local existing_argument="$(dict_get "${arguments}" "${dest}" )"
+        if [ -z "${existing_argument}" ]; then
+          existing_argument="$(dict_declare_simple)"
+        fi
+        local next_index="$(dict_size "${existing_argument}" "${dest}" )"
+        __parseargs_return_value__="$(dict_set "${existing_argument}" "${next_index}" "${__parseargs_return_value__}" )"
+        ;;
+      extend)
+        __parseargs_get_arguments__ "${attributes}" "${missing_arg_key}" "${arg_desc}" "$@"
+        local existing_argument="$(dict_get "${arguments}" "${dest}" )"
+        if [ -z "${existing_argument}" ]; then
+          existing_argument="$(dict_declare_simple)"
+        fi
+        __parseargs_extend_argument__ "${existing_argument}" "${__parseargs_return_value__}"
         ;;
       store_const)
+        __parseargs_return_value__="$(dict_get_simple "${attributes}" "const" )"
+        ;;
+      append_const)
         local value="$(dict_get_simple "${attributes}" "const" )"
-        __parseargs_add_arguments__ "${arguments}" "${attributes}" "${dest}" "${missing_arg_key}" "${arg_desc}" "${value}" "$@"
-        __parseargs_shift_caller_args_by__="$(( ${__parseargs_shift_caller_args_by__}-1 ))"
+        local existing_argument="$(dict_get "${arguments}" "${dest}" )"
+        if [ -z "${existing_argument}" ]; then
+          existing_argument="$(dict_declare_simple)"
+        fi
+        local next_index="$(dict_size "${existing_argument}" "${dest}" )"
+        __parseargs_return_value__="$(dict_set_simple "${existing_argument}" "${next_index}" "${value}" )"
         ;;
       store_true)
-        __parseargs_add_arguments__ "${arguments}" "${attributes}" "${dest}" "${missing_arg_key}" "${arg_desc}" "true" "$@"
-        __parseargs_shift_caller_args_by__="$(( ${__parseargs_shift_caller_args_by__}-1 ))"
+        __parseargs_return_value__='true'
         ;;
       store_false)
-        __parseargs_add_arguments__ "${arguments}" "${attributes}" "${dest}" "${missing_arg_key}" "${arg_desc}" "false" "$@"
-        __parseargs_shift_caller_args_by__="$(( ${__parseargs_shift_caller_args_by__}-1 ))"
+        __parseargs_return_value__='false'
         ;;
       *)
         __parseargs_error_exit__ "(internal) Unexpected unrecognised action '${action}'"
         ;;
       esac
+      __parseargs_return_value__="$(dict_set "${arguments}" "${dest}" "${__parseargs_return_value__}")"
   }
 
-  __parseargs_add_arguments__() {
-    local arguments="${1}"
-    local attributes="${2}"
-    local dest="${3}"
-    local missing_arg_key="${4}"
-    local arg_desc="${5}"
-    shift 5
+  __parseargs_get_arguments__() {
+    local attributes="${1}"
+    local missing_arg_key="${2}"
+    local arg_desc="${3}"
+    shift 3
     if [ $# -gt 0 ] && [ -z "$*" ]; then
       # if all remaining arguments empty, consume them
       shift $#
@@ -570,8 +614,6 @@ then
     local nargs="$(dict_get_simple "${attributes}" "nargs" )"
     local missing_arg_value="-"
     
-#echo "> ADD ARGS (${arg_desc}; args='$*', count=$#):" >&2
-#echo "  dest:${dest}; shift by:${__parseargs_shift_caller_args_by__}; attributes:${attributes}; missing_arg_key:${missing_arg_key}" >&2
     local on_missing='error'
 
     case "${nargs}" in
@@ -599,7 +641,6 @@ then
     fi
     if [ -z "${nargs}" ]; then
       __parseargs_get_argument__ "${on_missing}" "${missing_arg_value}" "${arg_desc}" "$@"
-      __parseargs_return_value__="$(dict_set_simple "${arguments}" "${dest}" "${__parseargs_return_value__}")"
 #echo "  Returning: shift by:${__parseargs_shift_caller_args_by__}; value:${__parseargs_return_value__}" >&2
 #echo "< ADD ARGS(scalar)" >&2
       return
@@ -625,7 +666,7 @@ then
       shift "${__parseargs_shift_caller_args_by__}"
     done
     __parseargs_shift_caller_args_by__="$(( ${stashed_shift_caller_args_by}+${accumulated_shift_count} ))"
-    __parseargs_return_value__="$(dict_set "${arguments}" "${dest}" "${argument_list}")"
+    __parseargs_return_value__="${argument_list}"
 #echo "  Returning: shift by:${__parseargs_shift_caller_args_by__}; value:${__parseargs_return_value__}" >&2
 #echo "< ADD ARGS(list ${argument_index}):" >&2
   }
