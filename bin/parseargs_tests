@@ -1412,6 +1412,18 @@ positional_argument_cannot_have_store_const_action() {
   __positional_argument_cannot_have_action__ 'store_const' 'const' 'blah'
 }
 
+positional_argument_cannot_have_append_action() {
+  __positional_argument_cannot_have_action__ 'append'
+}
+
+positional_argument_cannot_have_extend_action() {
+  __positional_argument_cannot_have_action__ 'extend'
+}
+
+positional_argument_cannot_have_append_const_action() {
+  __positional_argument_cannot_have_action__ 'append_const' 'const' 'blah'
+}
+
 __long_optional_argument_with_action_cannot_have_attribute__(){
   local parser="$(parseargs_new_argument_parser)"
   local returned_error=''
@@ -1448,16 +1460,28 @@ optional_argument_with_store_const_action_cannot_specify_nargs() {
   __long_optional_argument_with_action_cannot_have_attribute__ 'store_const' 'nargs' 'const' 'blah'
 }
 
-optional_argument_with_store_const_action_must_specify_const() {
+optional_argument_with_append_const_action_cannot_specify_nargs() {
+  __long_optional_argument_with_action_cannot_have_attribute__ 'append_const' 'nargs' 'const' 'blah'
+}
+
+__optional_argument_with_a_const_action_must_specify_const__() {
   local parser="$(parseargs_new_argument_parser)"
   local returned_error=''
-  returned_error="$(parseargs_add_argument "${parser}" "long" "arg1" "action" 'store_const' 2>&1)"
+  returned_error="$(parseargs_add_argument "${parser}" "long" "arg1" "action" "${1}" 2>&1)"
   CHECK $? -eq 1
-  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" 'store_const' 'const' 'required'
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "${1}" 'const' 'required'
+}
+
+optional_argument_with_store_const_action_must_specify_const() {
+  __optional_argument_with_a_const_action_must_specify_const__ 'store_const'
+}
+
+optional_argument_with_append_const_action_must_specify_const() {
+  __optional_argument_with_a_const_action_must_specify_const__ 'append_const'
 }
 
 #set -x
-#TEST make_arg_parser_with_long_optional_multi_0_or_many_argument_with_extend_action_and_parse_some_arguments
+#TEST optional_argument_with_append_const_action_must_specify_const
 #PRINT_TEST_COUNTS
 #exit 0
 TEST parsearg_functions_complain_if_parameter_not_a_parseargs_parser
@@ -1577,6 +1601,9 @@ TEST long_optional_specified_with_nargs_0_or_1_but_no_const_is_an_error
 TEST positional_argument_cannot_have_store_true_action
 TEST positional_argument_cannot_have_store_false_action
 TEST positional_argument_cannot_have_store_const_action
+TEST positional_argument_cannot_have_append_action
+TEST positional_argument_cannot_have_extend_action
+TEST positional_argument_cannot_have_append_const_action
 TEST optional_argument_with_store_true_action_cannot_specify_default
 TEST optional_argument_with_store_false_action_cannot_specify_default
 TEST optional_argument_with_store_true_action_cannot_specify_const
@@ -1584,5 +1611,7 @@ TEST optional_argument_with_store_false_action_cannot_specify_const
 TEST optional_argument_with_store_true_action_cannot_specify_nargs
 TEST optional_argument_with_store_false_action_cannot_specify_nargs
 TEST optional_argument_with_store_const_action_cannot_specify_nargs
+TEST optional_argument_with_append_const_action_cannot_specify_nargs
 TEST optional_argument_with_store_const_action_must_specify_const
+TEST optional_argument_with_append_const_action_must_specify_const
 PRINT_TEST_COUNTS
