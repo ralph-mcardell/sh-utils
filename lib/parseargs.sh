@@ -235,6 +235,11 @@ then
           argument="$(dict_set_simple "${argument}" "default" true)"
         fi
         ;;
+      count)
+        if "${have_const}" || [ -n "${num_args}" ]; then
+          __parseargs_error_exit__ "Cannot specify a const or nargs attribute value for arguments with 'count' action attribute '${dest}'." >&2
+        fi
+        ;;
       *)
         __parseargs_error_exit__ "Unrecognised action attribute value '${action}' for argument '${dest}'." >&2
         ;;
@@ -276,7 +281,7 @@ then
       __parseargs_parse_short_options__ "${arguments}" "${optstring}" "${shortopts}" "${arg_specs}" "$@"
       arguments="${__parseargs_return_value__}"
       shift ${__parseargs_shift_caller_args_by__}
-#echo "  PARSE ARGS: shifted by: ${__parseargs_shift_caller_args_by__}; remaining arguments to parse: '$*'" >&2
+#echo "  PARSE ARGS: shifted by: ${__parseargs_shift_caller_args_by__}; remaining arguments to parse: '$*', arg count:$#" >&2
       if [ "$#" -gt "0" ]; then
         __parseargs_parse_long_option__ "${arguments}" "${longopts}" "${arg_specs}" "$@"
         if [ "${__parseargs_shift_caller_args_by__}" -eq "0" ]; then
@@ -416,6 +421,7 @@ then
     local shortopts="${3}"
     local arg_specs="${4}"
     local arg_spec_key=""
+    local accumulated_opt=''
     shift 4
     __parseargs_shift_caller_args_by__="0"
     while getopts "${optstring}" opt; do
@@ -437,11 +443,17 @@ then
         OPTARG=''
       fi
 
+    # If not resetting optind then option is an argumentless flag and may be
+    # one of a clump of flags: -xyz or even -vvvv
+    # In such cases it is necessary to detect the final option character
+    # so as to advance to the next argument on the command line
       if ! ${reset_optind}; then
-        __parseargs_split_string_on_arg_rhs__ "${1}" "${opt}"
-#echo "__parseargs_split_string_on_arg_rhs__ '${1}' '${opt}' -> '${__parseargs_return_value__}'" >&2
+        accumulated_opt="${accumulated_opt}${opt}"
+        __parseargs_split_string_on_arg_rhs__ "${1}" "${accumulated_opt}"
+#echo "__parseargs_split_string_on_arg_rhs__ '${1}' '${accumulated_opt}' -> '${__parseargs_return_value__}'" >&2
        if [ -z "${__parseargs_return_value__}" ]; then
           reset_optind=true
+          accumulated_opt=''
         fi
       fi
       if  ${reset_optind}; then
@@ -593,6 +605,13 @@ then
         ;;
       store_false)
         __parseargs_return_value__='false'
+        ;;
+      count)
+        local existing_argument="$(dict_get "${arguments}" "${dest}" )"
+        if [ -z "${existing_argument}" ]; then
+          existing_argument="0"
+        fi
+        __parseargs_return_value__="$(( ${existing_argument}+1 ))"
         ;;
       *)
         __parseargs_error_exit__ "(internal) Unexpected unrecognised action '${action}'"

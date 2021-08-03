@@ -386,6 +386,36 @@ make_arg_parser_with_short_optional_const_flags_same_dest_with_append_const_acti
   CHECK "$(dict_get "${answer}" "1")" = "no"
 }
 
+make_arg_parser_with_short_optional_flag_count_and_parse_all_arguments() {
+  local parser="$(parseargs_new_argument_parser)"
+  parser="$(parseargs_add_argument "${parser}" "short" "c" destination "count" "action" "count")"
+  local arguments="$(parseargs_parse_arguments "${parser}" "-c" )"
+  CHECK "$(dict_get "${arguments}" "count")" = '1'
+  arguments="$(parseargs_parse_arguments "${parser}" "-c" "-c" )"
+  CHECK "$(dict_get "${arguments}" "count")" = '2'
+}
+
+make_arg_parser_with_short_optional_flag_count_and_parse_all_arguments_grouped() {
+  local parser="$(parseargs_new_argument_parser)"
+  parser="$(parseargs_add_argument "${parser}" "short" "c" destination "count" "action" "count")"
+  arguments="$(parseargs_parse_arguments "${parser}" "-ccc" )"
+  CHECK "$(dict_get "${arguments}" "count")" = '3'
+}
+
+make_arg_parser_with_short_optional_flag_count_and_parse_no_arguments() {
+  local parser="$(parseargs_new_argument_parser)"
+  parser="$(parseargs_add_argument "${parser}" "short" "c" destination "count" "action" "count")"
+  arguments="$(parseargs_parse_arguments "${parser}")"
+  CHECK -z "$(dict_get "${arguments}" "count")"
+}
+
+make_arg_parser_with_short_optional_flag_count_with_default_and_parse_no_arguments() {
+  local parser="$(parseargs_new_argument_parser)"
+  parser="$(parseargs_add_argument "${parser}" "short" "c" destination "count" "action" "count" "default" '0' )"
+  arguments="$(parseargs_parse_arguments "${parser}")"
+  CHECK "$(dict_get "${arguments}" "count")" = '0'
+}
+
 make_arg_parser_with_short_optional_multi_arguments_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
   parser="$(parseargs_add_argument "${parser}" "short" "s" destination "sources" "nargs" "2")"
@@ -1424,6 +1454,10 @@ positional_argument_cannot_have_append_const_action() {
   __positional_argument_cannot_have_action__ 'append_const' 'const' 'blah'
 }
 
+positional_argument_cannot_have_count_action() {
+  __positional_argument_cannot_have_action__ 'count'
+}
+
 __long_optional_argument_with_action_cannot_have_attribute__(){
   local parser="$(parseargs_new_argument_parser)"
   local returned_error=''
@@ -1448,6 +1482,10 @@ optional_argument_with_store_false_action_cannot_specify_const() {
   __long_optional_argument_with_action_cannot_have_attribute__ 'store_false' 'const'
 }
 
+optional_argument_with_count_action_cannot_specify_const() {
+  __long_optional_argument_with_action_cannot_have_attribute__ 'count' 'const'
+}
+
 optional_argument_with_store_true_action_cannot_specify_nargs() {
   __long_optional_argument_with_action_cannot_have_attribute__ 'store_true' 'nargs'
 }
@@ -1462,6 +1500,10 @@ optional_argument_with_store_const_action_cannot_specify_nargs() {
 
 optional_argument_with_append_const_action_cannot_specify_nargs() {
   __long_optional_argument_with_action_cannot_have_attribute__ 'append_const' 'nargs' 'const' 'blah'
+}
+
+optional_argument_with_count_action_cannot_specify_nargs() {
+  __long_optional_argument_with_action_cannot_have_attribute__ 'count' 'nargs'
 }
 
 __optional_argument_with_a_const_action_must_specify_const__() {
@@ -1481,7 +1523,7 @@ optional_argument_with_append_const_action_must_specify_const() {
 }
 
 #set -x
-#TEST optional_argument_with_append_const_action_must_specify_const
+#TEST optional_argument_with_count_action_cannot_specify_const
 #PRINT_TEST_COUNTS
 #exit 0
 TEST parsearg_functions_complain_if_parameter_not_a_parseargs_parser
@@ -1515,6 +1557,10 @@ TEST make_arg_parser_with_short_optional_const_flags_and_parse_all_arguments_gro
 TEST make_arg_parser_with_short_optional_const_flags_and_parse_no_arguments
 TEST make_arg_parser_with_short_optional_const_flags_same_dest_and_parse_arguments
 TEST make_arg_parser_with_short_optional_const_flags_same_dest_with_append_const_action_and_parse_arguments
+TEST make_arg_parser_with_short_optional_flag_count_and_parse_all_arguments
+TEST make_arg_parser_with_short_optional_flag_count_and_parse_all_arguments_grouped
+TEST make_arg_parser_with_short_optional_flag_count_and_parse_no_arguments
+TEST make_arg_parser_with_short_optional_flag_count_with_default_and_parse_no_arguments
 TEST make_arg_parser_with_short_optional_multi_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_short_optional_multi_arguments_from_choices_set_and_parse_some_arguments
 TEST make_arg_parser_with_short_optional_multi_arguments_and_parse_some_arguments_no_space
@@ -1604,14 +1650,17 @@ TEST positional_argument_cannot_have_store_const_action
 TEST positional_argument_cannot_have_append_action
 TEST positional_argument_cannot_have_extend_action
 TEST positional_argument_cannot_have_append_const_action
+TEST positional_argument_cannot_have_count_action
 TEST optional_argument_with_store_true_action_cannot_specify_default
 TEST optional_argument_with_store_false_action_cannot_specify_default
 TEST optional_argument_with_store_true_action_cannot_specify_const
 TEST optional_argument_with_store_false_action_cannot_specify_const
+TEST optional_argument_with_count_action_cannot_specify_const
 TEST optional_argument_with_store_true_action_cannot_specify_nargs
 TEST optional_argument_with_store_false_action_cannot_specify_nargs
 TEST optional_argument_with_store_const_action_cannot_specify_nargs
 TEST optional_argument_with_append_const_action_cannot_specify_nargs
+TEST optional_argument_with_count_action_cannot_specify_nargs
 TEST optional_argument_with_store_const_action_must_specify_const
 TEST optional_argument_with_append_const_action_must_specify_const
 PRINT_TEST_COUNTS
