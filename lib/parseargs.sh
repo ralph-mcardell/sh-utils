@@ -156,7 +156,7 @@ then
     fi
 
     if [ -n "${positional}" ]; then
-      if [ "${action}" != 'store' ]; then
+      if [ "${action}" != 'store' ] && [ "${action}" != 'sub_command' ]; then
         __parseargs_error_exit__ "Action attribute value '${action}' cannot be used for positional arguments '${dest}'." >&2
       fi
       if [ "${num_args}" = '?' ] && ! ${have_default}; then
@@ -208,7 +208,7 @@ then
     argument="$(dict_set_simple "${argument}" "destination" "${dest}")"
 
     case "${action}" in
-      store|append|extend)
+      store|append|extend|sub_command)
         if [ -n "${short_opt}" ]; then
           optstring="${optstring}:"
         fi
@@ -262,31 +262,56 @@ then
     echo -n "${parser}"
   }
 
+  parseargs_add_sub_parser() {
+    __parseargs_abort_if_not_parser__ "${1}" "parseargs_add_sub_parser"
+    if ! parseargs_is_argument_parser "${3}"; then
+      __parseargs_error_exit__ "Third (sub-parser) argument passed to parseargs_add_sub_parser is not an argument parser type. Quitting current (sub-)shell."
+    fi
+    local parser="${1}"
+    local subparser_id="${2}"
+    local subparser="${3}"
+    shift 3
+    local subparsers="$(dict_get "${parser}" "__subparsers__")"
+    if [ -z "${subparsers}" ]; then
+      subparsers="$(dict_declare_simple)"
+    fi
+    subparsers="$(dict_set "${subparsers}" "${subparser_id}" "${subparser}")"
+    parser="$(dict_set "${parser}" "__subparsers__" "${subparsers}")"
+
+    if [ "$#" -gt "0" ]; then
+      local aliases="$(dict_get "${parser}" "__sp_aliases__")"
+      if [ -z "${aliases}" ]; then
+        aliases="$(dict_declare_simple)"
+      fi
+      while [ "$#" -gt "0" ]; do
+        aliases="$(dict_set_simple "${aliases}" "${1}" "${subparser_id}")"
+        shift
+      done
+      parser="$(dict_set "${parser}" "__sp_aliases__" "${aliases}")"
+    fi
+  }
+
   parseargs_parse_arguments() {
     __parseargs_abort_if_not_parser__ "${1}" "parseargs_parse_arguments"
     local parser="${1}"
-    local arg_specs="$(dict_get "${parser}" "__arguments__")"
-    local positionals="$(dict_get "${parser}" "__positionals__")"
-    local longopts="$(dict_get "${parser}" "__longopts__")"
-    local shortopts="$(dict_get "${parser}" "__shortopts__")"
-    local optstring="$(dict_get_simple "${parser}" "__optstring__")"
+    __parseargs_set_parse_specs__ "${parser}"
     local current_positional="0"
     local positionals_to_parse=true
     arguments="$(dict_declare_simple)"
     shift
-    local expected_number_of_positionals="$(dict_size "${positionals}")"
+    local expected_number_of_positionals="$(dict_size "${__parseargs_positionals__}")"
 #echo "OPTSTRING:'${optstring}'." >&2
     while [ "$#" -gt "0" ]; do
 #echo "PARSING:'$*'." >&2
-      __parseargs_parse_short_options__ "${arguments}" "${optstring}" "${shortopts}" "${arg_specs}" "$@"
+      __parseargs_parse_short_options__ "${arguments}" "$@"
       arguments="${__parseargs_return_value__}"
       shift ${__parseargs_shift_caller_args_by__}
 #echo "  PARSE ARGS: shifted by: ${__parseargs_shift_caller_args_by__}; remaining arguments to parse: '$*', arg count:$#" >&2
       if [ "$#" -gt "0" ]; then
-        __parseargs_parse_long_option__ "${arguments}" "${longopts}" "${arg_specs}" "$@"
+        __parseargs_parse_long_option__ "${arguments}" "$@"
         if [ "${__parseargs_shift_caller_args_by__}" -eq "0" ]; then
           if "${positionals_to_parse}"; then
-            __parseargs_parse_positional_argument__ "${arguments}" "${positionals}" "${current_positional}" "${arg_specs}" "$@"
+            __parseargs_parse_positional_argument__ "${arguments}" "${current_positional}" "$@"
             if [ "${__parseargs_shift_caller_args_by__}" -eq "0" ]; then
               positionals_to_parse=false
               __parseargs_shift_caller_args_by__=1
@@ -302,11 +327,11 @@ then
       fi
     done
     while [ "${current_positional}" -ne "${expected_number_of_positionals}" ]; do
-      __parseargs_parse_positional_argument__ "${arguments}" "${positionals}" "${current_positional}" "${arg_specs}"
+      __parseargs_parse_positional_argument__ "${arguments}" "${current_positional}"
       arguments="${__parseargs_return_value__}"
       current_positional=$((${current_positional}+1))
     done
-    __parseargs_validate_and_fixup_arguments__ "${parser}" "${arguments}"
+    __parseargs_validate_and_fixup_arguments__ "${arguments}"
     echo -n "${__parseargs_return_value__}"
   }
 
@@ -367,6 +392,17 @@ then
     __parseargs_return_value__="${1#--}"
   }
 
+  __parseargs_set_parse_specs__() {
+    local parser="${1}"
+    __parseargs_arg_specs__="$(dict_get "${parser}" "__arguments__")"
+    __parseargs_positionals__="$(dict_get "${parser}" "__positionals__")"
+    __parseargs_longopts__="$(dict_get "${parser}" "__longopts__")"
+    __parseargs_shortopts__="$(dict_get "${parser}" "__shortopts__")"
+    __parseargs_optstring__="$(dict_get_simple "${parser}" "__optstring__")"
+    __parseargs_subparsers__="$(dict_get "${parser}" "__subparsers__")"
+    __parseargs_subparser_alias__="$(dict_get "${parser}" "__sp_aliases__")"    
+  }
+
   __parseargs_split_string_on_arg_rhs__() {
     __parseargs_return_value__="${1#*"${2}"}"
   }
@@ -417,14 +453,11 @@ then
 
   __parseargs_parse_short_options__() {
     arguments="${1}"
-    local optstring="${2}"
-    local shortopts="${3}"
-    local arg_specs="${4}"
     local arg_spec_key=""
     local accumulated_opt=''
-    shift 4
+    shift
     __parseargs_shift_caller_args_by__="0"
-    while getopts "${optstring}" opt; do
+    while getopts "${__parseargs_optstring__}" opt; do
 #echo "GETOPTS opt=${opt}; OPTARG=${OPTARG}; OPTIND=${OPTIND}; arg_spec_key=${arg_spec_key} args='$*'" >&2
       if [ "${opt}" = "?" ]; then
         if [ "${OPTARG}" = "-" ]; then
@@ -462,7 +495,7 @@ then
       if [ -z "${OPTARG}" ] && ${reset_optind}; then
         call_shift_by_increment=$(( ${call_shift_by_increment}+1 ))
       fi
-      arg_spec_key="$(dict_get_simple "${shortopts}" "${opt}")"
+      arg_spec_key="$(dict_get_simple "${__parseargs_shortopts__}" "${opt}")"
       if [ -z "${arg_spec_key}" ]; then
         __parseargs_error_exit__ "(internal) Argument specification key for short option -${opt} not found."
       fi
@@ -473,7 +506,7 @@ then
       fi
 #echo "remaining arg count: $#; caller shift by=${__parseargs_shift_caller_args_by__}; local shift by=${shift_by}" >&2
 #echo "  BEFORE: caller shift by=${__parseargs_shift_caller_args_by__}; local shift by=${shift_by}; args='$*'" >&2
-      __parseargs_process_argument_action__ "${arguments}" "${arg_specs}" "${arg_spec_key}" "const" "Short option -${opt}" "$@"
+      __parseargs_process_argument_action__ "${arguments}" "${arg_spec_key}" "const" "Short option -${opt}" "$@"
       arguments="${__parseargs_return_value__}"
       shift_by=$(( ${__parseargs_shift_caller_args_by__}-${shift_by} ))
 #echo "   AFTER: next optind=${next_optind}; caller shift by=${__parseargs_shift_caller_args_by__}; local shift by=${shift_by}; args='$*'" >&2
@@ -491,9 +524,7 @@ then
 
   __parseargs_parse_long_option__() {
     arguments="${1}"
-    local longopts="${2}"
-    local arg_specs="${3}"
-    shift 3
+    shift
     __parseargs_option_name_from_long_option_string__ "${1}"
     local readonly option_string="${__parseargs_return_value__}"
     if [ "${1}" = "--" ] || [ "${option_string}" = "${1}" ]; then
@@ -502,7 +533,7 @@ then
       return
     fi
     __parseargs_split_string_on_eq_lhs__ "${option_string}"
-    arg_spec_key="$(dict_get_simple "${longopts}" "${__parseargs_return_value__}")"
+    arg_spec_key="$(dict_get_simple "${__parseargs_longopts__}" "${__parseargs_return_value__}")"
     if [ -z "${arg_spec_key}" ]; then
       __parseargs_error_exit__ "Unknown long option --${__parseargs_return_value__}."
     fi
@@ -513,24 +544,21 @@ then
     else
         __parseargs_shift_caller_args_by__=1
     fi
-    __parseargs_process_argument_action__ "${arguments}" "${arg_specs}" "${arg_spec_key}" "const" "Long option --${__parseargs_return_value__}" "$@"
+    __parseargs_process_argument_action__ "${arguments}" "${arg_spec_key}" "const" "Long option --${__parseargs_return_value__}" "$@"
   }
 
   __parseargs_parse_positional_argument__() {
     __parseargs_return_value__="${1}"
-    local positionals="${2}"
-    local current_positional="${3}"
-    local arg_specs="${4}"
-    shift 4
-    local arg_spec_key="$(dict_get_simple "${positionals}" "${current_positional}")"
+    local current_positional="${2}"
+    shift 2
+    local arg_spec_key="$(dict_get_simple "${__parseargs_positionals__}" "${current_positional}")"
     if [ -z "${arg_spec_key}" ]; then
       __parseargs_warn_continue__ "Too many positional arguments provided, remaining ignored."
       __parseargs_shift_caller_args_by__=0
       return
     fi
-    __parseargs_process_argument_action__ "${__parseargs_return_value__}" "${arg_specs}" "${arg_spec_key}" "default" "Positional #$(( ${current_positional}+1 )), '${arg_spec_key}'," "$@" 
+    __parseargs_process_argument_action__ "${__parseargs_return_value__}" "${arg_spec_key}" "default" "Positional #$(( ${current_positional}+1 )), '${arg_spec_key}'," "$@" 
   }
-
 
   __parseargs_extend_argument_index__='0'
   __parseargs_extend_argument__() {
@@ -554,14 +582,13 @@ then
 
   __parseargs_process_argument_action__() {
     local arguments="${1}"
-    local arg_specs="${2}"
-    local arg_spec_key="${3}"
-    local missing_arg_key="${4}"
-    local arg_desc="${5}"
-    shift 5
+    local arg_spec_key="${2}"
+    local missing_arg_key="${3}"
+    local arg_desc="${4}"
+    shift 4
 #echo "> PROCESS ARGS (${arg_desc}; args='$*', count=$#):" >&2
 #echo "  dest:${dest}; shift by:${__parseargs_shift_caller_args_by__}; attributes:${attributes}; missing_arg_key:${missing_arg_key}" >&2
-    local attributes="$(dict_get "${arg_specs}" "${arg_spec_key}")"
+    local attributes="$(dict_get "${__parseargs_arg_specs__}" "${arg_spec_key}")"
     if [ -z "${attributes}" ]; then
       __parseargs_error_exit__ "(internal). ${arg_desc}: no attrubutes specifying this argument."
     fi
@@ -612,6 +639,15 @@ then
           existing_argument="0"
         fi
         __parseargs_return_value__="$(( ${existing_argument}+1 ))"
+        ;;
+      sub_command)
+        __parseargs_get_arguments__ "${attributes}" "${missing_arg_key}" "${arg_desc}" "$@"
+        if [ "${__parseargs_shift_caller_args_by__}" -eq '1' ]; then
+          shift
+          local sub_parser="$(dict_get )"
+        else
+          __parseargs_error_exit__ "${arg_desc} did not have a single sub-command argument value."
+        fi
         ;;
       *)
         __parseargs_error_exit__ "(internal) Unexpected unrecognised action '${action}'"
@@ -734,14 +770,13 @@ then
   }
 
   __parseargs_validate_and_fixup_arguments__() {
-    local parser="${1}"
-    local arguments="${2}"
-    local arg_specs="$(dict_get "${parser}" "__arguments__")"
-    local positionals="$(dict_get "${parser}" "__positionals__")"
-    local longopts="$(dict_get "${parser}" "__longopts__")"
-    local shortopts="$(dict_get "${parser}" "__shortopts__")"
+    local arguments="${1}"
     __parseargs_return_value__="${arguments}"
-    dict_for_each "${arg_specs}" "__parseargs_op_validate_and_fixup_argument__" "${positionals}" "${shortopts}" "${longopts}"
+    dict_for_each "${__parseargs_arg_specs__}" \
+                  "__parseargs_op_validate_and_fixup_argument__" \
+                  "${__parseargs_positionals__}" \
+                  "${__parseargs_shortopts__}" \
+                  "${__parseargs_longopts__}"
   }
 
   __parseargs_op_validate_and_fixup_argument__() {
