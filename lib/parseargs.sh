@@ -289,6 +289,7 @@ then
       done
       parser="$(dict_set "${parser}" "__sp_aliases__" "${aliases}")"
     fi
+    echo -n "${parser}"
   }
 
   parseargs_parse_arguments() {
@@ -306,12 +307,14 @@ then
       __parseargs_parse_short_options__ "${arguments}" "$@"
       arguments="${__parseargs_return_value__}"
       shift ${__parseargs_shift_caller_args_by__}
-#echo "  PARSE ARGS: shifted by: ${__parseargs_shift_caller_args_by__}; remaining arguments to parse: '$*', arg count:$#" >&2
+#echo "  PARSE ARGS ( short opt): shifted by: ${__parseargs_shift_caller_args_by__}; remaining arguments to parse: '$*', arg count:$#" >&2
       if [ "$#" -gt "0" ]; then
         __parseargs_parse_long_option__ "${arguments}" "$@"
+#echo "  PARSE ARGS (  long opt): shifted by: ${__parseargs_shift_caller_args_by__}; remaining arguments to parse: '$*', arg count:$#" >&2
         if [ "${__parseargs_shift_caller_args_by__}" -eq "0" ]; then
           if "${positionals_to_parse}"; then
             __parseargs_parse_positional_argument__ "${arguments}" "${current_positional}" "$@"
+#echo "  PARSE ARGS (positional): shifted by: ${__parseargs_shift_caller_args_by__}; remaining arguments to parse: '$*', arg count:$#" >&2
             if [ "${__parseargs_shift_caller_args_by__}" -eq "0" ]; then
               positionals_to_parse=false
               __parseargs_shift_caller_args_by__=1
@@ -587,13 +590,13 @@ then
     local arg_desc="${4}"
     shift 4
 #echo "> PROCESS ARGS (${arg_desc}; args='$*', count=$#):" >&2
-#echo "  dest:${dest}; shift by:${__parseargs_shift_caller_args_by__}; attributes:${attributes}; missing_arg_key:${missing_arg_key}" >&2
     local attributes="$(dict_get "${__parseargs_arg_specs__}" "${arg_spec_key}")"
     if [ -z "${attributes}" ]; then
       __parseargs_error_exit__ "(internal). ${arg_desc}: no attrubutes specifying this argument."
     fi
     local action="$(dict_get_simple "${attributes}" "action" )"
     local dest="$(dict_get_simple "${attributes}" "destination" )"
+#echo "  dest:${dest}; shift by:${__parseargs_shift_caller_args_by__}; attributes:${attributes}; missing_arg_key:${missing_arg_key}" >&2
     case "${action}" in
       store)
         __parseargs_get_arguments__ "${attributes}" "${missing_arg_key}" "${arg_desc}" "$@"
@@ -644,7 +647,29 @@ then
         __parseargs_get_arguments__ "${attributes}" "${missing_arg_key}" "${arg_desc}" "$@"
         if [ "${__parseargs_shift_caller_args_by__}" -eq '1' ]; then
           shift
-          local sub_parser="$(dict_get )"
+          local sp_id="${__parseargs_return_value__}"
+          local sp_alias="${sp_id}"
+          local sub_parser="$(dict_get "${__parseargs_subparsers__}" "${sp_id}" )"
+          if [ -z "${sub_parser}" ]; then
+            sp_id="$(dict_get_simple "${__parseargs_subparser_alias__}" "${sp_alias}" )"
+            if [ -n "${sp_id}" ]; then
+              sub_parser="$(dict_get "${__parseargs_subparsers__}" "${sp_id}" )"
+            fi
+          fi
+          if [ -z "${sub_parser}" ]; then
+            __parseargs_error_exit__ "${arg_desc}: "${__parseargs_return_value__}" is not a known sub-command."
+          fi
+
+#echo "  >>>>>>>>>>>>>>>>>>>>>>>>> SUB PARSE for ${dest} START >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" >&2
+          __parseargs_return_value__="$(parseargs_parse_arguments "${sub_parser}" "$@" )"
+          __parseargs_shift_caller_args_by__=$(( ${__parseargs_shift_caller_args_by__}+${#} ))
+#echo "  <<<<<<<<<<<<<<<<<<<<<<<<< SUB PARSE for ${dest} END   <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" >&2
+
+          if [ -z "${__parseargs_return_value__}" ]; then
+            __parseargs_return_value__="$(dict_declare_simple)"
+          fi
+          __parseargs_return_value__="$(dict_set_simple "${__parseargs_return_value__}" '__sub_command__' "${sp_id}" )"
+          __parseargs_return_value__="$(dict_set_simple "${__parseargs_return_value__}" '__sub_command_alias__' "${sp_alias}" )"
         else
           __parseargs_error_exit__ "${arg_desc} did not have a single sub-command argument value."
         fi
