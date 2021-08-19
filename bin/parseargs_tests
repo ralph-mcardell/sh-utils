@@ -605,6 +605,31 @@ make_arg_parser_with_short_optional_multi_0_or_many_argument_with_extend_action_
   CHECK "$(dict_get "${sources}" "3")" = "TO"
 }
 
+make_arg_parser_with_short_optional_sub_commands() {
+  local parser="$(parseargs_new_argument_parser)"
+  parser="$(parseargs_add_argument "${parser}" 'short' 'c' "destination" "command" 'action' 'sub_command' )"
+  local copycmdparser="$(parseargs_new_argument_parser)"
+  copycmdparser="$(parseargs_add_argument "${copycmdparser}" "name" "source")"
+  copycmdparser="$(parseargs_add_argument "${copycmdparser}" "name" "target")"
+  local delcmdparser="$(parseargs_new_argument_parser)"
+  delcmdparser="$(parseargs_add_argument "${delcmdparser}" "name" "item")"
+  parser="$(parseargs_add_sub_parser "${parser}" "copy" "${copycmdparser}" )"
+  parser="$(parseargs_add_sub_parser "${parser}" "delete" "${delcmdparser}" )"
+  local arguments="$(parseargs_parse_arguments "${parser}" "-c" "copy" "FROM" "TO")"
+  local command="$(dict_get "${arguments}" "command")"
+  CHECK "$(dict_size "${command}")" = "4"
+  CHECK "$(dict_get "${command}" "source")" = "FROM"
+  CHECK "$(dict_get "${command}" "target")" = "TO"
+  CHECK "$(dict_get "${command}" "__sub_command__")" = "copy"
+  CHECK "$(dict_get "${command}" "__sub_command_alias__")" = "copy"
+  arguments="$(parseargs_parse_arguments "${parser}" "-c" "delete" "UNLOVED")"
+  command="$(dict_get "${arguments}" "command")"
+  CHECK "$(dict_size "${command}")" = "3"
+  CHECK "$(dict_get "${command}" "item")" = "UNLOVED"
+  CHECK "$(dict_get "${command}" "__sub_command__")" = "delete"
+  CHECK "$(dict_get "${command}" "__sub_command_alias__")" = "delete"
+}
+
 make_arg_parser_with_long_optional_arguments_and_parse_all_arguments() {
   local parser="$(parseargs_new_argument_parser)"
   parser="$(parseargs_add_argument "${parser}" "long" "source")"
@@ -931,6 +956,31 @@ make_arg_parser_with_long_optional_multi_0_or_many_argument_with_extend_action_a
   CHECK "$(dict_get "${sources}" "1")" = "FROM"
   CHECK "$(dict_get "${sources}" "2")" = "HERE"
   CHECK "$(dict_get "${sources}" "3")" = "TO"
+}
+
+make_arg_parser_with_long_optional_sub_commands() {
+  local parser="$(parseargs_new_argument_parser)"
+  parser="$(parseargs_add_argument "${parser}" 'long' "command" 'action' 'sub_command' )"
+  local copycmdparser="$(parseargs_new_argument_parser)"
+  copycmdparser="$(parseargs_add_argument "${copycmdparser}" "name" "source")"
+  copycmdparser="$(parseargs_add_argument "${copycmdparser}" "name" "target")"
+  local delcmdparser="$(parseargs_new_argument_parser)"
+  delcmdparser="$(parseargs_add_argument "${delcmdparser}" "name" "item")"
+  parser="$(parseargs_add_sub_parser "${parser}" "copy" "${copycmdparser}" )"
+  parser="$(parseargs_add_sub_parser "${parser}" "delete" "${delcmdparser}" )"
+  local arguments="$(parseargs_parse_arguments "${parser}" "--command" "copy" "FROM" "TO")"
+  local command="$(dict_get "${arguments}" "command")"
+  CHECK "$(dict_size "${command}")" = "4"
+  CHECK "$(dict_get "${command}" "source")" = "FROM"
+  CHECK "$(dict_get "${command}" "target")" = "TO"
+  CHECK "$(dict_get "${command}" "__sub_command__")" = "copy"
+  CHECK "$(dict_get "${command}" "__sub_command_alias__")" = "copy"
+  arguments="$(parseargs_parse_arguments "${parser}" "--command" "delete" "UNLOVED")"
+  command="$(dict_get "${arguments}" "command")"
+  CHECK "$(dict_size "${command}")" = "3"
+  CHECK "$(dict_get "${command}" "item")" = "UNLOVED"
+  CHECK "$(dict_get "${command}" "__sub_command__")" = "delete"
+  CHECK "$(dict_get "${command}" "__sub_command_alias__")" = "delete"
 }
 
 make_arg_parser_with_short_and_long_optional_arguments_forms_and_parse_some_arguments() {
@@ -1548,7 +1598,7 @@ optional_argument_with_append_const_action_must_specify_const() {
 }
 
 #set -x
-#TEST make_arg_parser_with_positional_sub_commands
+#TEST make_arg_parser_with_long_optional_sub_commands
 #PRINT_TEST_COUNTS
 #exit 0
 TEST parsearg_functions_complain_if_parameter_not_a_parseargs_parser
@@ -1600,6 +1650,7 @@ TEST make_arg_parser_with_short_optional_multi_1_or_many_argument_and_parse_1_ar
 TEST parse_no_arguments_for_parser_with_short_optional_multi_1_or_many_arguments_is_an_error
 TEST make_arg_parser_with_short_optional_multi_0_or_many_argument_with_append_action_and_parse_some_arguments
 TEST make_arg_parser_with_short_optional_multi_0_or_many_argument_with_extend_action_and_parse_some_arguments
+TEST make_arg_parser_with_short_optional_sub_commands
 TEST make_arg_parser_with_long_optional_arguments_and_parse_all_arguments
 TEST make_arg_parser_with_long_optional_arguments_and_explicit_action_store_and_parse_all_arguments
 TEST make_arg_parser_with_long_optional_arguments_with_action_append_and_parse_all_arguments
@@ -1627,6 +1678,7 @@ TEST make_arg_parser_with_long_optional_multi_1_or_many_arguments_and_parse_1_ar
 TEST parse_no_arguments_for_parser_with_long_optional_multi_1_or_many_arguments_is_an_error
 TEST make_arg_parser_with_long_optional_multi_0_or_many_argument_with_append_action_and_parse_some_arguments
 TEST make_arg_parser_with_long_optional_multi_0_or_many_argument_with_extend_action_and_parse_some_arguments
+TEST make_arg_parser_with_long_optional_sub_commands
 TEST make_arg_parser_with_short_and_long_optional_arguments_forms_and_parse_some_arguments
 TEST make_arg_parser_with_positional_and_short_and_long_optional_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_positional_and_short_and_long_optional_multi_arguments_and_parse_some_arguments
