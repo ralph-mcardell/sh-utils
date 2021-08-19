@@ -644,8 +644,9 @@ then
         __parseargs_return_value__="$(( ${existing_argument}+1 ))"
         ;;
       sub_command)
+        local entry_shift_caller_args_by="${__parseargs_shift_caller_args_by__}"
         __parseargs_get_arguments__ "${attributes}" "${missing_arg_key}" "${arg_desc}" "$@"
-        if [ "${__parseargs_shift_caller_args_by__}" -eq '1' ]; then
+        if [ "$(( ${__parseargs_shift_caller_args_by__}-${entry_shift_caller_args_by} ))" -eq '1' ]; then
           shift
           local sp_id="${__parseargs_return_value__}"
           local sp_alias="${sp_id}"
