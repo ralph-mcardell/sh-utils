@@ -648,7 +648,6 @@ make_arg_parser_with_long_optional_arguments_and_explicit_action_store_and_parse
   CHECK "$(dict_get "${arguments}" "target")" = "TO"
 }
 
-
 make_arg_parser_with_long_optional_arguments_with_action_append_and_parse_all_arguments() {
   local parser="$(parseargs_new_argument_parser)"
   parser="$(parseargs_add_argument "${parser}" long "sources" "action" "append")"
@@ -1051,6 +1050,29 @@ make_arg_parser_with_required_optional_arguments_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
   parser="$(parseargs_add_argument "${parser}" "short" "s" "destination" "source" "required" "true")"
   parser="$(parseargs_add_argument "${parser}" "long" "target" "required" "true")"
+  local arguments="$(parseargs_parse_arguments "${parser}" "--target" "TO" "-s" "FROM")"
+  CHECK "$(dict_get "${arguments}" "source")" = "FROM"
+  CHECK "$(dict_get "${arguments}" "target")" = "TO"
+}
+
+make_arg_parser_with_required_optional_sub_commands() {
+  local parser="$(parseargs_new_argument_parser)"
+  parser="$(parseargs_add_argument "${parser}" 'long' "command" 'action' 'sub_command' 'required' 'true')"
+  local delcmdparser="$(parseargs_new_argument_parser)"
+  delcmdparser="$(parseargs_add_argument "${delcmdparser}" "name" "item")"
+  parser="$(parseargs_add_sub_parser "${parser}" "delete" "${delcmdparser}" )"
+  local arguments="$(parseargs_parse_arguments "${parser}" "--command" "delete" "NOT_NEEDED")"
+  command="$(dict_get "${arguments}" "command")"
+  CHECK "$(dict_size "${command}")" = "3"
+  CHECK "$(dict_get "${command}" "item")" = "NOT_NEEDED"
+  CHECK "$(dict_get "${command}" "__sub_command__")" = "delete"
+  CHECK "$(dict_get "${command}" "__sub_command_alias__")" = "delete"
+}
+
+parser_with_missing_required_optional_arguments_is_an_error() {
+  local parser="$(parseargs_new_argument_parser)"
+  parser="$(parseargs_add_argument "${parser}" "short" "s" "destination" "source" "required" "true")"
+  parser="$(parseargs_add_argument "${parser}" "long" "target" "required" "true")"
   local returned_error=""
   returned_error="$(parseargs_parse_arguments "${parser}" "--target" "TO" 2>&1)"
   CHECK $? -eq 1
@@ -1059,6 +1081,22 @@ make_arg_parser_with_required_optional_arguments_and_parse_some_arguments() {
   returned_error="$(parseargs_parse_arguments "${parser}" "-s" "FROM" 2>&1)"
   CHECK $? -eq 1
   CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "--target" "equired"
+}
+
+parser_with_missing_required_optional_sub_command_is_an_error() {
+  local parser="$(parseargs_new_argument_parser)"
+  parser="$(parseargs_add_argument "${parser}" 'long' "command" 'action' 'sub_command' 'required' 'true')"
+  local copycmdparser="$(parseargs_new_argument_parser)"
+  copycmdparser="$(parseargs_add_argument "${copycmdparser}" "name" "source")"
+  copycmdparser="$(parseargs_add_argument "${copycmdparser}" "name" "target")"
+  local delcmdparser="$(parseargs_new_argument_parser)"
+  delcmdparser="$(parseargs_add_argument "${delcmdparser}" "name" "item")"
+  parser="$(parseargs_add_sub_parser "${parser}" "copy" "${copycmdparser}" )"
+  parser="$(parseargs_add_sub_parser "${parser}" "delete" "${delcmdparser}" )"
+  local returned_error=""
+  returned_error="$(parseargs_parse_arguments "${parser}"  2>&1)"
+  CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "--command" "equired"
 }
 
 argument_nargs_attribute_can_be_in_range_integer() {
@@ -1598,7 +1636,7 @@ optional_argument_with_append_const_action_must_specify_const() {
 }
 
 #set -x
-#TEST make_arg_parser_with_long_optional_sub_commands
+#TEST make_arg_parser_with_required_optional_sub_commands
 #PRINT_TEST_COUNTS
 #exit 0
 TEST parsearg_functions_complain_if_parameter_not_a_parseargs_parser
@@ -1684,6 +1722,9 @@ TEST make_arg_parser_with_positional_and_short_and_long_optional_arguments_and_p
 TEST make_arg_parser_with_positional_and_short_and_long_optional_multi_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_optional_arguments_with_defaults_and_parse_some_arguments
 TEST make_arg_parser_with_required_optional_arguments_and_parse_some_arguments
+TEST make_arg_parser_with_required_optional_sub_commands
+TEST parser_with_missing_required_optional_arguments_is_an_error
+TEST parser_with_missing_required_optional_sub_command_is_an_error
 TEST argument_nargs_attribute_can_be_in_range_integer
 TEST argument_nargs_attribute_can_be_single_glob_character
 TEST argument_nargs_attribute_cannot_be_out_of_range_integer
