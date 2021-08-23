@@ -208,7 +208,18 @@ then
     argument="$(dict_set_simple "${argument}" "destination" "${dest}")"
 
     case "${action}" in
-      store|append|extend|sub_command)
+      store|append|extend)
+        if [ -n "${short_opt}" ]; then
+          optstring="${optstring}:"
+        fi
+        ;;
+      sub_command)
+        if [ -n "${num_args}" ]; then
+          __parseargs_error_exit__ "Cannot specify nargs attribute value for arguments with 'sub_command' action attributes '${dest}'." >&2
+        fi
+        if "${have_const}"; then
+          __parseargs_error_exit__ "Cannot specify a const attribute value for arguments with 'sub_command' action attributes '${dest}'." >&2
+        fi
         if [ -n "${short_opt}" ]; then
           optstring="${optstring}:"
         fi

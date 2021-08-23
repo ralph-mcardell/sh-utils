@@ -1619,6 +1619,14 @@ optional_argument_with_count_action_cannot_specify_nargs() {
   __long_optional_argument_with_action_cannot_have_attribute__ 'count' 'nargs'
 }
 
+sub_command_argument_cannot_specify_nargs() {
+  __long_optional_argument_with_action_cannot_have_attribute__ 'sub_command' 'nargs'
+}
+
+sub_command_argument_cannot_specify_const() {
+  __long_optional_argument_with_action_cannot_have_attribute__ 'sub_command' 'const'
+}
+
 __optional_argument_with_a_const_action_must_specify_const__() {
   local parser="$(parseargs_new_argument_parser)"
   local returned_error=''
@@ -1636,7 +1644,7 @@ optional_argument_with_append_const_action_must_specify_const() {
 }
 
 #set -x
-#TEST make_arg_parser_with_required_optional_sub_commands
+#TEST sub_command_argument_cannot_specify_const
 #PRINT_TEST_COUNTS
 #exit 0
 TEST parsearg_functions_complain_if_parameter_not_a_parseargs_parser
@@ -1780,6 +1788,9 @@ TEST optional_argument_with_store_false_action_cannot_specify_nargs
 TEST optional_argument_with_store_const_action_cannot_specify_nargs
 TEST optional_argument_with_append_const_action_cannot_specify_nargs
 TEST optional_argument_with_count_action_cannot_specify_nargs
+TEST sub_command_argument_cannot_specify_nargs
+TEST sub_command_argument_cannot_specify_const
 TEST optional_argument_with_store_const_action_must_specify_const
 TEST optional_argument_with_append_const_action_must_specify_const
 PRINT_TEST_COUNTS
+_and_parse_some_arguments
