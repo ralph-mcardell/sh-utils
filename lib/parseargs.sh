@@ -19,10 +19,7 @@ then
   }
 
   parseargs_new_argument_parser() {
-    local initial_arguments="$(dict_declare_simple)"
-    local positionals="$(dict_declare_simple)"
-    local longopts="$(dict_declare_simple)"
-    local shortopts="$(dict_declare_simple)"
+    local empty_dict="$(dict_declare_simple)"
     local parser="$(dict_declare_simple \
                      "__PARSEARG_TYPE__" "argument_parser"
                   )"
@@ -35,10 +32,12 @@ then
       shift 2
     done
     
-    parser="$(dict_set "${parser}" "__arguments__" "${initial_arguments}")"
-    parser="$(dict_set "${parser}" "__positionals__" "${positionals}")"
-    parser="$(dict_set "${parser}" "__longopts__" "${longopts}")"
-    parser="$(dict_set "${parser}" "__shortopts__" "${shortopts}")"
+    parser="$(dict_set "${parser}" "__arguments__" "${empty_dict}")"
+    parser="$(dict_set "${parser}" "__positionals__" "${empty_dict}")"
+    parser="$(dict_set "${parser}" "__longopts__" "${empty_dict}")"
+    parser="$(dict_set "${parser}" "__shortopts__" "${empty_dict}")"
+    parser="$(dict_set "${parser}" "__subparsers__" "${empty_dict}")"
+    parser="$(dict_set "${parser}" "__sp_aliases__" "${empty_dict}")"
     parser="$(dict_set_simple "${parser}" "__optstring__" ":")"
     echo -n "${parser}"
   }
