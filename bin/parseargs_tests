@@ -1631,6 +1631,69 @@ long_optional_specified_with_nargs_0_or_1_but_no_const_is_an_error() {
   CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "const"
 }
 
+unknown_positional_sub_command_is_an_error() {
+  local parser="$(parseargs_new_argument_parser)"
+  parser="$(parseargs_add_argument "${parser}" 'name' "command" 'action' 'sub_command' )"
+  local delcmdparser="$(parseargs_new_argument_parser)"
+  delcmdparser="$(parseargs_add_argument "${delcmdparser}" "name" "item")"
+  parser="$(parseargs_add_sub_parser "${parser}" "delete" "${delcmdparser}" 'del')"
+  local returned_error=""
+  returned_error="$(parseargs_parse_arguments "${parser}"  'rm' 'BE_GONE' 2>&1)"
+  CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "rm" "command"
+}
+
+unknown_long_optional_sub_command_is_an_error() {
+  local parser="$(parseargs_new_argument_parser)"
+  parser="$(parseargs_add_argument "${parser}" 'long' "command" 'action' 'sub_command' )"
+  local delcmdparser="$(parseargs_new_argument_parser)"
+  delcmdparser="$(parseargs_add_argument "${delcmdparser}" "name" "item")"
+  parser="$(parseargs_add_sub_parser "${parser}" "delete" "${delcmdparser}" 'del')"
+  local returned_error=""
+  returned_error="$(parseargs_parse_arguments "${parser}" '--command' 'rm' 'BE_GONE' 2>&1)"
+  CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "rm" "command"
+}
+
+unknown_short_optional_sub_command_is_an_error() {
+  local parser="$(parseargs_new_argument_parser)"
+  parser="$(parseargs_add_argument "${parser}" 'short' 'c' 'destination' "command" 'action' 'sub_command' )"
+  local delcmdparser="$(parseargs_new_argument_parser)"
+  delcmdparser="$(parseargs_add_argument "${delcmdparser}" "name" "item")"
+  parser="$(parseargs_add_sub_parser "${parser}" "delete" "${delcmdparser}" 'del')"
+  local returned_error=""
+  returned_error="$(parseargs_parse_arguments "${parser}" '-c' 'rm' 'BE_GONE' 2>&1)"
+  CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "rm" "command"
+}
+
+no_sub_parsers_for_positional_sub_command_is_an_error() {
+  local parser="$(parseargs_new_argument_parser)"
+  parser="$(parseargs_add_argument "${parser}" 'name' "command" 'action' 'sub_command' )"
+  local returned_error=""
+  returned_error="$(parseargs_parse_arguments "${parser}"  'rm' 'BE_GONE' 2>&1)"
+  CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "rm" "command"
+}
+
+no_sub_parsers_for_long_optional_sub_command_is_an_error() {
+  local parser="$(parseargs_new_argument_parser)"
+  parser="$(parseargs_add_argument "${parser}" 'long' "command" 'action' 'sub_command' )"
+  local returned_error=""
+  returned_error="$(parseargs_parse_arguments "${parser}" '--command' 'rm' 'BE_GONE' 2>&1)"
+  CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "rm" "command"
+}
+
+no_sub_parsers_for_short_optional_sub_command_is_an_error() {
+  local parser="$(parseargs_new_argument_parser)"
+  parser="$(parseargs_add_argument "${parser}" 'short' 'c' 'destination' "command" 'action' 'sub_command' )"
+  local returned_error=""
+  returned_error="$(parseargs_parse_arguments "${parser}" '-c' 'rm' 'BE_GONE' 2>&1)"
+  CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "rm" "command"
+}
+
 __positional_argument_cannot_have_action__() {
   local parser="$(parseargs_new_argument_parser)"
   local returned_error=''
@@ -1740,7 +1803,7 @@ optional_argument_with_append_const_action_must_specify_const() {
 }
 
 #set -x
-#TEST make_arg_parser_with_long_optional_sub_commands_and_alias_and_parse_some_arguments
+#TEST no_sub_parsers_for_short_optional_sub_command_is_an_error
 #PRINT_TEST_COUNTS
 #exit 0
 TEST parsearg_functions_complain_if_parameter_not_a_parseargs_parser
@@ -1870,6 +1933,12 @@ TEST long_optional_multi_argument_value_not_one_of_specified_choices_is_an_error
 TEST positional_specified_with_nargs_0_or_1_but_no_default_is_an_error
 TEST short_optional_specified_with_nargs_0_or_1_but_no_const_is_an_error
 TEST long_optional_specified_with_nargs_0_or_1_but_no_const_is_an_error
+TEST unknown_positional_sub_command_is_an_error
+TEST unknown_long_optional_sub_command_is_an_error
+TEST unknown_short_optional_sub_command_is_an_error
+TEST no_sub_parsers_for_positional_sub_command_is_an_error
+TEST no_sub_parsers_for_long_optional_sub_command_is_an_error
+TEST no_sub_parsers_for_short_optional_sub_command_is_an_error
 TEST positional_argument_cannot_have_store_true_action
 TEST positional_argument_cannot_have_store_false_action
 TEST positional_argument_cannot_have_store_const_action
