@@ -203,7 +203,7 @@ parse_no_arguments_for_parser_with_positional_multi_1_or_many_arguments_is_an_er
   CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "missing"
 }
 
-make_arg_parser_with_positional_sub_commands() {
+make_arg_parser_with_positional_sub_commands_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
   parser="$(parseargs_add_argument "${parser}" "name" "command" 'action' 'sub_command' )"
   local copycmdparser="$(parseargs_new_argument_parser)"
@@ -605,7 +605,7 @@ make_arg_parser_with_short_optional_multi_0_or_many_argument_with_extend_action_
   CHECK "$(dict_get "${sources}" "3")" = "TO"
 }
 
-make_arg_parser_with_short_optional_sub_commands() {
+make_arg_parser_with_short_optional_sub_commands_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
   parser="$(parseargs_add_argument "${parser}" 'short' 'c' "destination" "command" 'action' 'sub_command' )"
   local copycmdparser="$(parseargs_new_argument_parser)"
@@ -957,7 +957,7 @@ make_arg_parser_with_long_optional_multi_0_or_many_argument_with_extend_action_a
   CHECK "$(dict_get "${sources}" "3")" = "TO"
 }
 
-make_arg_parser_with_long_optional_sub_commands() {
+make_arg_parser_with_long_optional_sub_commands_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
   parser="$(parseargs_add_argument "${parser}" 'long' "command" 'action' 'sub_command' )"
   local copycmdparser="$(parseargs_new_argument_parser)"
@@ -1055,7 +1055,7 @@ make_arg_parser_with_required_optional_arguments_and_parse_some_arguments() {
   CHECK "$(dict_get "${arguments}" "target")" = "TO"
 }
 
-make_arg_parser_with_required_optional_sub_commands() {
+make_arg_parser_with_required_optional_sub_commands_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
   parser="$(parseargs_add_argument "${parser}" 'long' "command" 'action' 'sub_command' 'required' 'true')"
   local delcmdparser="$(parseargs_new_argument_parser)"
@@ -1662,7 +1662,7 @@ TEST make_arg_parser_with_positional_multi_0_or_many_arguments_and_parse_no_argu
 TEST make_arg_parser_with_positional_multi_1_or_many_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_positional_multi_1_or_many_arguments_and_parse_1_argument
 TEST parse_no_arguments_for_parser_with_positional_multi_1_or_many_arguments_is_an_error
-TEST make_arg_parser_with_positional_sub_commands
+TEST make_arg_parser_with_positional_sub_commands_and_parse_some_arguments
 TEST make_arg_parser_with_short_optional_arguments_and_parse_all_arguments
 TEST make_arg_parser_with_short_optional_arguments_and_explicit_action_store_and_parse_all_arguments
 TEST make_arg_parser_with_short_optional_arguments_with_action_append_and_parse_all_arguments
@@ -1696,7 +1696,7 @@ TEST make_arg_parser_with_short_optional_multi_1_or_many_argument_and_parse_1_ar
 TEST parse_no_arguments_for_parser_with_short_optional_multi_1_or_many_arguments_is_an_error
 TEST make_arg_parser_with_short_optional_multi_0_or_many_argument_with_append_action_and_parse_some_arguments
 TEST make_arg_parser_with_short_optional_multi_0_or_many_argument_with_extend_action_and_parse_some_arguments
-TEST make_arg_parser_with_short_optional_sub_commands
+TEST make_arg_parser_with_short_optional_sub_commands_and_parse_some_arguments
 TEST make_arg_parser_with_long_optional_arguments_and_parse_all_arguments
 TEST make_arg_parser_with_long_optional_arguments_and_explicit_action_store_and_parse_all_arguments
 TEST make_arg_parser_with_long_optional_arguments_with_action_append_and_parse_all_arguments
@@ -1724,13 +1724,13 @@ TEST make_arg_parser_with_long_optional_multi_1_or_many_arguments_and_parse_1_ar
 TEST parse_no_arguments_for_parser_with_long_optional_multi_1_or_many_arguments_is_an_error
 TEST make_arg_parser_with_long_optional_multi_0_or_many_argument_with_append_action_and_parse_some_arguments
 TEST make_arg_parser_with_long_optional_multi_0_or_many_argument_with_extend_action_and_parse_some_arguments
-TEST make_arg_parser_with_long_optional_sub_commands
+TEST make_arg_parser_with_long_optional_sub_commands_and_parse_some_arguments
 TEST make_arg_parser_with_short_and_long_optional_arguments_forms_and_parse_some_arguments
 TEST make_arg_parser_with_positional_and_short_and_long_optional_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_positional_and_short_and_long_optional_multi_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_optional_arguments_with_defaults_and_parse_some_arguments
 TEST make_arg_parser_with_required_optional_arguments_and_parse_some_arguments
-TEST make_arg_parser_with_required_optional_sub_commands
+TEST make_arg_parser_with_required_optional_sub_commands_and_parse_some_arguments
 TEST parser_with_missing_required_optional_arguments_is_an_error
 TEST parser_with_missing_required_optional_sub_command_is_an_error
 TEST argument_nargs_attribute_can_be_in_range_integer
