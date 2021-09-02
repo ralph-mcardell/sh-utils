@@ -306,43 +306,24 @@ then
     __parseargs_abort_if_not_parser__ "${1}" "parseargs_parse_arguments"
     local parser="${1}"
     __parseargs_set_parse_specs__ "${parser}"
-    local current_positional="0"
+    __parseargs_current_positional__="0"
     local positionals_to_parse=true
     arguments="$(dict_declare_simple)"
     shift
     local expected_number_of_positionals="$(dict_size "${__parseargs_positionals__}")"
 #echo "OPTSTRING:'${optstring}'." >&2
     while [ "$#" -gt "0" ]; do
-#echo "PARSING:'$*'." >&2
-      __parseargs_parse_short_options__ "${arguments}" "$@"
-      arguments="${__parseargs_return_value__}"
-      shift ${__parseargs_shift_caller_args_by__}
-#echo "  PARSE ARGS ( short opt): shifted by: ${__parseargs_shift_caller_args_by__}; remaining arguments to parse: '$*', arg count:$#" >&2
-      if [ "$#" -gt "0" ]; then
-        __parseargs_parse_long_option__ "${arguments}" "$@"
-#echo "  PARSE ARGS (  long opt): shifted by: ${__parseargs_shift_caller_args_by__}; remaining arguments to parse: '$*', arg count:$#" >&2
-        if [ "${__parseargs_shift_caller_args_by__}" -eq "0" ]; then
-          if "${positionals_to_parse}"; then
-            __parseargs_parse_positional_argument__ "${arguments}" "${current_positional}" "$@"
-#echo "  PARSE ARGS (positional): shifted by: ${__parseargs_shift_caller_args_by__}; remaining arguments to parse: '$*', arg count:$#" >&2
-            if [ "${__parseargs_shift_caller_args_by__}" -eq "0" ]; then
-              positionals_to_parse=false
-              __parseargs_shift_caller_args_by__=1
-            else
-              current_positional=$((${current_positional}+1))
-            fi
-          else
-            __parseargs_shift_caller_args_by__=1
-          fi
+        if [ "${__parseargs_current_positional__}" -gt "${expected_number_of_positionals}" ]; then
+          positionals_to_parse=false
         fi
+        __parseargs_parse_argument__ "${arguments}" "${positionals_to_parse}"  "$@"
         arguments="${__parseargs_return_value__}"
         shift ${__parseargs_shift_caller_args_by__}
-      fi
     done
-    while [ "${current_positional}" -ne "${expected_number_of_positionals}" ]; do
-      __parseargs_parse_positional_argument__ "${arguments}" "${current_positional}"
+    while [ "${__parseargs_current_positional__}" -ne "${expected_number_of_positionals}" ]; do
+      __parseargs_parse_positional_argument__ "${arguments}" "${__parseargs_current_positional__}"
       arguments="${__parseargs_return_value__}"
-      current_positional=$((${current_positional}+1))
+      __parseargs_current_positional__=$((${__parseargs_current_positional__}+1))
     done
     __parseargs_validate_and_fixup_arguments__ "${arguments}"
     echo -n "${__parseargs_return_value__}"
@@ -353,6 +334,7 @@ then
   readonly __PARSEARGS_MAX_NARGS__="$(( $(getconf ARG_MAX)/2 ))"
   __parseargs_return_value__=""
   __parseargs_shift_caller_args_by__="0"
+  __parseargs_current_positional__="0"
 
   __parseargs_warn_continue__() {
     echo "WARNING: ${1}" >&2
@@ -462,6 +444,37 @@ then
     __parseargs_is_glob_character__  "${1}" \
     || __parseargs_is_valid_nargs_number__ "${1}" "${2}"
     return
+  }
+
+  __parseargs_parse_argument__() {
+    local arguments="${1}"
+    local positionals_to_parse="${2}"
+    shift 2
+#echo "PARSING:'$*'." >&2
+    __parseargs_parse_short_options__ "${arguments}" "$@"
+    arguments="${__parseargs_return_value__}"
+    local short_args_shift_by=${__parseargs_shift_caller_args_by__}
+    shift ${__parseargs_shift_caller_args_by__}
+#echo "  PARSE ARGS ( short opt): shifted by: ${__parseargs_shift_caller_args_by__}; remaining arguments to parse: '$*', arg count:$#" >&2
+    if [ "$#" -gt "0" ]; then
+      __parseargs_parse_long_option__ "${arguments}" "$@"
+#echo "  PARSE ARGS (  long opt): shifted by: ${__parseargs_shift_caller_args_by__}; remaining arguments to parse: '$*', arg count:$#" >&2
+      if [ "${__parseargs_shift_caller_args_by__}" -eq "0" ]; then
+        if "${positionals_to_parse}"; then
+          __parseargs_parse_positional_argument__ "${arguments}" "${__parseargs_current_positional__}" "$@"
+#echo "  PARSE ARGS (positional): shifted by: ${__parseargs_shift_caller_args_by__}; remaining arguments to parse: '$*', arg count:$#" >&2
+          if [ "${__parseargs_shift_caller_args_by__}" -eq "0" ]; then
+            __parseargs_shift_caller_args_by__=1
+          else
+            __parseargs_current_positional__=$((${__parseargs_current_positional__}+1))
+          fi
+        else
+          __parseargs_shift_caller_args_by__=1
+          __parseargs_return_value__="${arguments}"
+        fi
+      fi
+      __parseargs_shift_caller_args_by__=$(( ${__parseargs_shift_caller_args_by__}+${short_args_shift_by} ))
+    fi
   }
 
   __parseargs_parse_short_options__() {
