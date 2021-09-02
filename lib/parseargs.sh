@@ -303,29 +303,7 @@ then
   }
 
   parseargs_parse_arguments() {
-    __parseargs_abort_if_not_parser__ "${1}" "parseargs_parse_arguments"
-    local parser="${1}"
-    __parseargs_set_parse_specs__ "${parser}"
-    __parseargs_current_positional__="0"
-    local positionals_to_parse=true
-    arguments="$(dict_declare_simple)"
-    shift
-    local expected_number_of_positionals="$(dict_size "${__parseargs_positionals__}")"
-#echo "OPTSTRING:'${optstring}'." >&2
-    while [ "$#" -gt "0" ]; do
-        if [ "${__parseargs_current_positional__}" -gt "${expected_number_of_positionals}" ]; then
-          positionals_to_parse=false
-        fi
-        __parseargs_parse_argument__ "${arguments}" "${positionals_to_parse}"  "$@"
-        arguments="${__parseargs_return_value__}"
-        shift ${__parseargs_shift_caller_args_by__}
-    done
-    while [ "${__parseargs_current_positional__}" -ne "${expected_number_of_positionals}" ]; do
-      __parseargs_parse_positional_argument__ "${arguments}" "${__parseargs_current_positional__}"
-      arguments="${__parseargs_return_value__}"
-      __parseargs_current_positional__=$((${__parseargs_current_positional__}+1))
-    done
-    __parseargs_validate_and_fixup_arguments__ "${arguments}"
+    __parseargs_parse_arguments__ "$@"
     echo -n "${__parseargs_return_value__}"
   }
 
@@ -444,6 +422,34 @@ then
     __parseargs_is_glob_character__  "${1}" \
     || __parseargs_is_valid_nargs_number__ "${1}" "${2}"
     return
+  }
+
+  __parseargs_parse_arguments__() {
+    __parseargs_abort_if_not_parser__ "${1}" "parseargs_parse_arguments"
+    local parser="${1}"
+    __parseargs_set_parse_specs__ "${parser}"
+    __parseargs_current_positional__="0"
+    local positionals_to_parse=true
+    arguments="$(dict_declare_simple)"
+    shift
+    local expected_number_of_positionals="$(dict_size "${__parseargs_positionals__}")"
+#echo "OPTSTRING:'${optstring}'." >&2
+#echo "Expected number of positional (start args): ${expected_number_of_positionals}" >&2
+    while [ "$#" -gt "0" ]; do
+        if [ "${__parseargs_current_positional__}" -gt "${expected_number_of_positionals}" ]; then
+          positionals_to_parse=false
+        fi
+        __parseargs_parse_argument__ "${arguments}" "${positionals_to_parse}"  "$@"
+        arguments="${__parseargs_return_value__}"
+        shift ${__parseargs_shift_caller_args_by__}
+    done
+#echo "Expected number of positional (end args): ${expected_number_of_positionals}, current positional: ${__parseargs_current_positional__}" >&2
+    while [ "${__parseargs_current_positional__}" -ne "${expected_number_of_positionals}" ]; do
+      __parseargs_parse_positional_argument__ "${arguments}" "${__parseargs_current_positional__}"
+      arguments="${__parseargs_return_value__}"
+      __parseargs_current_positional__=$((${__parseargs_current_positional__}+1))
+    done
+    __parseargs_validate_and_fixup_arguments__ "${arguments}"
   }
 
   __parseargs_parse_argument__() {
@@ -685,8 +691,11 @@ then
           fi
 
 #echo "  >>>>>>>>>>>>>>>>>>>>>>>>> SUB PARSE for ${dest} START >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" >&2
-          __parseargs_return_value__="$(parseargs_parse_arguments "${sub_parser}" "$@" )"
-          __parseargs_shift_caller_args_by__=$(( ${__parseargs_shift_caller_args_by__}+${#} ))
+          local outer_shift_by=$(( ${__parseargs_shift_caller_args_by__}+${#} ))
+          local outer_current_positional=${__parseargs_current_positional__}
+          __parseargs_parse_arguments__ "${sub_parser}" "$@"
+          __parseargs_shift_caller_args_by__=${outer_shift_by}
+          __parseargs_current_positional__=${outer_current_positional}
 #echo "  <<<<<<<<<<<<<<<<<<<<<<<<< SUB PARSE for ${dest} END   <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" >&2
 
           if [ -z "${__parseargs_return_value__}" ]; then
