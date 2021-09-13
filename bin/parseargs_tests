@@ -709,6 +709,31 @@ make_arg_parser_with_short_optional_sub_command_with_default_and_parse_no_sub_ar
   CHECK "$(dict_get "${command}" "__sub_command_alias__")" = "count"
 }
 
+make_arg_parser_with_short_optional_sub_arguments_and_parse_some_arguments() {
+  local parser="$(parseargs_new_argument_parser)"
+  parser="$(parseargs_add_argument "${parser}" 'short' 'x' "destination" "command" 'action' 'sub_argument' )"
+  local copycmdparser="$(parseargs_new_argument_parser)"
+  copycmdparser="$(parseargs_add_argument "${copycmdparser}" "short" 's' destination 'source')"
+  copycmdparser="$(parseargs_add_argument "${copycmdparser}" "long" "target")"
+  local delcmdparser="$(parseargs_new_argument_parser)"
+  delcmdparser="$(parseargs_add_argument "${delcmdparser}" "name" "item")"
+  parser="$(parseargs_add_sub_parser "${parser}" "copy" "${copycmdparser}" )"
+  parser="$(parseargs_add_sub_parser "${parser}" "delete" "${delcmdparser}" )"
+  local arguments="$(parseargs_parse_arguments "${parser}" "-x" "copy" '-s' "FROM" -x copy --target "TO")"
+  local command="$(dict_get "${arguments}" "command")"
+  CHECK "$(dict_size "${command}")" = "5"
+  CHECK "$(dict_get "${command}" "source")" = "FROM"
+  CHECK "$(dict_get "${command}" "target")" = "TO"
+  CHECK "$(dict_get "${command}" "__sub_command__")" = "copy"
+  CHECK "$(dict_get "${command}" "__sub_command_alias__")" = "copy"
+  arguments="$(parseargs_parse_arguments "${parser}" "-x" "delete" "UNLOVED")"
+  command="$(dict_get "${arguments}" "command")"
+  CHECK "$(dict_size "${command}")" = "4"
+  CHECK "$(dict_get "${command}" "item")" = "UNLOVED"
+  CHECK "$(dict_get "${command}" "__sub_command__")" = "delete"
+  CHECK "$(dict_get "${command}" "__sub_command_alias__")" = "delete"
+}
+
 make_arg_parser_with_long_optional_arguments_and_parse_all_arguments() {
   local parser="$(parseargs_new_argument_parser)"
   parser="$(parseargs_add_argument "${parser}" "long" "source")"
@@ -1760,6 +1785,10 @@ positional_argument_cannot_have_count_action() {
   __positional_argument_cannot_have_action__ 'count'
 }
 
+positional_argument_cannot_have_sub_argument_action() {
+  __positional_argument_cannot_have_action__ 'sub_argument'
+}
+
 __long_optional_argument_with_action_cannot_have_attribute__(){
   local parser="$(parseargs_new_argument_parser)"
   local returned_error=''
@@ -1816,6 +1845,14 @@ sub_command_argument_cannot_specify_const() {
   __long_optional_argument_with_action_cannot_have_attribute__ 'sub_command' 'const'
 }
 
+sub_argument_argument_cannot_specify_nargs() {
+  __long_optional_argument_with_action_cannot_have_attribute__ 'sub_argument' 'nargs'
+}
+
+sub_argument_argument_cannot_specify_const() {
+  __long_optional_argument_with_action_cannot_have_attribute__ 'sub_argument' 'const'
+}
+
 __optional_argument_with_a_const_action_must_specify_const__() {
   local parser="$(parseargs_new_argument_parser)"
   local returned_error=''
@@ -1833,7 +1870,7 @@ optional_argument_with_append_const_action_must_specify_const() {
 }
 
 #set -x
-#TEST make_arg_parser_with_long_optional_sub_command_with_default_and_parse_no_sub_arguments
+#TEST make_arg_parser_with_short_optional_sub_arguments_and_parse_some_arguments
 #PRINT_TEST_COUNTS
 #exit 0
 TEST parsearg_functions_complain_if_parameter_not_a_parseargs_parser
@@ -1889,6 +1926,7 @@ TEST make_arg_parser_with_short_optional_multi_0_or_many_argument_with_extend_ac
 TEST make_arg_parser_with_short_optional_sub_commands_and_parse_some_arguments
 TEST make_arg_parser_with_short_optional_sub_commands_and_alias_and_parse_some_arguments
 TEST make_arg_parser_with_short_optional_sub_command_with_default_and_parse_no_sub_arguments
+TEST make_arg_parser_with_short_optional_sub_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_long_optional_arguments_and_parse_all_arguments
 TEST make_arg_parser_with_long_optional_arguments_and_explicit_action_store_and_parse_all_arguments
 TEST make_arg_parser_with_long_optional_arguments_with_action_append_and_parse_all_arguments
@@ -1978,6 +2016,7 @@ TEST positional_argument_cannot_have_append_action
 TEST positional_argument_cannot_have_extend_action
 TEST positional_argument_cannot_have_append_const_action
 TEST positional_argument_cannot_have_count_action
+TEST positional_argument_cannot_have_sub_argument_action
 TEST optional_argument_with_store_true_action_cannot_specify_default
 TEST optional_argument_with_store_false_action_cannot_specify_default
 TEST optional_argument_with_store_true_action_cannot_specify_const
@@ -1990,6 +2029,8 @@ TEST optional_argument_with_append_const_action_cannot_specify_nargs
 TEST optional_argument_with_count_action_cannot_specify_nargs
 TEST sub_command_argument_cannot_specify_nargs
 TEST sub_command_argument_cannot_specify_const
+TEST sub_argument_argument_cannot_specify_nargs
+TEST sub_argument_argument_cannot_specify_const
 TEST optional_argument_with_store_const_action_must_specify_const
 TEST optional_argument_with_append_const_action_must_specify_const
 PRINT_TEST_COUNTS

@@ -212,12 +212,12 @@ then
           optstring="${optstring}:"
         fi
         ;;
-      sub_command)
+      sub_command | sub_argument)
         if [ -n "${num_args}" ]; then
-          __parseargs_error_exit__ "Cannot specify nargs attribute value for arguments with 'sub_command' action attributes '${dest}'." >&2
+          __parseargs_error_exit__ "Cannot specify nargs attribute value for arguments with 'sub_command' or 'sub_argument' action attributes '${dest}'." >&2
         fi
         if "${have_const}"; then
-          __parseargs_error_exit__ "Cannot specify a const attribute value for arguments with 'sub_command' action attributes '${dest}'." >&2
+          __parseargs_error_exit__ "Cannot specify a const attribute value for arguments with 'sub_command' or 'sub_argument' action attributes '${dest}'." >&2
         fi
         if [ -n "${short_opt}" ]; then
           optstring="${optstring}:"
@@ -461,26 +461,28 @@ then
     __parseargs_parse_short_options__ "${arguments}" "${multiplicity}" "$@"
     arguments="${__parseargs_return_value__}"
     local short_args_shift_by=${__parseargs_shift_caller_args_by__}
-    shift ${__parseargs_shift_caller_args_by__}
-#echo "  PARSE ARGS ( short opt): shifted by: ${__parseargs_shift_caller_args_by__}; remaining arguments to parse: '$*', arg count:$#" >&2
-    if [ "$#" -gt "0" ]; then
-      __parseargs_parse_long_option__ "${arguments}" "$@"
+#echo "  PARSE ARGS ( short opt): shifting by: ${__parseargs_shift_caller_args_by__}; remaining arguments to parse: '$*', arg count:$#" >&2
+    if [ "${multiplicity}" = '*' ] || [ ${__parseargs_shift_caller_args_by__} -eq 0 ]; then
+      shift ${__parseargs_shift_caller_args_by__}
+      if [ "$#" -gt "0" ]; then
+        __parseargs_parse_long_option__ "${arguments}" "$@"
 #echo "  PARSE ARGS (  long opt): shifted by: ${__parseargs_shift_caller_args_by__}; remaining arguments to parse: '$*', arg count:$#" >&2
-      if [ "${__parseargs_shift_caller_args_by__}" -eq "0" ]; then
-        if "${positionals_to_parse}"; then
-          __parseargs_parse_positional_argument__ "${arguments}" "${__parseargs_current_positional__}" "$@"
+        if [ "${__parseargs_shift_caller_args_by__}" -eq "0" ]; then
+          if "${positionals_to_parse}"; then
+            __parseargs_parse_positional_argument__ "${arguments}" "${__parseargs_current_positional__}" "$@"
 #echo "  PARSE ARGS (positional): shifted by: ${__parseargs_shift_caller_args_by__}; remaining arguments to parse: '$*', arg count:$#" >&2
-          if [ "${__parseargs_shift_caller_args_by__}" -eq "0" ]; then
-            __parseargs_shift_caller_args_by__=1
+            if [ "${__parseargs_shift_caller_args_by__}" -eq "0" ]; then
+              __parseargs_shift_caller_args_by__=1
+            else
+              __parseargs_current_positional__=$((${__parseargs_current_positional__}+1))
+            fi
           else
-            __parseargs_current_positional__=$((${__parseargs_current_positional__}+1))
+            __parseargs_shift_caller_args_by__=1
+            __parseargs_return_value__="${arguments}"
           fi
-        else
-          __parseargs_shift_caller_args_by__=1
-          __parseargs_return_value__="${arguments}"
         fi
+        __parseargs_shift_caller_args_by__=$(( ${__parseargs_shift_caller_args_by__}+${short_args_shift_by} ))
       fi
-      __parseargs_shift_caller_args_by__=$(( ${__parseargs_shift_caller_args_by__}+${short_args_shift_by} ))
     fi
   }
 
@@ -681,6 +683,75 @@ then
         fi
         __parseargs_return_value__="$(( ${existing_argument}+1 ))"
         ;;
+      sub_argument)
+        local entry_shift_caller_args_by="${__parseargs_shift_caller_args_by__}"
+        __parseargs_get_arguments__ "${attributes}" "${missing_arg_key}" "${arg_desc}" "$@"
+        if [ "$(( ${__parseargs_shift_caller_args_by__}-${entry_shift_caller_args_by} ))" -eq '1' ]; then
+          shift
+          local sp_id="${__parseargs_return_value__}"
+          local sp_alias="${sp_id}"
+          local sub_parser="$(dict_get "${__parseargs_subparsers__}" "${sp_id}" )"
+          if [ -z "${sub_parser}" ]; then
+            sp_id="$(dict_get_simple "${__parseargs_subparser_alias__}" "${sp_alias}" )"
+            if [ -n "${sp_id}" ]; then
+              sub_parser="$(dict_get "${__parseargs_subparsers__}" "${sp_id}" )"
+            fi
+          fi
+          if [ -z "${sub_parser}" ]; then
+            __parseargs_error_exit__ "${arg_desc}: "${__parseargs_return_value__}" is not a known sub-command."
+          fi
+
+#echo "  >>>>>>>>>>>>>>>>>>>>>>>>> SUB PARSE for ${dest} START >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" >&2
+          local sub_args="$(dict_get "${arguments}" "${dest}")"
+#echo "  >>> Entry sub-arguments: ${sub_args} " >&2
+          if [ -z "${sub_args}" ]; then
+            sub_args="$(dict_declare_simple)"
+          fi
+          local outer_shift_by=${__parseargs_shift_caller_args_by__}
+          local outer_current_positional=${__parseargs_current_positional__}
+          local outer_arg_specs="${__parseargs_arg_specs__}"
+          local outer_positionals="${__parseargs_positionals__}"
+          local outer_longopts="${__parseargs_longopts__}"
+          local outer_shortopts="${__parseargs_shortopts__}"
+          local outer_optstring="${__parseargs_optstring__}"
+          local outer_subparsers="${__parseargs_subparsers__}"
+          local outer_sp_alias="${__parseargs_subparser_alias__}"
+
+          __parseargs_set_parse_specs__ "${sub_parser}"
+          __parseargs_current_positional__="$(dict_get_simple "${sub_args}" '__sub_argument_curpos__')"
+          if [ -z "${__parseargs_current_positional__}" ]; then
+            __parseargs_current_positional__=0
+          fi
+          local positionals_to_parse=true
+          local expected_number_of_positionals="$(dict_size "${__parseargs_positionals__}")"
+          if [ "${__parseargs_current_positional__}" -gt "${expected_number_of_positionals}" ]; then
+            positionals_to_parse=false
+          fi
+
+          __parseargs_parse_argument__ "${sub_args}" "${positionals_to_parse}" '?' "$@"
+
+          if [ -z "${__parseargs_return_value__}" ]; then
+            __parseargs_return_value__="$(dict_declare_simple)"
+          fi
+          __parseargs_return_value__="$(dict_set_simple "${__parseargs_return_value__}" '__sub_argument_curpos__' "${__parseargs_current_positional__}")"
+          __parseargs_shift_caller_args_by__=$(( ${__parseargs_shift_caller_args_by__}+${outer_shift_by} ))
+          __parseargs_current_positional__=${outer_current_positional}
+          __parseargs_arg_specs__="${outer_arg_specs}"
+          __parseargs_positionals__="${outer_positionals}"
+          __parseargs_longopts__="${outer_longopts}"
+          __parseargs_shortopts__="${outer_shortopts}"
+          __parseargs_optstring__="${outer_optstring}"
+          __parseargs_subparsers__="${outer_subparsers}"
+          __parseargs_subparser_alias__="${outer_sp_alias}"
+#echo "  >>> Return sub-arguments: ${__parseargs_return_value__} " >&2
+#echo "  <<<<<<<<<<<<<<<<<<<<<<<<< SUB PARSE for ${dest} END   <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" >&2
+
+          __parseargs_return_value__="$(dict_set_simple "${__parseargs_return_value__}" '__sub_command__' "${sp_id}" )"
+          __parseargs_return_value__="$(dict_set_simple "${__parseargs_return_value__}" '__sub_command_alias__' "${sp_alias}" )"
+        else
+          __parseargs_error_exit__ "${arg_desc} did not have a single sub-argument command argument value."
+        fi
+        ;;
       sub_command)
         local entry_shift_caller_args_by="${__parseargs_shift_caller_args_by__}"
         __parseargs_get_arguments__ "${attributes}" "${missing_arg_key}" "${arg_desc}" "$@"
@@ -713,7 +784,7 @@ then
           __parseargs_return_value__="$(dict_set_simple "${__parseargs_return_value__}" '__sub_command__' "${sp_id}" )"
           __parseargs_return_value__="$(dict_set_simple "${__parseargs_return_value__}" '__sub_command_alias__' "${sp_alias}" )"
         else
-          __parseargs_error_exit__ "${arg_desc} did not have a single sub-command argument value."
+          __parseargs_error_exit__ "${arg_desc} did not have a single sub-command command argument value."
         fi
         ;;
       *)
