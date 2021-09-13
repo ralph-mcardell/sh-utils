@@ -439,7 +439,7 @@ then
         if [ "${__parseargs_current_positional__}" -gt "${expected_number_of_positionals}" ]; then
           positionals_to_parse=false
         fi
-        __parseargs_parse_argument__ "${arguments}" "${positionals_to_parse}"  "$@"
+        __parseargs_parse_argument__ "${arguments}" "${positionals_to_parse}" '*' "$@"
         arguments="${__parseargs_return_value__}"
         shift ${__parseargs_shift_caller_args_by__}
     done
@@ -455,9 +455,10 @@ then
   __parseargs_parse_argument__() {
     local arguments="${1}"
     local positionals_to_parse="${2}"
-    shift 2
+    local multiplicity="${3}"
+    shift 3
 #echo "PARSING:'$*'." >&2
-    __parseargs_parse_short_options__ "${arguments}" "$@"
+    __parseargs_parse_short_options__ "${arguments}" "${multiplicity}" "$@"
     arguments="${__parseargs_return_value__}"
     local short_args_shift_by=${__parseargs_shift_caller_args_by__}
     shift ${__parseargs_shift_caller_args_by__}
@@ -485,9 +486,14 @@ then
 
   __parseargs_parse_short_options__() {
     arguments="${1}"
+
+  # '*': 0 or more short option clumps until next not short option(+arguments) or end
+  # '?': 0 or 1 clump.
+  # a short option 'clump' requires only one hyphen ( - ) short option prefix
+    multiplicity="${2}"
     local arg_spec_key=""
     local accumulated_opt=''
-    shift
+    shift 2
     __parseargs_shift_caller_args_by__="0"
     while getopts "${__parseargs_optstring__}" opt; do
 #echo "GETOPTS opt=${opt}; OPTARG=${OPTARG}; OPTIND=${OPTIND}; arg_spec_key=${arg_spec_key} args='$*'" >&2
@@ -547,6 +553,9 @@ then
       fi
       __parseargs_shift_caller_args_by__=$(( ${__parseargs_shift_caller_args_by__}+${call_shift_by_increment} ))
       if ${reset_optind}; then
+        if [ "${multiplicity}" = '?' ]; then
+          break
+        fi
         OPTIND=1
       fi
 #echo "     END: Caller shift args by: ${__parseargs_shift_caller_args_by__}; remaining arguments: '$*'" >&2        
