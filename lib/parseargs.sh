@@ -430,7 +430,9 @@ then
     __parseargs_set_parse_specs__ "${parser}"
     __parseargs_current_positional__="0"
     local positionals_to_parse=true
-    arguments="$(dict_declare_simple)"
+
+  # return value is a dict containing the parsed aguments
+    __parseargs_return_value__="$(dict_declare_simple)"
     shift
     local expected_number_of_positionals="$(dict_size "${__parseargs_positionals__}")"
 #echo "OPTSTRING:'${optstring}'." >&2
@@ -439,17 +441,12 @@ then
         if [ "${__parseargs_current_positional__}" -gt "${expected_number_of_positionals}" ]; then
           positionals_to_parse=false
         fi
-        __parseargs_parse_argument__ "${arguments}" "${positionals_to_parse}" '*' "$@"
-        arguments="${__parseargs_return_value__}"
+        __parseargs_parse_argument__ "${__parseargs_return_value__}" "${positionals_to_parse}" '*' "$@"
         shift ${__parseargs_shift_caller_args_by__}
     done
 #echo "Expected number of positional (end args): ${expected_number_of_positionals}, current positional: ${__parseargs_current_positional__}" >&2
-    while [ "${__parseargs_current_positional__}" -ne "${expected_number_of_positionals}" ]; do
-      __parseargs_parse_positional_argument__ "${arguments}" "${__parseargs_current_positional__}"
-      arguments="${__parseargs_return_value__}"
-      __parseargs_current_positional__=$((${__parseargs_current_positional__}+1))
-    done
-    __parseargs_validate_and_fixup_arguments__ "${arguments}"
+    __parseargs_check_for_missing_positionals__ "${expected_number_of_positionals}"
+    __parseargs_validate_and_fixup_arguments__ "${__parseargs_return_value__}"
   }
 
   __parseargs_parse_argument__() {
@@ -905,6 +902,14 @@ then
         __parseargs_error_exit__ "(internal) ${arg_desc} : unrecognised missing argument value action '${on_missing}'."
         ;;
     esac
+  }
+
+  __parseargs_check_for_missing_positionals__() {
+    local expected_number_of_positionals="${1}"
+    while [ "${__parseargs_current_positional__}" -ne "${expected_number_of_positionals}" ]; do
+      __parseargs_parse_positional_argument__ "${__parseargs_return_value__}" "${__parseargs_current_positional__}"
+      __parseargs_current_positional__=$((${__parseargs_current_positional__}+1))
+    done
   }
 
   __parseargs_validate_and_fixup_arguments__() {
