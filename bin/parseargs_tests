@@ -1220,6 +1220,31 @@ make_arg_parser_with_required_optional_sub_commands_and_parse_some_arguments() {
   CHECK "$(dict_get "${command}" "__sub_command_alias__")" = "delete"
 }
 
+make_arg_parser_with_long_optional_sub_arguments_and_parse_some_arguments() {
+  local parser="$(parseargs_new_argument_parser)"
+  parser="$(parseargs_add_argument "${parser}" 'long' "command" 'action' 'sub_argument' )"
+  local copycmdparser="$(parseargs_new_argument_parser)"
+  copycmdparser="$(parseargs_add_argument "${copycmdparser}" "short" 's' destination 'source')"
+  copycmdparser="$(parseargs_add_argument "${copycmdparser}" "long" "target")"
+  local delcmdparser="$(parseargs_new_argument_parser)"
+  delcmdparser="$(parseargs_add_argument "${delcmdparser}" "name" "item")"
+  parser="$(parseargs_add_sub_parser "${parser}" "copy" "${copycmdparser}" )"
+  parser="$(parseargs_add_sub_parser "${parser}" "delete" "${delcmdparser}" )"
+  local arguments="$(parseargs_parse_arguments "${parser}" "--command" "copy" '-s' "FROM" --command copy --target "TO")"
+  local command="$(dict_get "${arguments}" "command")"
+  CHECK "$(dict_size "${command}")" = "5"
+  CHECK "$(dict_get "${command}" "source")" = "FROM"
+  CHECK "$(dict_get "${command}" "target")" = "TO"
+  CHECK "$(dict_get "${command}" "__sub_command__")" = "copy"
+  CHECK "$(dict_get "${command}" "__sub_command_alias__")" = "copy"
+  arguments="$(parseargs_parse_arguments "${parser}" "--command" "delete" "UNLOVED")"
+  command="$(dict_get "${arguments}" "command")"
+  CHECK "$(dict_size "${command}")" = "4"
+  CHECK "$(dict_get "${command}" "item")" = "UNLOVED"
+  CHECK "$(dict_get "${command}" "__sub_command__")" = "delete"
+  CHECK "$(dict_get "${command}" "__sub_command_alias__")" = "delete"
+}
+
 parser_with_missing_required_optional_arguments_is_an_error() {
   local parser="$(parseargs_new_argument_parser)"
   parser="$(parseargs_add_argument "${parser}" "short" "s" "destination" "source" "required" "true")"
@@ -1870,7 +1895,7 @@ optional_argument_with_append_const_action_must_specify_const() {
 }
 
 #set -x
-#TEST make_arg_parser_with_short_optional_sub_arguments_and_parse_some_arguments
+#TEST make_arg_parser_with_long_optional_sub_arguments_and_parse_some_arguments
 #PRINT_TEST_COUNTS
 #exit 0
 TEST parsearg_functions_complain_if_parameter_not_a_parseargs_parser
@@ -1957,6 +1982,7 @@ TEST make_arg_parser_with_long_optional_multi_0_or_many_argument_with_extend_act
 TEST make_arg_parser_with_long_optional_sub_commands_and_parse_some_arguments
 TEST make_arg_parser_with_long_optional_sub_commands_and_alias_and_parse_some_arguments
 TEST make_arg_parser_with_long_optional_sub_command_with_default_and_parse_no_sub_arguments
+TEST make_arg_parser_with_long_optional_sub_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_short_and_long_optional_arguments_forms_and_parse_some_arguments
 TEST make_arg_parser_with_positional_and_short_and_long_optional_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_positional_and_short_and_long_optional_multi_arguments_and_parse_some_arguments
