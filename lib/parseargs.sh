@@ -304,7 +304,9 @@ then
 
   parseargs_parse_arguments() {
     __parseargs_parse_arguments__ "$@"
-   __parseargs_validate_and_fixup_arguments__ "${__parseargs_return_value__}"
+#echo "arguments before validation/fixup:'${__parseargs_return_value__}'." >&2
+  __parseargs_validate_and_fixup_arguments__ "${__parseargs_return_value__}"
+#echo "arguments  after validation/fixup:'${__parseargs_return_value__}'." >&2
     echo -n "${__parseargs_return_value__}"
   }
 
@@ -446,7 +448,6 @@ then
         shift ${__parseargs_shift_caller_args_by__}
     done
 #echo "Expected number of positional (end args): ${expected_number_of_positionals}, current positional: ${__parseargs_current_positional__}" >&2
-    __parseargs_check_for_missing_positionals__ "${expected_number_of_positionals}"
 }
 
   __parseargs_parse_argument__() {
@@ -715,7 +716,7 @@ then
           local outer_sp_alias="${__parseargs_subparser_alias__}"
 
           __parseargs_set_parse_specs__ "${sub_parser}"
-          __parseargs_current_positional__="$(dict_get_simple "${sub_args}" '__sub_argument_curpos__')"
+          __parseargs_current_positional__="$(dict_get_simple "${sub_args}" '__sub_curpos__')"
           if [ -z "${__parseargs_current_positional__}" ]; then
             __parseargs_current_positional__=0
           fi
@@ -730,7 +731,7 @@ then
           if [ -z "${__parseargs_return_value__}" ]; then
             __parseargs_return_value__="$(dict_declare_simple)"
           fi
-          __parseargs_return_value__="$(dict_set_simple "${__parseargs_return_value__}" '__sub_argument_curpos__' "${__parseargs_current_positional__}")"
+          __parseargs_return_value__="$(dict_set_simple "${__parseargs_return_value__}" '__sub_curpos__' "${__parseargs_current_positional__}")"
           __parseargs_shift_caller_args_by__=$(( ${__parseargs_shift_caller_args_by__}+${outer_shift_by} ))
           __parseargs_current_positional__=${outer_current_positional}
           __parseargs_arg_specs__="${outer_arg_specs}"
@@ -779,6 +780,7 @@ then
           local outer_sp_alias="${__parseargs_subparser_alias__}"
 
           __parseargs_parse_arguments__ "${sub_parser}" "$@"
+          __parseargs_return_value__="$(dict_set_simple "${__parseargs_return_value__}" '__sub_curpos__' "${__parseargs_current_positional__}")"
 
           __parseargs_shift_caller_args_by__=${outer_shift_by}
           __parseargs_current_positional__=${outer_current_positional}
@@ -922,6 +924,8 @@ then
 
   __parseargs_check_for_missing_positionals__() {
     local expected_number_of_positionals="${1}"
+#echo "check for missing positional: expected number:'${expected_number_of_positionals}'." >&2
+
     while [ "${__parseargs_current_positional__}" -ne "${expected_number_of_positionals}" ]; do
       __parseargs_parse_positional_argument__ "${__parseargs_return_value__}" "${__parseargs_current_positional__}"
       __parseargs_current_positional__=$((${__parseargs_current_positional__}+1))
@@ -930,7 +934,10 @@ then
 
   __parseargs_validate_and_fixup_arguments__() {
     local arguments="${1}"
-   __parseargs_return_value__="${arguments}"
+    local expected_number_of_positionals="$(dict_size "${__parseargs_positionals__}")"
+    __parseargs_return_value__="${arguments}"
+#echo "arguments before missing positionals check:'${__parseargs_return_value__}'." >&2
+    __parseargs_check_for_missing_positionals__ "${expected_number_of_positionals}"
     dict_for_each "${__parseargs_arg_specs__}" \
                   "__parseargs_op_validate_and_fixup_argument__" \
                   "${__parseargs_positionals__}" \
@@ -971,7 +978,8 @@ then
         local outer_shortopts="${__parseargs_shortopts__}"
         local outer_subparsers="${__parseargs_subparsers__}"
         local outer_sp_alias="${__parseargs_subparser_alias__}"
-
+        local outer_cur_pos="${__parseargs_current_positional__}"
+      
         local sp_id="$(dict_get "${arg}" '__sub_command__' )"
         if [ -z "${sp_id}" ]; then
           __parseargs_error_exit__ "(Internal) sub-command/sub_argument arguments for '${dest}' are missing the '__sub_command__' entry."
@@ -982,11 +990,13 @@ then
         fi
  
         __parseargs_set_parse_specs__ "${sub_parser}"
+        __parseargs_current_positional__="$(dict_get_simple "${arg}" '__sub_curpos__')"
 
         __parseargs_validate_and_fixup_arguments__ "${arg}"
 
         arguments="$(dict_set "${arguments}" "${dest}" "${__parseargs_return_value__}")"
 
+        __parseargs_current_positional__="${outer_cur_pos}"
         __parseargs_arg_specs__="${outer_arg_specs}"
         __parseargs_positionals__="${outer_positionals}"
         __parseargs_longopts__="${outer_longopts}"
