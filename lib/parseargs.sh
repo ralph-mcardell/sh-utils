@@ -699,12 +699,24 @@ then
             __parseargs_error_exit__ "${arg_desc}: "${__parseargs_return_value__}" is not a known sub-command."
           fi
 
+          local positionals_to_parse=true
+          local expected_number_of_positionals="$(dict_size "${__parseargs_positionals__}")"
+          if [ "${__parseargs_current_positional__}" -gt "${expected_number_of_positionals}" ]; then
+            positionals_to_parse=false
+          fi
+
 #echo "  >>>>>>>>>>>>>>>>>>>>>>>>> SUB PARSE for ${dest} START >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" >&2
-          local sub_args="$(dict_get "${arguments}" "${dest}")"
+          local sp_ids="$(dict_get "${arguments}" "${dest}")"
+          if [ -z "${sp_ids}" ]; then
+            sp_ids="$(dict_declare_simple)"
+          fi
+
+          local sub_args="$(dict_get "${sp_ids}" "${sp_id}")"
 #echo "  >>> Entry sub-arguments: ${sub_args} " >&2
           if [ -z "${sub_args}" ]; then
             sub_args="$(dict_declare_simple)"
           fi
+
           local outer_shift_by=${__parseargs_shift_caller_args_by__}
           local outer_current_positional=${__parseargs_current_positional__}
           local outer_arg_specs="${__parseargs_arg_specs__}"
@@ -720,11 +732,6 @@ then
           if [ -z "${__parseargs_current_positional__}" ]; then
             __parseargs_current_positional__=0
           fi
-          local positionals_to_parse=true
-          local expected_number_of_positionals="$(dict_size "${__parseargs_positionals__}")"
-          if [ "${__parseargs_current_positional__}" -gt "${expected_number_of_positionals}" ]; then
-            positionals_to_parse=false
-          fi
 
           __parseargs_parse_argument__ "${sub_args}" "${positionals_to_parse}" '?' "$@"
 
@@ -732,7 +739,6 @@ then
             __parseargs_return_value__="$(dict_declare_simple)"
           fi
           __parseargs_return_value__="$(dict_set_simple "${__parseargs_return_value__}" '__sub_curpos__' "${__parseargs_current_positional__}")"
-          __parseargs_shift_caller_args_by__=$(( ${__parseargs_shift_caller_args_by__}+${outer_shift_by} ))
           __parseargs_current_positional__=${outer_current_positional}
           __parseargs_arg_specs__="${outer_arg_specs}"
           __parseargs_positionals__="${outer_positionals}"
@@ -744,8 +750,8 @@ then
 #echo "  >>> Return sub-arguments: ${__parseargs_return_value__} " >&2
 #echo "  <<<<<<<<<<<<<<<<<<<<<<<<< SUB PARSE for ${dest} END   <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" >&2
 
-          __parseargs_return_value__="$(dict_set_simple "${__parseargs_return_value__}" '__sub_command__' "${sp_id}" )"
-          __parseargs_return_value__="$(dict_set_simple "${__parseargs_return_value__}" '__sub_command_alias__' "${sp_alias}" )"
+          __parseargs_return_value__="$(dict_set "${sp_ids}" "${sp_id}" "${__parseargs_return_value__}")"
+          __parseargs_shift_caller_args_by__=$(( ${__parseargs_shift_caller_args_by__}+${outer_shift_by} ))
         else
           __parseargs_error_exit__ "${arg_desc} did not have a single sub-argument command argument value."
         fi
@@ -768,8 +774,9 @@ then
             __parseargs_error_exit__ "${arg_desc}: "${__parseargs_return_value__}" is not a known sub-command."
           fi
 
-#echo "  >>>>>>>>>>>>>>>>>>>>>>>>> SUB PARSE for ${dest} START >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" >&2
           local outer_shift_by=$(( ${__parseargs_shift_caller_args_by__}+${#} ))
+
+#echo "  >>>>>>>>>>>>>>>>>>>>>>>>> SUB PARSE for ${dest} START >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" >&2
           local outer_current_positional=${__parseargs_current_positional__}
           local outer_arg_specs="${__parseargs_arg_specs__}"
           local outer_positionals="${__parseargs_positionals__}"
@@ -780,9 +787,10 @@ then
           local outer_sp_alias="${__parseargs_subparser_alias__}"
 
           __parseargs_parse_arguments__ "${sub_parser}" "$@"
+          if [ -z "${__parseargs_return_value__}" ]; then
+            __parseargs_return_value__="$(dict_declare_simple)"
+          fi
           __parseargs_return_value__="$(dict_set_simple "${__parseargs_return_value__}" '__sub_curpos__' "${__parseargs_current_positional__}")"
-
-          __parseargs_shift_caller_args_by__=${outer_shift_by}
           __parseargs_current_positional__=${outer_current_positional}
           __parseargs_arg_specs__="${outer_arg_specs}"
           __parseargs_positionals__="${outer_positionals}"
@@ -793,11 +801,8 @@ then
           __parseargs_subparser_alias__="${outer_sp_alias}"
 #echo "  <<<<<<<<<<<<<<<<<<<<<<<<< SUB PARSE for ${dest} END   <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" >&2
 
-          if [ -z "${__parseargs_return_value__}" ]; then
-            __parseargs_return_value__="$(dict_declare_simple)"
-          fi
-          __parseargs_return_value__="$(dict_set_simple "${__parseargs_return_value__}" '__sub_command__' "${sp_id}" )"
-          __parseargs_return_value__="$(dict_set_simple "${__parseargs_return_value__}" '__sub_command_alias__' "${sp_alias}" )"
+          __parseargs_return_value__="$(dict_declare "${sp_id}" "${__parseargs_return_value__}")"
+          __parseargs_shift_caller_args_by__=${outer_shift_by}
         else
           __parseargs_error_exit__ "${arg_desc} did not have a single sub-command command argument value."
         fi
@@ -971,39 +976,12 @@ then
     elif dict_is_dict "${arg}"; then
       local action="$(dict_get_simple "${arg_spec}" 'action')"
       if [ "${action}" = 'sub_command' ] || [ "${action}" = 'sub_argument' ]; then
-#echo "  >>>>>>>>>>>>>>>>>>>>>>>>> VALIDATE & FIXUP FOR SUB ARGUMENTS for ${dest} START >>>>>>>>>>>>>>>>>>>>>>>>>" >&2
-        local outer_arg_specs="${__parseargs_arg_specs__}"
-        local outer_positionals="${__parseargs_positionals__}"
-        local outer_longopts="${__parseargs_longopts__}"
-        local outer_shortopts="${__parseargs_shortopts__}"
-        local outer_subparsers="${__parseargs_subparsers__}"
-        local outer_sp_alias="${__parseargs_subparser_alias__}"
-        local outer_cur_pos="${__parseargs_current_positional__}"
-      
-        local sp_id="$(dict_get "${arg}" '__sub_command__' )"
-        if [ -z "${sp_id}" ]; then
-          __parseargs_error_exit__ "(Internal) sub-command/sub_argument arguments for '${dest}' are missing the '__sub_command__' entry."
-        fi
-        local sub_parser="$(dict_get "${__parseargs_subparsers__}" "${sp_id}" )"
-        if [ -z "${sub_parser}" ]; then
-          __parseargs_error_exit__ "(Internal) Sub-parser for '${dest}' sub_command/sub_agument '${sp_id}' not found."
-        fi
- 
-        __parseargs_set_parse_specs__ "${sub_parser}"
-        __parseargs_current_positional__="$(dict_get_simple "${arg}" '__sub_curpos__')"
-
-        __parseargs_validate_and_fixup_arguments__ "${arg}"
-
+#echo "  >>>>>>>>>>>>>>>>>>>>>>>>> VALIDATE & FIXUP FOR SUB COMMANDS for ${dest} START >>>>>>>>>>>>>>>>>>>>>>>>>" >&2
+        __parseargs_return_value__="${arg}"
+        dict_for_each "${arg}" '__parseargs_op_validate_and_fixup_sub_arguments__'
         arguments="$(dict_set "${arguments}" "${dest}" "${__parseargs_return_value__}")"
-
-        __parseargs_current_positional__="${outer_cur_pos}"
-        __parseargs_arg_specs__="${outer_arg_specs}"
-        __parseargs_positionals__="${outer_positionals}"
-        __parseargs_longopts__="${outer_longopts}"
-        __parseargs_shortopts__="${outer_shortopts}"
-        __parseargs_subparsers__="${outer_subparsers}"
-        __parseargs_subparser_alias__="${outer_sp_alias}"
-#echo "  >>>>>>>>>>>>>>>>>>>>>>>>>> VALIDATE & FIXUP FOR SUB ARGUMENTS for ${dest} END >>>>>>>>>>>>>>>>>>>>>>>>>>" >&2
+#echo "    Returned value: ${__parseargs_return_value__}" >&2
+#echo "  >>>>>>>>>>>>>>>>>>>>>>>>>> VALIDATE & FIXUP FOR SUB COMMANDS for ${dest} END >>>>>>>>>>>>>>>>>>>>>>>>>>" >&2
       fi
     fi
     local choices="$(dict_get "${arg_spec}" "choices")"
@@ -1015,6 +993,46 @@ then
       fi
     fi
     __parseargs_return_value__="${arguments}"
+  }
+
+  __parseargs_op_validate_and_fixup_sub_arguments__() {
+    local sp_id="${1}"
+#echo "      >>>>>>>>>>>>>>>>>>>>>>> VALIDATE & FIXUP FOR SUB ARGUMENTS for ${sp_id} START >>>>>>>>>>>>>>>>>>>>>>>" >&2
+    local arg="${2}"
+    local sub_cmds="${__parseargs_return_value__}"
+#echo "        arguments='${arg}'" >&2
+    if [ -z "${sp_id}" ]; then
+      __parseargs_error_exit__ "(Internal) sub-command/sub_argument arguments for '${dest}' are missing the '__sub_command__' entry."
+    fi
+    local sub_parser="$(dict_get "${__parseargs_subparsers__}" "${sp_id}" )"
+    if [ -z "${sub_parser}" ]; then
+      __parseargs_error_exit__ "(Internal) Sub-parser for '${dest}' sub_command/sub_agument '${sp_id}' not found."
+    fi
+
+    local outer_arg_specs="${__parseargs_arg_specs__}"
+    local outer_positionals="${__parseargs_positionals__}"
+    local outer_longopts="${__parseargs_longopts__}"
+    local outer_shortopts="${__parseargs_shortopts__}"
+    local outer_subparsers="${__parseargs_subparsers__}"
+    local outer_sp_alias="${__parseargs_subparser_alias__}"
+    local outer_cur_pos="${__parseargs_current_positional__}"
+
+    __parseargs_set_parse_specs__ "${sub_parser}"
+    __parseargs_current_positional__="$(dict_get_simple "${arg}" '__sub_curpos__')"
+
+    __parseargs_validate_and_fixup_arguments__ "${arg}"
+
+    __parseargs_current_positional__="${outer_cur_pos}"
+    __parseargs_arg_specs__="${outer_arg_specs}"
+    __parseargs_positionals__="${outer_positionals}"
+    __parseargs_longopts__="${outer_longopts}"
+    __parseargs_shortopts__="${outer_shortopts}"
+    __parseargs_subparsers__="${outer_subparsers}"
+    __parseargs_subparser_alias__="${outer_sp_alias}"
+
+    __parseargs_return_value__="$(dict_set "${sub_cmds}" "${sp_id}" "${__parseargs_return_value__}")"
+#echo "        return value: ${__parseargs_return_value__}" >&2
+#echo "      >>>>>>>>>>>>>>>>>>>>>>> VALIDATE & FIXUP FOR SUB ARGUMENTS for ${sp_id}  END  >>>>>>>>>>>>>>>>>>>>>>>" >&2
   }
 
   __parseargs_op_check_value_valid_choice__() {
