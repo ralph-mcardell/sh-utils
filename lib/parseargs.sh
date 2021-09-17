@@ -1030,6 +1030,7 @@ then
     __parseargs_subparsers__="${outer_subparsers}"
     __parseargs_subparser_alias__="${outer_sp_alias}"
 
+    __parseargs_return_value__="$(dict_remove "${__parseargs_return_value__}" '__sub_curpos__')"
     __parseargs_return_value__="$(dict_set "${sub_cmds}" "${sp_id}" "${__parseargs_return_value__}")"
 #echo "        return value: ${__parseargs_return_value__}" >&2
 #echo "      >>>>>>>>>>>>>>>>>>>>>>> VALIDATE & FIXUP FOR SUB ARGUMENTS for ${sp_id}  END  >>>>>>>>>>>>>>>>>>>>>>>" >&2
