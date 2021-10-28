@@ -835,7 +835,6 @@ then
     
     local on_missing='error'
 
-
     case "${nargs}" in
       '?')
         nargs=''
@@ -977,7 +976,11 @@ then
       fi
 #echo "  >>>>>>>>>>>>>>>>>>>>>>>>> VALIDATE & FIXUP FOR SUB COMMANDS for ${dest} START >>>>>>>>>>>>>>>>>>>>>>>>>" >&2
       __parseargs_return_value__="${arg}"
-      dict_for_each "${__parseargs_subparsers__}" '__parseargs_op_validate_and_fixup_sub_arguments__'
+      if [ "${action}" = 'sub_command' ]; then
+        dict_for_each "${arg}" '__parseargs_op_validate_and_fixup_sub_arguments__' 'subcmds'
+      else
+        dict_for_each "${__parseargs_subparsers__}" '__parseargs_op_validate_and_fixup_sub_arguments__' 'sp'
+      fi
       if [ "$(dict_size "${__parseargs_return_value__}")" -gt 0 ]; then
         arguments="$(dict_set "${arguments}" "${dest}" "${__parseargs_return_value__}")"
       else
@@ -1033,20 +1036,28 @@ then
 
   __parseargs_op_validate_and_fixup_sub_arguments__() {
     local sp_id="${1}"
-    local sub_parser="${2}"
     local sub_cmds="${__parseargs_return_value__}"
     if [ -z "${sp_id}" ]; then
       __parseargs_error_exit__ "(Internal) sub-command/sub_argument arguments for '${dest}' are missing the '__sub_command__' entry."
     fi
+    local iterating_over="${4}"
+#echo "      ==========================>> IERATING OVER: '${iterating_over}'" >&2
+    if [ "${iterating_over}" = 'sp' ]; then
+      local sub_parser="${2}"
+      local arg="$(dict_get "${sub_cmds}" "${sp_id}" )"
+    else
+      local sub_parser="$(dict_get "${__parseargs_subparsers__}" "${sp_id}" )"
+      local arg="${2}"
+    fi
+
     local rm_curpos=true
-    local arg="$(dict_get "${sub_cmds}" "${sp_id}" )"
     if [ -z "${arg}" ]; then
 #echo "      >>>>>>>>>>>>>>>>>>>>>>> NOT removing sub_curpos <<<<<<<<<<<<<<<<<<<<" >&2
       rm_curpos=false
     fi
 
 #echo "      >>>>>>>>>>>>>>>>>>>>>>> VALIDATE & FIXUP FOR SUB ARGUMENTS for ${sp_id} START >>>>>>>>>>>>>>>>>>>>>>>" >&2
-#echo "        arguments='${arg}'" >&2
+#echo "        subparser='${sub_parser}';  arguments='${arg}'" >&2
     __parseargs_sub_context_around '__parseargs_sub_parser_validate_and_fixup___' "${sub_parser}" "${arg}"
 
     if [ "$(dict_size "${__parseargs_return_value__}")" -gt 0 ]; then
