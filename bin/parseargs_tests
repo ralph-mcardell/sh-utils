@@ -1311,6 +1311,34 @@ make_arg_parser_with_long_optional_sub_argument_with_defaults_and_parse_no_sub_a
   CHECK "$(dict_get "${cmd_arg}" "value")" = "normal"
 }
 
+make_arg_parser_with_long_optional_sub_command_with_defaults_and_parse_no_sub_arguments() {
+  local parser="$(parseargs_new_argument_parser)"
+  parser="$(parseargs_add_argument "${parser}" 'long' 'command' 'action' 'sub_command' )"
+  local countcmdparser="$(parseargs_new_argument_parser)"
+  countcmdparser="$(parseargs_add_argument "${countcmdparser}" "long" "value" "action" "count" "default" '0' )"
+  parser="$(parseargs_add_sub_parser "${parser}" "count" "${countcmdparser}" )"
+  local valuecmdparser="$(parseargs_new_argument_parser)"
+  valuecmdparser="$(parseargs_add_argument "${valuecmdparser}" "long" "value" "default" 'normal' )"
+  parser="$(parseargs_add_sub_parser "${parser}" "value" "${valuecmdparser}" )"
+
+  local arguments="$(parseargs_parse_arguments "${parser}" "--command" "count")"
+  local command="$(dict_get "${arguments}" "command")"
+  CHECK "$(dict_size "${command}")" = "1"
+  local cmd_arg="$(dict_get "${command}" "count")"
+  CHECK "$(dict_size "${cmd_arg}")" = "1"
+  CHECK "$(dict_get "${cmd_arg}" "value")" = "0"
+
+  arguments="$(parseargs_parse_arguments "${parser}" "--command" "value")"
+  local command="$(dict_get "${arguments}" "command")"
+  CHECK "$(dict_size "${command}")" = "1"
+  local cmd_arg="$(dict_get "${command}" "value")"
+  CHECK "$(dict_size "${cmd_arg}")" = "1"
+  CHECK "$(dict_get "${cmd_arg}" "value")" = "normal"
+
+  arguments="$(parseargs_parse_arguments "${parser}")"
+  CHECK -z "$(dict_get "${arguments}" "command")"
+}
+
 make_arg_parser_with_short_and_long_optional_arguments_forms_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
   parser="$(parseargs_add_argument "${parser}" "long" "source" "short" "s")"
@@ -2104,7 +2132,7 @@ optional_argument_with_append_const_action_must_specify_const() {
 }
 
 #set -x
-#TEST parser_with_missing_required_optional_sub_command_is_an_error
+#TEST make_arg_parser_with_long_optional_sub_command_with_defaults_and_parse_no_sub_arguments
 #PRINT_TEST_COUNTS
 #exit 0
 TEST parsearg_functions_complain_if_parameter_not_a_parseargs_parser
@@ -2196,6 +2224,7 @@ TEST make_arg_parser_with_long_optional_sub_command_with_default_and_parse_no_su
 TEST make_arg_parser_with_long_optional_sub_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_long_optional_sub_arguments_and_alias_and_parse_some_arguments
 TEST make_arg_parser_with_long_optional_sub_argument_with_defaults_and_parse_no_sub_arguments
+TEST make_arg_parser_with_long_optional_sub_command_with_defaults_and_parse_no_sub_arguments
 TEST make_arg_parser_with_short_and_long_optional_arguments_forms_and_parse_some_arguments
 TEST make_arg_parser_with_positional_and_short_and_long_optional_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_positional_and_short_and_long_optional_multi_arguments_and_parse_some_arguments
