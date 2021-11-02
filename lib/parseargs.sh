@@ -155,11 +155,19 @@ then
     fi
 
     if [ -n "${positional}" ]; then
+
       if [ "${action}" != 'store' ] && [ "${action}" != 'sub_command' ]; then
         __parseargs_error_exit__ "Action attribute value '${action}' cannot be used for positional arguments '${dest}'." >&2
       fi
       if [ "${num_args}" = '?' ] && ! ${have_default}; then
-        __parseargs_error_exit__ "A default attribute value is required for optional positional argument (nargs=?) '${dest}'." >&2
+        local global_default="$(dict_get_simple "${parser}" 'argument_default')"
+#echo "positional argument with nargs of '?' (0|1) with no per-argument default, using parser global default of : '${global_default}'." >&2
+          if [ -n "${global_default}" ]; then
+          have_default=true
+          argument="$(dict_set_simple "${argument}" "default" "${global_default}")"
+        else
+          __parseargs_error_exit__ "A default attribute value is required for optional positional argument (nargs=?) '${dest}'." >&2
+        fi
       fi
       argument="$(dict_set_simple "${argument}" "name" "${2}")"
       positionals="$(dict_get "${parser}" "__positionals__")"
@@ -255,6 +263,15 @@ then
         ;;
     esac
     argument="$(dict_set_simple "${argument}" "action" "${action}")"
+
+    if ! "${have_default}"; then
+      local global_default="$(dict_get_simple "${parser}" 'argument_default')"
+      if [ -n "${global_default}" ]; then
+#echo "Argument has no specified default, using default value of: '${global_default}'." >&2
+        have_default=true
+        argument="$(dict_set_simple "${argument}" "default" "${global_default}")"
+      fi
+    fi
 
     args="$(dict_get "${parser}" "__arguments__")"
     args="$(dict_set "${args}" "${argument_key}" "${argument}")"
@@ -996,7 +1013,7 @@ then
     elif [ -z "${arg}" ]; then
 #echo "'${dest}':<empty>" >&2
       local default="$(dict_get_simple "${arg_spec}" "default")"
-#echo "'${dest} has default '${default}'" >&2
+#echo "'${dest}' has default '${default}'" >&2
       if [ -n "${default}" ]; then
         arguments="$(dict_set_simple "${arguments}" "${dest}" "${default}")"
       else
@@ -1041,7 +1058,7 @@ then
       __parseargs_error_exit__ "(Internal) sub-command/sub_argument arguments for '${dest}' are missing the '__sub_command__' entry."
     fi
     local iterating_over="${4}"
-#echo "      ==========================>> IERATING OVER: '${iterating_over}'" >&2
+#echo "      ==========================>> ITERATING OVER: '${iterating_over}'" >&2
     if [ "${iterating_over}" = 'sp' ]; then
       local sub_parser="${2}"
       local arg="$(dict_get "${sub_cmds}" "${sp_id}" )"
