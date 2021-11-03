@@ -58,10 +58,12 @@ then
     local dest=""
     local action=""
     local num_args=''
+    local version=''
     local have_default=false
     local have_const=false
     local have_required=false
     local have_choices=false
+    local storing_something=true
     shift
     while [ "$#" -gt "1" ]; do
       case ${1} in
@@ -134,6 +136,12 @@ then
           else
             __parseargs_error_exit__ "Argument choices attribute value is not a dict(ionary)."
           fi
+          ;;
+        version)
+          __parseargs_abort_if_have_attribute_value__ "${version}" 'version'
+          version="${2}"
+          storing_something=false
+          ;;
       esac
       shift 2
     done
@@ -144,20 +152,32 @@ then
       fi
     fi
     dest="$(__parseargs_sanitise_destination__ "${dest}")"
-    local argument_key="${dest}"
 
     if [ -z "${action}" ]; then
-      action="store"
+      if [ -n "${version}" ]; then
+        action="version"
+      else
+        action="store"
+      fi
     fi
 
+    if [ -n "${version}" ]; then
+      if [ "${action}" != 'version' ]; then
+        __parseargs_warn_continue__ "'version' attribute provided for argument with non 'version' action (action is '${action})'."
+      elif [ -z "${dest}" ]; then
+        dest='version'
+      fi
+    fi
+    local argument_key="${dest}"
+
     if [ -z "${dest}" ]; then
-      __parseargs_error_exit__ "Unable to deduce destination name for argument value from destination, name or long attribute values." >&2
+      __parseargs_error_exit__ "Unable to deduce destination name for argument value from destination, name or long attribute values."
     fi
 
     if [ -n "${positional}" ]; then
 
       if [ "${action}" != 'store' ] && [ "${action}" != 'sub_command' ]; then
-        __parseargs_error_exit__ "Action attribute value '${action}' cannot be used for positional arguments '${dest}'." >&2
+        __parseargs_error_exit__ "Action attribute value '${action}' cannot be used for positional arguments '${dest}'."
       fi
       if [ "${num_args}" = '?' ] && ! ${have_default}; then
         local global_default="$(dict_get_simple "${parser}" 'argument_default')"
@@ -166,7 +186,7 @@ then
           have_default=true
           argument="$(dict_set_simple "${argument}" "default" "${global_default}")"
         else
-          __parseargs_error_exit__ "A default attribute value is required for optional positional argument (nargs=?) '${dest}'." >&2
+          __parseargs_error_exit__ "A default attribute value is required for optional positional argument (nargs=?) '${dest}'."
         fi
       fi
       argument="$(dict_set_simple "${argument}" "name" "${2}")"
@@ -176,7 +196,7 @@ then
       positionals="$(dict_set_simple "${positionals}" "${pos_id}" "${argument_key}")"
     elif  [ -n "${is_option}" ]; then
       if [ "${num_args}" = '?' ] && ! ${have_const}; then
-        __parseargs_error_exit__ "A const attribute value is required for optional arguments with optional value (nargs=?) '${dest}'." >&2
+        __parseargs_error_exit__ "A const attribute value is required for optional arguments with optional value (nargs=?) '${dest}'."
       fi
 
       if [ -n "${short_opt}" ]; then
@@ -192,7 +212,7 @@ then
         argument_key="${argument_key}${short_opt}"
         optstring="$(dict_get "${parser}" "__optstring__")"
         shortopts="$(dict_set_simple "${shortopts}" "${short_opt}" "${argument_key}")"
-        optstring="${optstring}${short_opt}${opt_string_arg_char}"
+        optstring="${optstring}${short_opt}"
       fi
       if [ -n "${long_opt}" ]; then
         longopts="$(dict_get "${parser}" "__longopts__")"
@@ -212,7 +232,9 @@ then
       __parseargs_error_exit__ "None of name, long or short attributes provided for argument."
     fi
 
-    argument="$(dict_set_simple "${argument}" "destination" "${dest}")"
+    if "${storing_something}"; then
+      argument="$(dict_set_simple "${argument}" "destination" "${dest}")"
+    fi
 
     case "${action}" in
       store|append|extend)
@@ -222,10 +244,10 @@ then
         ;;
       sub_command | sub_argument)
         if [ -n "${num_args}" ]; then
-          __parseargs_error_exit__ "Cannot specify nargs attribute value for arguments with 'sub_command' or 'sub_argument' action attributes '${dest}'." >&2
+          __parseargs_error_exit__ "Cannot specify nargs attribute value for arguments with 'sub_command' or 'sub_argument' action attributes '${dest}'."
         fi
         if "${have_const}"; then
-          __parseargs_error_exit__ "Cannot specify a const attribute value for arguments with 'sub_command' or 'sub_argument' action attributes '${dest}'." >&2
+          __parseargs_error_exit__ "Cannot specify a const attribute value for arguments with 'sub_command' or 'sub_argument' action attributes '${dest}'."
         fi
         if [ -n "${short_opt}" ]; then
           optstring="${optstring}:"
@@ -233,18 +255,18 @@ then
         ;;
       store_const|append_const)
         if ! "${have_const}"; then
-          __parseargs_error_exit__ "A const attribute value is required for arguments with 'store_const' or 'append_const' action attribute '${dest}'." >&2
+          __parseargs_error_exit__ "A const attribute value is required for arguments with 'store_const' or 'append_const' action attribute '${dest}'."
         fi
         if [ -n "${num_args}" ]; then
-          __parseargs_error_exit__ "Cannot specify nargs attribute value for arguments with 'store_const' or 'append_const' action attribute '${dest}'." >&2
+          __parseargs_error_exit__ "Cannot specify nargs attribute value for arguments with 'store_const' or 'append_const' action attribute '${dest}'."
         fi
         ;;
       store_true|store_false)
         if "${have_default}" || "${have_const}"; then
-          __parseargs_error_exit__ "Cannot specify a default or const attribute value for arguments with 'store_true' or 'store_false' action attributes '${dest}'." >&2
+          __parseargs_error_exit__ "Cannot specify a default or const attribute value for arguments with 'store_true' or 'store_false' action attributes '${dest}'."
         fi
         if [ -n "${num_args}" ]; then
-          __parseargs_error_exit__ "Cannot specify nargs attribute value for arguments with 'store_true' or 'store_false' action attributes '${dest}'." >&2
+          __parseargs_error_exit__ "Cannot specify nargs attribute value for arguments with 'store_true' or 'store_false' action attributes '${dest}'."
         fi
         have_default=true
         if [ "${action}" = 'store_true' ]; then
@@ -255,16 +277,25 @@ then
         ;;
       count)
         if "${have_const}" || [ -n "${num_args}" ]; then
-          __parseargs_error_exit__ "Cannot specify a const or nargs attribute value for arguments with 'count' action attribute '${dest}'." >&2
+          __parseargs_error_exit__ "Cannot specify a const or nargs attribute value for arguments with 'count' action attribute '${dest}'."
         fi
         ;;
+      version)
+        if [ -z "${version}" ]; then
+          __parseargs_error_exit__ "A version attribute with a value supplying the version text is required for arguments with 'version' action attribute '${dest}'."
+        fi
+        if "${have_default}" || "${have_const}" || "${have_required}" || "${have_choices}" || [ -n "${num_args}" ]; then
+          __parseargs_error_exit__ "Cannot specify const, default, required, choices or nargs attribute values for 'version' action attributes '${dest}'."
+        fi
+        argument="$(dict_set_simple "${argument}" "version" "${version}")"
+        ;;
       *)
-        __parseargs_error_exit__ "Unrecognised action attribute value '${action}' for argument '${dest}'." >&2
+        __parseargs_error_exit__ "Unrecognised action attribute value '${action}' for argument '${dest}'."
         ;;
     esac
     argument="$(dict_set_simple "${argument}" "action" "${action}")"
 
-    if ! "${have_default}"; then
+    if "${storing_something}" && ! "${have_default}"; then
       local global_default="$(dict_get_simple "${parser}" 'argument_default')"
       if [ -n "${global_default}" ]; then
 #echo "Argument has no specified default, using default value of: '${global_default}'." >&2
@@ -712,8 +743,13 @@ then
     fi
     local action="$(dict_get_simple "${attributes}" "action" )"
     local dest="$(dict_get_simple "${attributes}" "destination" )"
-#echo "  dest:${dest}; shift by:${__parseargs_shift_caller_args_by__}; attributes:${attributes}; missing_arg_key:${missing_arg_key}" >&2
+#echo "  dest:${dest}; action:${action} shift by:${__parseargs_shift_caller_args_by__}; attributes:${attributes}; missing_arg_key:${missing_arg_key}" >&2
     case "${action}" in
+      version)
+        local version_text="$(dict_get_simple "${attributes}" "version" )"
+        echo "${version_text}"
+        exit 0
+        ;;
       store)
         __parseargs_get_arguments__ "${attributes}" "${missing_arg_key}" "${arg_desc}" "$@"
         ;;

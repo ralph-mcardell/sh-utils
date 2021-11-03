@@ -77,7 +77,7 @@ make_arg_parser_with_positional_arguments_and_explicit_action_store_and_parse_so
   CHECK "$(dict_get "${arguments}" "target")" = "TO"
 }
 
-make_arg_parser_with_positional_arguments_from_chioces_set_and_parse_some_arguments() {
+make_arg_parser_with_positional_arguments_from_choices_set_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
   local choices="$(dict_declare_simple "FROM" "_" "TO" "_")"
   parser="$(parseargs_add_argument "${parser}" "name" "source" "choices" "${choices}")"
@@ -99,7 +99,7 @@ make_arg_parser_with_positional_multi_arguments_and_parse_some_arguments() {
   CHECK "$(dict_get "${arguments}" "target")" = "TO"
 }
 
-make_arg_parser_with_positional_multi_arguments_from_chioces_set_and_parse_some_arguments() {
+make_arg_parser_with_positional_multi_arguments_from_choices_set_and_parse_some_arguments() {
   local parser="$(parseargs_new_argument_parser)"
   local choices="$(dict_declare_simple "LEFT" "_" "TO" "_" "RIGHT" "_")"
   parser="$(parseargs_add_argument "${parser}" "name" "sources" "nargs" "2" "choices" "${choices}")"
@@ -321,7 +321,20 @@ make_arg_parser_with_short_optional_arguments_with_action_extend_and_parse_all_a
   CHECK "$(dict_get "${targets}" "1")" = "THERE"
 }
 
-make_arg_parser_with_short_optional_arguments_from_chioces_set_and_parse_all_arguments() {
+make_arg_parser_with_short_optional_version_action_with_version_text_and_parse_version_flag_argument() {
+  local parser="$(parseargs_new_argument_parser)"
+  parser="$(parseargs_add_argument "${parser}" "short" "v" "action" "version" "version" 'VERSION TEXT' )"
+  arguments="$(parseargs_parse_arguments "${parser}" '-v')"
+  if dict_is_dict "${arguments}"; then
+    local arguments_is_dict=true
+  else
+    local arguments_is_dict=false
+  fi
+  CHECK_FALSE ${arguments_is_dict}
+  CHECK_CONTAINS_ALL "${arguments}" 'VERSION' 'TEXT'
+}
+
+make_arg_parser_with_short_optional_arguments_from_choices_set_and_parse_all_arguments() {
   local parser="$(parseargs_new_argument_parser)"
   local choices="$(dict_declare_simple "FROM" "_" "TO" "_")"
   parser="$(parseargs_add_argument "${parser}" "short" "s" destination "source" "choices" "${choices}")"
@@ -893,6 +906,19 @@ make_arg_parser_with_long_optional_arguments_with_action_extend_and_parse_all_ar
   CHECK "$(dict_size "${targets}")" = "2"
   CHECK "$(dict_get "${targets}" "0")" = "TO"
   CHECK "$(dict_get "${targets}" "1")" = "THERE"
+}
+
+make_arg_parser_with_long_optional_version_action_with_version_text_and_parse_version_flag_argument() {
+  local parser="$(parseargs_new_argument_parser)"
+  parser="$(parseargs_add_argument "${parser}" "long" "version" "action" "version" "version" 'VERSION TEXT' )"
+  arguments="$(parseargs_parse_arguments "${parser}" '--version')"
+  if dict_is_dict "${arguments}"; then
+    local arguments_is_dict=true
+  else
+    local arguments_is_dict=false
+  fi
+  CHECK_FALSE ${arguments_is_dict}
+  CHECK_CONTAINS_ALL "${arguments}" 'VERSION' 'TEXT'
 }
 
 make_arg_parser_with_long_optional_arguments_from_choices_set_and_parse_all_arguments() {
@@ -2124,12 +2150,26 @@ positional_argument_cannot_have_sub_argument_action() {
   __positional_argument_cannot_have_action__ 'sub_argument'
 }
 
-__long_optional_argument_with_action_cannot_have_attribute__(){
+positional_argument_cannot_have_version_action() {
+  __positional_argument_cannot_have_action__ 'version'
+}
+
+__long_optional_argument_with_action_cannot_have_attribute_raw__(){
   local parser="$(parseargs_new_argument_parser)"
   local returned_error=''
-  returned_error="$(parseargs_add_argument "${parser}" "long" "arg1" "action" "${1}" "${2}" "2" "${3}" "${4}" 2>&1)"
+  local action_type="${1}"
+  local bad_attribute="${2}"
+  shift 2
+  returned_error="$(parseargs_add_argument "${parser}" "long" "arg1" "action" "${action_type}" "${bad_attribute}" "${@}" 2>&1)"
   CHECK $? -eq 1
-  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "${1}" "${2}"
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "${action_type}" "${bad_attribute}"
+}
+
+__long_optional_argument_with_action_cannot_have_attribute__() {
+  local action_type="${1}"
+  local bad_attribute="${2}"
+  shift 2
+  __long_optional_argument_with_action_cannot_have_attribute_raw__ "${action_type}" "${bad_attribute}" "2" "${@}"
 }
 
 optional_argument_with_store_true_action_cannot_specify_default() {
@@ -2138,6 +2178,10 @@ optional_argument_with_store_true_action_cannot_specify_default() {
 
 optional_argument_with_store_false_action_cannot_specify_default() {
   __long_optional_argument_with_action_cannot_have_attribute__ 'store_false' 'default'
+}
+
+optional_argument_with_version_action_cannot_specify_default() {
+  __long_optional_argument_with_action_cannot_have_attribute__ 'version' 'default' 'version' 'version text'
 }
 
 optional_argument_with_store_true_action_cannot_specify_const() {
@@ -2150,6 +2194,10 @@ optional_argument_with_store_false_action_cannot_specify_const() {
 
 optional_argument_with_count_action_cannot_specify_const() {
   __long_optional_argument_with_action_cannot_have_attribute__ 'count' 'const'
+}
+
+optional_argument_with_version_action_cannot_specify_const() {
+  __long_optional_argument_with_action_cannot_have_attribute__ 'version' 'const' 'version' 'version text'
 }
 
 optional_argument_with_store_true_action_cannot_specify_nargs() {
@@ -2170,6 +2218,14 @@ optional_argument_with_append_const_action_cannot_specify_nargs() {
 
 optional_argument_with_count_action_cannot_specify_nargs() {
   __long_optional_argument_with_action_cannot_have_attribute__ 'count' 'nargs'
+}
+
+optional_argument_with_version_action_cannot_specify_nargs() {
+  __long_optional_argument_with_action_cannot_have_attribute__ 'version' 'nargs' 'version' 'version text'
+}
+
+optional_argument_with_version_action_cannot_specify_required() {
+  __long_optional_argument_with_action_cannot_have_attribute_raw__ 'version' 'required' 'true' 'version' 'version text'
 }
 
 sub_command_argument_cannot_specify_nargs() {
@@ -2204,17 +2260,25 @@ optional_argument_with_append_const_action_must_specify_const() {
   __optional_argument_with_a_const_action_must_specify_const__ 'append_const'
 }
 
+optional_argument_with_a_version_action_must_specify_version() {
+  local parser="$(parseargs_new_argument_parser)"
+  local returned_error=''
+  returned_error="$(parseargs_add_argument "${parser}" "long" "arg1" "action" "version" 2>&1)"
+  CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "${1}" 'version' 'required'
+}
+
 #set -x
-#TEST make_arg_parser_with_defaults_and_optional_arguments_one_with_default_and_parse_no_arguments
+#TEST make_arg_parser_with_long_optional_version_action_with_version_text_and_parse_version_flag_argument
 #PRINT_TEST_COUNTS
 #exit 0
 TEST parsearg_functions_complain_if_parameter_not_a_parseargs_parser
 TEST requesting_a_new_parser_returns_a_valid_parser
 TEST make_arg_parser_with_positional_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_positional_arguments_and_explicit_action_store_and_parse_some_arguments
-TEST make_arg_parser_with_positional_arguments_from_chioces_set_and_parse_some_arguments
+TEST make_arg_parser_with_positional_arguments_from_choices_set_and_parse_some_arguments
 TEST make_arg_parser_with_positional_multi_arguments_and_parse_some_arguments
-TEST make_arg_parser_with_positional_multi_arguments_from_chioces_set_and_parse_some_arguments
+TEST make_arg_parser_with_positional_multi_arguments_from_choices_set_and_parse_some_arguments
 TEST make_arg_parser_with_positional_multi_argument_of_1_and_parse_some_arguments
 TEST make_arg_parser_with_positional_multi_0_or_1_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_default_and_positional_multi_0_or_1_arguments_and_parse_some_arguments
@@ -2230,7 +2294,8 @@ TEST make_arg_parser_with_short_optional_arguments_and_parse_all_arguments
 TEST make_arg_parser_with_short_optional_arguments_and_explicit_action_store_and_parse_all_arguments
 TEST make_arg_parser_with_short_optional_arguments_with_action_append_and_parse_all_arguments
 TEST make_arg_parser_with_short_optional_arguments_with_action_extend_and_parse_all_arguments
-TEST make_arg_parser_with_short_optional_arguments_from_chioces_set_and_parse_all_arguments
+TEST make_arg_parser_with_short_optional_version_action_with_version_text_and_parse_version_flag_argument
+TEST make_arg_parser_with_short_optional_arguments_from_choices_set_and_parse_all_arguments
 TEST make_arg_parser_with_short_optional_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_short_optional_arguments_and_parse_no_arguments
 TEST make_arg_parser_with_short_optional_arguments_and_parse_some_arguments_no_space
@@ -2272,6 +2337,7 @@ TEST make_arg_parser_with_long_optional_arguments_and_parse_all_arguments
 TEST make_arg_parser_with_long_optional_arguments_and_explicit_action_store_and_parse_all_arguments
 TEST make_arg_parser_with_long_optional_arguments_with_action_append_and_parse_all_arguments
 TEST make_arg_parser_with_long_optional_arguments_with_action_extend_and_parse_all_arguments
+TEST make_arg_parser_with_long_optional_version_action_with_version_text_and_parse_version_flag_argument
 TEST make_arg_parser_with_long_optional_arguments_from_choices_set_and_parse_all_arguments
 TEST make_arg_parser_with_long_optional_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_long_optional_arguments_and_parse_no_arguments
@@ -2368,20 +2434,26 @@ TEST positional_argument_cannot_have_extend_action
 TEST positional_argument_cannot_have_append_const_action
 TEST positional_argument_cannot_have_count_action
 TEST positional_argument_cannot_have_sub_argument_action
+TEST positional_argument_cannot_have_version_action
 TEST optional_argument_with_store_true_action_cannot_specify_default
 TEST optional_argument_with_store_false_action_cannot_specify_default
+TEST optional_argument_with_version_action_cannot_specify_default
 TEST optional_argument_with_store_true_action_cannot_specify_const
 TEST optional_argument_with_store_false_action_cannot_specify_const
 TEST optional_argument_with_count_action_cannot_specify_const
+TEST optional_argument_with_version_action_cannot_specify_const
 TEST optional_argument_with_store_true_action_cannot_specify_nargs
 TEST optional_argument_with_store_false_action_cannot_specify_nargs
 TEST optional_argument_with_store_const_action_cannot_specify_nargs
 TEST optional_argument_with_append_const_action_cannot_specify_nargs
 TEST optional_argument_with_count_action_cannot_specify_nargs
+TEST optional_argument_with_version_action_cannot_specify_nargs
+TEST optional_argument_with_version_action_cannot_specify_required
 TEST sub_command_argument_cannot_specify_nargs
 TEST sub_command_argument_cannot_specify_const
 TEST sub_argument_argument_cannot_specify_nargs
 TEST sub_argument_argument_cannot_specify_const
 TEST optional_argument_with_store_const_action_must_specify_const
 TEST optional_argument_with_append_const_action_must_specify_const
+TEST optional_argument_with_a_version_action_must_specify_version
 PRINT_TEST_COUNTS
