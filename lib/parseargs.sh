@@ -23,15 +23,42 @@ then
     local parser="$(dict_declare_simple \
                      "__PARSEARG_TYPE__" "argument_parser"
                   )"
+    local need_prog=true
+    local add_help=true
     while [ "$#" -gt "1" ]; do
       case ${1} in
         argument_default)
           parser="$(dict_set_simple "${parser}" "argument_default" "${2}")"
+          have_arg_default=true
+          ;;
+        prog)
+          parser="$(dict_set_simple "${parser}" "prog" "${2}")"
+          need_prog=false
+          ;;
+        usage)
+          parser="$(dict_set_simple "${parser}" "usage" "${2}")"
+          ;;
+        description)
+          parser="$(dict_set_simple "${parser}" "description" "${2}")"
+          ;;
+        epilogue)
+          parser="$(dict_set_simple "${parser}" "epilogue" "${2}")"
+          ;;
+        add_help)
+          if ! "${2}"; then
+            add_help=false
+          fi
+          ;;
+        *)
+          __parseargs_error_exit__ "Unrecognised parser attribute '${1}'."
           ;;
       esac
       shift 2
     done
-    
+    if "${need_prog}"; then
+      parser="$(dict_set_simple "${parser}" "prog" "${0}")"
+    fi
+
     parser="$(dict_set "${parser}" "__arguments__" "${empty_dict}")"
     parser="$(dict_set "${parser}" "__positionals__" "${empty_dict}")"
     parser="$(dict_set "${parser}" "__longopts__" "${empty_dict}")"
@@ -39,6 +66,14 @@ then
     parser="$(dict_set "${parser}" "__subparsers__" "${empty_dict}")"
     parser="$(dict_set "${parser}" "__sp_aliases__" "${empty_dict}")"
     parser="$(dict_set_simple "${parser}" "__optstring__" ":")"
+
+    if "${add_help}"; then
+      parser="$( parseargs_add_argument "${parser}" 'short' 'h' 'long' 'help' 'action' 'help' 2>&1)"
+      if ! parseargs_is_argument_parser "${parser}"; then
+        __parseargs_error_exit__ "Failed to add help optional argument to new parser: ${parser}"
+      fi
+    fi
+
     echo -n "${parser}"
   }
 
@@ -63,6 +98,7 @@ then
     local have_const=false
     local have_required=false
     local have_choices=false
+    local have_help=false
     local storing_something=true
     shift
     while [ "$#" -gt "1" ]; do
@@ -140,7 +176,9 @@ then
         version)
           __parseargs_abort_if_have_attribute_value__ "${version}" 'version'
           version="${2}"
-          storing_something=false
+          ;;
+        *)
+          __parseargs_error_exit__ "Unrecognised parser argument attribute '${1}'."
           ;;
       esac
       shift 2
@@ -232,10 +270,6 @@ then
       __parseargs_error_exit__ "None of name, long or short attributes provided for argument."
     fi
 
-    if "${storing_something}"; then
-      argument="$(dict_set_simple "${argument}" "destination" "${dest}")"
-    fi
-
     case "${action}" in
       store|append|extend)
         if [ -n "${short_opt}" ]; then
@@ -288,6 +322,13 @@ then
           __parseargs_error_exit__ "Cannot specify const, default, required, choices or nargs attribute values for 'version' action attributes '${dest}'."
         fi
         argument="$(dict_set_simple "${argument}" "version" "${version}")"
+        storing_something=false
+        ;;
+      help)
+        if "${have_default}" || "${have_const}" || "${have_required}" || "${have_choices}" || [ -n "${num_args}" ] || [ -n "${version}" ]; then
+          __parseargs_error_exit__ "Cannot specify const, default, required, choices, version or nargs attribute values for 'help' action attributes '${dest}'."
+        fi
+        storing_something=false
         ;;
       *)
         __parseargs_error_exit__ "Unrecognised action attribute value '${action}' for argument '${dest}'."
@@ -295,12 +336,15 @@ then
     esac
     argument="$(dict_set_simple "${argument}" "action" "${action}")"
 
-    if "${storing_something}" && ! "${have_default}"; then
-      local global_default="$(dict_get_simple "${parser}" 'argument_default')"
-      if [ -n "${global_default}" ]; then
-#echo "Argument has no specified default, using default value of: '${global_default}'." >&2
-        have_default=true
-        argument="$(dict_set_simple "${argument}" "default" "${global_default}")"
+    if "${storing_something}"; then
+      argument="$(dict_set_simple "${argument}" "destination" "${dest}")"
+      if ! "${have_default}"; then
+        local global_default="$(dict_get_simple "${parser}" 'argument_default')"
+        if [ -n "${global_default}" ]; then
+  #echo "Argument has no specified default, using default value of: '${global_default}'." >&2
+          have_default=true
+          argument="$(dict_set_simple "${argument}" "default" "${global_default}")"
+        fi
       fi
     fi
 
@@ -748,6 +792,10 @@ then
       version)
         local version_text="$(dict_get_simple "${attributes}" "version" )"
         echo "${version_text}"
+        exit 0
+        ;;
+      help)
+        echo "Help under construction..."
         exit 0
         ;;
       store)

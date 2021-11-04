@@ -2113,7 +2113,7 @@ no_sub_parsers_for_short_optional_sub_command_is_an_error() {
 __positional_argument_cannot_have_action__() {
   local parser="$(parseargs_new_argument_parser)"
   local returned_error=''
-  returned_error="$(parseargs_add_argument "${parser}" "name" "arg1" "action" "${1}" "${2}" "${3}" 2>&1)"
+  returned_error="$(parseargs_add_argument "${parser}" "name" "arg1" "action" "${@}" 2>&1)"
   CHECK $? -eq 1
   CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "${1}" "positional"
 }
@@ -2154,6 +2154,10 @@ positional_argument_cannot_have_version_action() {
   __positional_argument_cannot_have_action__ 'version'
 }
 
+positional_argument_cannot_have_help_action() {
+  __positional_argument_cannot_have_action__ 'help'
+}
+
 __long_optional_argument_with_action_cannot_have_attribute_raw__(){
   local parser="$(parseargs_new_argument_parser)"
   local returned_error=''
@@ -2184,6 +2188,10 @@ optional_argument_with_version_action_cannot_specify_default() {
   __long_optional_argument_with_action_cannot_have_attribute__ 'version' 'default' 'version' 'version text'
 }
 
+optional_argument_with_help_action_cannot_specify_default() {
+  __long_optional_argument_with_action_cannot_have_attribute__ 'help' 'default'
+}
+
 optional_argument_with_store_true_action_cannot_specify_const() {
   __long_optional_argument_with_action_cannot_have_attribute__ 'store_true' 'const'
 }
@@ -2198,6 +2206,10 @@ optional_argument_with_count_action_cannot_specify_const() {
 
 optional_argument_with_version_action_cannot_specify_const() {
   __long_optional_argument_with_action_cannot_have_attribute__ 'version' 'const' 'version' 'version text'
+}
+
+optional_argument_with_help_action_cannot_specify_const() {
+  __long_optional_argument_with_action_cannot_have_attribute__ 'help' 'const'
 }
 
 optional_argument_with_store_true_action_cannot_specify_nargs() {
@@ -2224,8 +2236,28 @@ optional_argument_with_version_action_cannot_specify_nargs() {
   __long_optional_argument_with_action_cannot_have_attribute__ 'version' 'nargs' 'version' 'version text'
 }
 
+optional_argument_with_help_action_cannot_specify_nargs() {
+  __long_optional_argument_with_action_cannot_have_attribute__ 'help' 'nargs'
+}
+
 optional_argument_with_version_action_cannot_specify_required() {
   __long_optional_argument_with_action_cannot_have_attribute_raw__ 'version' 'required' 'true' 'version' 'version text'
+}
+
+optional_argument_with_version_action_cannot_specify_choices() {
+  __long_optional_argument_with_action_cannot_have_attribute_raw__ 'version' 'choices' "$(dict_declare_simple "A" "_" "B" "_")" 'version' 'version text'
+}
+
+optional_argument_with_help_action_cannot_specify_required() {
+  __long_optional_argument_with_action_cannot_have_attribute_raw__ 'help' 'required' 'true'
+}
+
+optional_argument_with_help_action_cannot_specify_choices() {
+  __long_optional_argument_with_action_cannot_have_attribute_raw__ 'help' 'choices' "$(dict_declare_simple "A" "_" "B" "_")"
+}
+
+optional_argument_with_help_action_cannot_specify_version() {
+  __long_optional_argument_with_action_cannot_have_attribute__ 'help' 'version' 'VersionText'
 }
 
 sub_command_argument_cannot_specify_nargs() {
@@ -2269,7 +2301,7 @@ optional_argument_with_a_version_action_must_specify_version() {
 }
 
 #set -x
-#TEST make_arg_parser_with_long_optional_version_action_with_version_text_and_parse_version_flag_argument
+#TEST optional_argument_with_version_action_cannot_specify_choices
 #PRINT_TEST_COUNTS
 #exit 0
 TEST parsearg_functions_complain_if_parameter_not_a_parseargs_parser
@@ -2435,20 +2467,28 @@ TEST positional_argument_cannot_have_append_const_action
 TEST positional_argument_cannot_have_count_action
 TEST positional_argument_cannot_have_sub_argument_action
 TEST positional_argument_cannot_have_version_action
+TEST positional_argument_cannot_have_help_action
 TEST optional_argument_with_store_true_action_cannot_specify_default
 TEST optional_argument_with_store_false_action_cannot_specify_default
 TEST optional_argument_with_version_action_cannot_specify_default
+TEST optional_argument_with_help_action_cannot_specify_default
 TEST optional_argument_with_store_true_action_cannot_specify_const
 TEST optional_argument_with_store_false_action_cannot_specify_const
 TEST optional_argument_with_count_action_cannot_specify_const
 TEST optional_argument_with_version_action_cannot_specify_const
+TEST optional_argument_with_help_action_cannot_specify_const
 TEST optional_argument_with_store_true_action_cannot_specify_nargs
 TEST optional_argument_with_store_false_action_cannot_specify_nargs
 TEST optional_argument_with_store_const_action_cannot_specify_nargs
 TEST optional_argument_with_append_const_action_cannot_specify_nargs
 TEST optional_argument_with_count_action_cannot_specify_nargs
 TEST optional_argument_with_version_action_cannot_specify_nargs
+TEST optional_argument_with_help_action_cannot_specify_nargs
 TEST optional_argument_with_version_action_cannot_specify_required
+TEST optional_argument_with_version_action_cannot_specify_choices
+TEST optional_argument_with_help_action_cannot_specify_required
+TEST optional_argument_with_help_action_cannot_specify_choices
+TEST optional_argument_with_help_action_cannot_specify_version
 TEST sub_command_argument_cannot_specify_nargs
 TEST sub_command_argument_cannot_specify_const
 TEST sub_argument_argument_cannot_specify_nargs
