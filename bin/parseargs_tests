@@ -2300,8 +2300,50 @@ optional_argument_with_a_version_action_must_specify_version() {
   CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "${1}" 'version' 'required'
 }
 
+view_default_help_for_parser_with_short_long_positional_arguments() {
+  local parser="$(parseargs_new_argument_parser)"
+  parser="$(parseargs_add_argument "${parser}" "name" "sources" "nargs" "2")"
+  parser="$(parseargs_add_argument "${parser}" "name" "target")"
+  parser="$(parseargs_add_argument "${parser}" "long" "actions" "nargs" "2" )"
+  parser="$(parseargs_add_argument "${parser}" "short" "n" 'destination' 'debug' 'action' 'store_true' )"
+  parser="$(parseargs_add_argument "${parser}" "short" "p" long "prefixes" "nargs" "2")"
+  parser="$(parseargs_add_argument "${parser}" "short" "s" "long" "suffixes" "nargs" "3")"
+  local text="$(parseargs_parse_arguments "${parser}" '-h' )"
+  is_parser=true
+  is_parser="parseargs_is_argument_parser  ${dict}"
+  REQUIRE -n "${is_parser}"
+  REQUIRE_FALSE "${is_parser}"
+  echo '\n\n---------------------------------------------------------------------------------'
+  echo 'view_default_help_for_parser_with_short_long_positional_arguments output:'
+  echo '\n---------------------------------------------------------------------------------'
+  echo "${text}" 
+  echo '---------------------------------------------------------------------------------\n'
+}
+
+view_all_parts_help_for_parser_with_short_long_positional_arguments() {
+  local parser="$(parseargs_new_argument_parser 'prog' 'test-help-max' 'usage' 'custom usage text' \
+                  'description' 'testing all help formatting with all parts specified explicily' \
+                  'epilogue' 'this test specifies all textual help parts explicitly:\n - program name\n - explicit usage text\n - short description\n - longer following epilogue text\n - argument descriptions')"
+  parser="$(parseargs_add_argument "${parser}" "name" "sources" "nargs" "2" 'help' 'the two input resources')"
+  parser="$(parseargs_add_argument "${parser}" "name" "target" 'help' 'the single output resource')"
+  parser="$(parseargs_add_argument "${parser}" "long" "actions" "nargs" "2" 'help' 'the action to perform to combine the resources')"
+  parser="$(parseargs_add_argument "${parser}" "short" "n" 'destination' 'debug' 'action' 'store_true' 'only show operations performed; do not perform them' )"
+  parser="$(parseargs_add_argument "${parser}" "short" "p" long "prefixes" "nargs" "2" 'help' 'prefix data from the input resources')"
+  parser="$(parseargs_add_argument "${parser}" "short" "s" "long" "suffixes" "nargs" "3" 'help' 'suffix data from the input and output resources')"
+  local text="$(parseargs_parse_arguments "${parser}" '-h' )"
+  is_parser=true
+  is_parser="parseargs_is_argument_parser  ${dict}"
+  REQUIRE -n "${is_parser}"
+  REQUIRE_FALSE "${is_parser}"
+  echo '---------------------------------------------------------------------------------'
+  echo 'view_all_parts_help_for_parser_with_short_long_positional_arguments output:'
+  echo '\n---------------------------------------------------------------------------------'
+  echo "${text}" 
+  echo '---------------------------------------------------------------------------------\n'
+}
+
 #set -x
-#TEST optional_argument_with_version_action_cannot_specify_choices
+#TEST view_all_parts_help_for_parser_with_short_long_positional_arguments
 #PRINT_TEST_COUNTS
 #exit 0
 TEST parsearg_functions_complain_if_parameter_not_a_parseargs_parser
@@ -2496,4 +2538,6 @@ TEST sub_argument_argument_cannot_specify_const
 TEST optional_argument_with_store_const_action_must_specify_const
 TEST optional_argument_with_append_const_action_must_specify_const
 TEST optional_argument_with_a_version_action_must_specify_version
+TEST view_default_help_for_parser_with_short_long_positional_arguments
+TEST view_all_parts_help_for_parser_with_short_long_positional_arguments
 PRINT_TEST_COUNTS

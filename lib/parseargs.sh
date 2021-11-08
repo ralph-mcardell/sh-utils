@@ -68,7 +68,7 @@ then
     parser="$(dict_set_simple "${parser}" "__optstring__" ":")"
 
     if "${add_help}"; then
-      parser="$( parseargs_add_argument "${parser}" 'short' 'h' 'long' 'help' 'action' 'help' 2>&1)"
+      parser="$( parseargs_add_argument "${parser}" 'short' 'h' 'long' 'help' 'action' 'help' 'help' 'show this help message and exit' 2>&1)"
       if ! parseargs_is_argument_parser "${parser}"; then
         __parseargs_error_exit__ "Failed to add help optional argument to new parser: ${parser}"
       fi
@@ -93,12 +93,12 @@ then
     local dest=""
     local action=""
     local num_args=''
+    local help=''
     local version=''
     local have_default=false
     local have_const=false
     local have_required=false
     local have_choices=false
-    local have_help=false
     local storing_something=true
     shift
     while [ "$#" -gt "1" ]; do
@@ -177,6 +177,10 @@ then
           __parseargs_abort_if_have_attribute_value__ "${version}" 'version'
           version="${2}"
           ;;
+        help)
+          __parseargs_abort_if_have_attribute_value__ "${help}" 'help'
+          help="${2}"
+          ;;
         *)
           __parseargs_error_exit__ "Unrecognised parser argument attribute '${1}'."
           ;;
@@ -206,6 +210,7 @@ then
         dest='version'
       fi
     fi
+
     local argument_key="${dest}"
 
     if [ -z "${dest}" ]; then
@@ -335,6 +340,9 @@ then
         ;;
     esac
     argument="$(dict_set_simple "${argument}" "action" "${action}")"
+    if [ -n "${help}" ]; then
+      argument="$(dict_set_simple "${argument}" "help" "${help}")"
+    fi
 
     if "${storing_something}"; then
       argument="$(dict_set_simple "${argument}" "destination" "${dest}")"
@@ -461,14 +469,14 @@ then
   }
 
   __parseargs_set_parse_specs__() {
-    local parser="${1}"
-    __parseargs_arg_specs__="$(dict_get "${parser}" "__arguments__")"
-    __parseargs_positionals__="$(dict_get "${parser}" "__positionals__")"
-    __parseargs_longopts__="$(dict_get "${parser}" "__longopts__")"
-    __parseargs_shortopts__="$(dict_get "${parser}" "__shortopts__")"
-    __parseargs_optstring__="$(dict_get_simple "${parser}" "__optstring__")"
-    __parseargs_subparsers__="$(dict_get "${parser}" "__subparsers__")"
-    __parseargs_subparser_alias__="$(dict_get "${parser}" "__sp_aliases__")"    
+    __parseargs_parser__="${1}"
+    __parseargs_arg_specs__="$(dict_get "${__parseargs_parser__}" "__arguments__")"
+    __parseargs_positionals__="$(dict_get "${__parseargs_parser__}" "__positionals__")"
+    __parseargs_longopts__="$(dict_get "${__parseargs_parser__}" "__longopts__")"
+    __parseargs_shortopts__="$(dict_get "${__parseargs_parser__}" "__shortopts__")"
+    __parseargs_optstring__="$(dict_get_simple "${__parseargs_parser__}" "__optstring__")"
+    __parseargs_subparsers__="$(dict_get "${__parseargs_parser__}" "__subparsers__")"
+    __parseargs_subparser_alias__="$(dict_get "${__parseargs_parser__}" "__sp_aliases__")"    
   }
 
   __parseargs_split_string_on_arg_rhs__() {
@@ -524,6 +532,7 @@ then
     shift
 
     local outer_current_positional=${__parseargs_current_positional__}
+    local outer_parser="${__parseargs_parser__}"
     local outer_arg_specs="${__parseargs_arg_specs__}"
     local outer_positionals="${__parseargs_positionals__}"
     local outer_longopts="${__parseargs_longopts__}"
@@ -535,6 +544,7 @@ then
     ${function} "$@"
 
     __parseargs_current_positional__=${outer_current_positional}
+    __parseargs_parser__="${outer_parser}"
     __parseargs_arg_specs__="${outer_arg_specs}"
     __parseargs_positionals__="${outer_positionals}"
     __parseargs_longopts__="${outer_longopts}"
@@ -795,7 +805,8 @@ then
         exit 0
         ;;
       help)
-        echo "Help under construction..."
+        __parseargs_build_help_string__
+        echo "${__parseargs_return_value__}"
         exit 0
         ;;
       store)
@@ -847,28 +858,28 @@ then
         local entry_shift_caller_args_by="${__parseargs_shift_caller_args_by__}"
         __parseargs_get_arguments__ "${attributes}" "${missing_arg_key}" "${arg_desc}" "$@"
         if [ "$(( ${__parseargs_shift_caller_args_by__}-${entry_shift_caller_args_by} ))" -eq '1' ]; then
-        shift
-        local sp_id="${__parseargs_return_value__}"
-        local sp_alias="${sp_id}"
-        local sub_parser="$(dict_get "${__parseargs_subparsers__}" "${sp_id}" )"
-        if [ -z "${sub_parser}" ]; then
-          sp_id="$(dict_get_simple "${__parseargs_subparser_alias__}" "${sp_alias}" )"
-          if [ -n "${sp_id}" ]; then
-            sub_parser="$(dict_get "${__parseargs_subparsers__}" "${sp_id}" )"
+          shift
+          local sp_id="${__parseargs_return_value__}"
+          local sp_alias="${sp_id}"
+          local sub_parser="$(dict_get "${__parseargs_subparsers__}" "${sp_id}" )"
+          if [ -z "${sub_parser}" ]; then
+            sp_id="$(dict_get_simple "${__parseargs_subparser_alias__}" "${sp_alias}" )"
+            if [ -n "${sp_id}" ]; then
+              sub_parser="$(dict_get "${__parseargs_subparsers__}" "${sp_id}" )"
+            fi
           fi
-        fi
-        if [ -z "${sub_parser}" ]; then
-          __parseargs_error_exit__ "${arg_desc}: "${__parseargs_return_value__}" is not a known sub-command."
-        fi
- 
-        local sp_ids="$(dict_get "${arguments}" "${dest}")"
-        if [ -z "${sp_ids}" ]; then
-          sp_ids="$(dict_declare_simple)"
-        fi
-        local sub_args="$(dict_get "${sp_ids}" "${sp_id}")"
-        if [ -z "${sub_args}" ]; then
-          sub_args="$(dict_declare_simple)"
-        fi
+          if [ -z "${sub_parser}" ]; then
+            __parseargs_error_exit__ "${arg_desc}: "${__parseargs_return_value__}" is not a known sub-command."
+          fi
+  
+          local sp_ids="$(dict_get "${arguments}" "${dest}")"
+          if [ -z "${sp_ids}" ]; then
+            sp_ids="$(dict_declare_simple)"
+          fi
+          local sub_args="$(dict_get "${sp_ids}" "${sp_id}")"
+          if [ -z "${sub_args}" ]; then
+            sub_args="$(dict_declare_simple)"
+          fi
 
           local outer_shift_by=${__parseargs_shift_caller_args_by__}
 
@@ -1032,6 +1043,117 @@ then
         __parseargs_error_exit__ "(internal) ${arg_desc} : unrecognised missing argument value action '${on_missing}'."
         ;;
     esac
+  }
+
+  __parseargs_build_help_string__() {
+    local usage="$(dict_get_simple "${__parseargs_parser__}" 'usage')"
+    if [ -n "${usage}" ]; then
+      local deduce_usage=false
+    else
+      local deduce_usage=true
+    fi
+    __parseargs_return_value__="$(dict_declare_simple)"
+    dict_for_each "${__parseargs_arg_specs__}" \
+                  "__parseargs_op_build_argument_help__" \
+                  "${deduce_usage}"
+    if "${deduce_usage}"; then
+      local usage="$(dict_get_simple "${__parseargs_return_value__}" 'uopts') $(dict_get_simple "${__parseargs_return_value__}" 'uposits')\n"
+    fi
+
+    local desc="$(dict_get_simple "${__parseargs_parser__}" 'description')"
+    local epi="$(dict_get_simple "${__parseargs_parser__}" 'epilogue')"
+    local posits="$(dict_get_simple "${__parseargs_return_value__}" 'posits')"
+    local opts="$(dict_get_simple "${__parseargs_return_value__}" 'opts')"
+    local prog="$(dict_get_simple "${__parseargs_parser__}" 'prog')"
+    local help="usage: ${prog} ${usage}\n"
+    if [ -n "${desc}" ]; then
+      help="${help}\n${desc}\n"
+    fi
+    if [ -n "${posits}" ]; then
+      help="${help}\npositional arguments:\n${posits}\n"
+    fi
+    if [ -n "${opts}" ]; then
+      help="${help}\noptional arguments:\n${opts}\n"
+    fi
+    if [ -n "${epi}" ]; then
+      help="${help}\n${epi}\n"
+    fi
+    __parseargs_return_value__="${help}"
+  }
+
+  __parseargs_op_build_argument_help__() {
+    local arg_spec="${2}"
+    local record_number="${3}"
+    local deduce_usage="${4}"
+    local arg_desc="$(dict_get_simple "${arg_spec}" "help" )"
+    local positional_name="$(dict_get_simple "${arg_spec}" "destination" )"
+    local opt="$(dict_get_simple "${arg_spec}" "short" )"
+    local optl="$(dict_get_simple "${arg_spec}" "long" )"
+#echo "arg_desc:'${arg_desc}'  opt: '${opt}'  optl:'${optl}' positional_name:'${positional_name}' arg_spec:'${arg_spec}'" >&2
+    local separation='        '
+    if [ -n "${arg_desc}" ]; then
+      arg_desc="${separation}${arg_desc}"
+    fi
+    if [ -n "${opt}" ] || [ -n "${optl}" ]; then
+      local arg_help='  '
+      local maybe_comma=''
+      local maybe_nl=''
+      if [ -n "${opt}" ]; then
+        opt="-${opt}"
+        arg_help="${arg_help}${opt}"
+        maybe_comma=', '
+        maybe_nl="\n"
+      fi
+      if [ -n "${optl}" ]; then
+        optl="--${optl}"
+        arg_help="${arg_help}${maybe_comma}${optl}"
+        maybe_nl="\n"
+        if [ -z "${opt}" ]; then
+          opt="${optl}"
+        fi
+      fi
+      arg_help="${arg_help}${arg_desc}${maybe_nl}"
+      local opts="$(dict_get "${__parseargs_return_value__}" 'opts' )"
+#echo "arg_help:'${arg_help}' opts:'${opts}'" >&2
+      opts="${opts% }"
+      opts="${opts}${arg_help} "
+#echo "opts (updated):'${opts}'" >&2
+      __parseargs_return_value__="$(dict_set "${__parseargs_return_value__}" 'opts' "${opts}" )"
+      if "${deduce_usage}"; then
+        local usage="$(dict_get "${__parseargs_return_value__}" 'uopts' )"
+        if [ -n "${usage}" ]; then
+          usage="${usage} "
+        fi
+        local action="$(dict_get_simple "${arg_spec}" "action" )"
+
+        case "${action}" in
+          store|append|extend)
+            opt="${opt} $(dict_get_simple "${arg_spec}" "destination" )"
+            ;;
+          sub_command | sub_argument)
+            # TODO
+            ;;
+          *)
+            ;;
+        esac
+        usage="${usage}[${opt}]"
+        __parseargs_return_value__="$(dict_set "${__parseargs_return_value__}" 'uopts' "${usage}" )"
+      fi
+    else # positional argument...
+      local arg_help="  ${positional_name}${arg_desc}\n"
+      local posits="$(dict_get "${__parseargs_return_value__}" 'posits' )"
+      posits="${posits% }"
+      posits="${posits}${arg_help} "
+      __parseargs_return_value__="$(dict_set "${__parseargs_return_value__}" 'posits' "${posits}" )"
+      if "${deduce_usage}"; then
+        local usage="$(dict_get "${__parseargs_return_value__}" 'uposits' )"
+        if [ -n "${usage}" ]; then
+          usage="${usage} "
+        fi
+        usage="${usage}${positional_name}"
+        __parseargs_return_value__="$(dict_set "${__parseargs_return_value__}" 'uposits' "${usage}" )"
+      fi
+    fi
   }
 
   __parseargs_check_for_missing_positionals__() {
