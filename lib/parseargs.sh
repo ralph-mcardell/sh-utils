@@ -141,9 +141,8 @@ then
         nargs)
           __parseargs_abort_if_have_attribute_value__ "${num_args}" 'nargs'
           num_args="${2}"
-          if __parseargs_is_valid_nargs_value__ "${num_args}" "${__PARSEARGS_MAX_NARGS__}"; then
-            argument="$(dict_set_simple "${argument}" "nargs" "${num_args}")"
-          else
+          if ! __parseargs_is_valid_nargs_value__ "${num_args}" "${__PARSEARGS_MAX_NARGS__}"; then
+          echo "nargs value '${num_args}' invalid. Must be integer in the range [1, ${__PARSEARGS_MAX_NARGS__}], '?','*' or '+'." >&2
             __parseargs_error_exit__ "nargs value '${num_args}' invalid. Must be integer in the range [1, ${__PARSEARGS_MAX_NARGS__}], '?','*' or '+'."
           fi
           ;;
@@ -299,6 +298,7 @@ then
         if [ -n "${num_args}" ]; then
           __parseargs_error_exit__ "Cannot specify nargs attribute value for arguments with 'store_const' or 'append_const' action attribute '${dest}'."
         fi
+        num_args=0
         ;;
       store_true|store_false)
         if "${have_default}" || "${have_const}"; then
@@ -307,6 +307,7 @@ then
         if [ -n "${num_args}" ]; then
           __parseargs_error_exit__ "Cannot specify nargs attribute value for arguments with 'store_true' or 'store_false' action attributes '${dest}'."
         fi
+        num_args=0
         have_default=true
         if [ "${action}" = 'store_true' ]; then
           argument="$(dict_set_simple "${argument}" "default" false)"
@@ -318,6 +319,7 @@ then
         if "${have_const}" || [ -n "${num_args}" ]; then
           __parseargs_error_exit__ "Cannot specify a const or nargs attribute value for arguments with 'count' action attribute '${dest}'."
         fi
+        num_args=0
         ;;
       version)
         if [ -z "${version}" ]; then
@@ -328,17 +330,22 @@ then
         fi
         argument="$(dict_set_simple "${argument}" "version" "${version}")"
         storing_something=false
+        num_args=0
         ;;
       help)
         if "${have_default}" || "${have_const}" || "${have_required}" || "${have_choices}" || [ -n "${num_args}" ] || [ -n "${version}" ]; then
           __parseargs_error_exit__ "Cannot specify const, default, required, choices, version or nargs attribute values for 'help' action attributes '${dest}'."
         fi
         storing_something=false
+        num_args=0
         ;;
       *)
         __parseargs_error_exit__ "Unrecognised action attribute value '${action}' for argument '${dest}'."
         ;;
     esac
+    if [ -n "${num_args}" ]; then
+      argument="$(dict_set_simple "${argument}" "nargs" "${num_args}")"
+    fi
     argument="$(dict_set_simple "${argument}" "action" "${action}")"
     if [ -n "${help}" ]; then
       argument="$(dict_set_simple "${argument}" "help" "${help}")"
@@ -964,7 +971,7 @@ then
         ;;
     esac
     if [ "${on_missing}" = "value" ]; then
-      missing_arg_value="$(dict_get_simple "${attributes}" "${missing_arg_key}" )"
+      local missing_arg_value="$(dict_get_simple "${attributes}" "${missing_arg_key}" )"
       if [ -z "${missing_arg_value}" ]; then
       #  __parseargs_error_exit__ "(internal). ${arg_desc}: cannot retrieve value for missing argument '${missing_arg_key}' value."
         on_missing='error'
