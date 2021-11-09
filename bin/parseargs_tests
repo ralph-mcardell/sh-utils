@@ -2327,7 +2327,7 @@ view_all_parts_help_for_parser_with_short_long_positional_arguments() {
   parser="$(parseargs_add_argument "${parser}" "name" "sources" "nargs" "2" 'help' 'the two input resources')"
   parser="$(parseargs_add_argument "${parser}" "name" "target" 'help' 'the single output resource')"
   parser="$(parseargs_add_argument "${parser}" "long" "actions" "nargs" "2" 'help' 'the action to perform to combine the resources')"
-  parser="$(parseargs_add_argument "${parser}" "short" "n" 'destination' 'debug' 'action' 'store_true' 'only show operations performed; do not perform them' )"
+  parser="$(parseargs_add_argument "${parser}" "short" "n" 'destination' 'debug' 'action' 'store_true' 'help' 'only show operations performed; do not perform them' )"
   parser="$(parseargs_add_argument "${parser}" "short" "p" long "prefixes" "nargs" "2" 'help' 'prefix data from the input resources')"
   parser="$(parseargs_add_argument "${parser}" "short" "s" "long" "suffixes" "nargs" "3" 'help' 'suffix data from the input and output resources')"
   local text="$(parseargs_parse_arguments "${parser}" '-h' )"
