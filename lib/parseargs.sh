@@ -1093,10 +1093,15 @@ then
     local record_number="${3}"
     local deduce_usage="${4}"
     local arg_desc="$(dict_get_simple "${arg_spec}" "help" )"
-    local positional_name="$(dict_get_simple "${arg_spec}" "destination" )"
+    local arg_depiction="$(dict_get_simple "${arg_spec}" "destination" )"
+    local nargs="$(dict_get_simple "${arg_spec}" "nargs" )"
+    local saved_return_value="${__parseargs_return_value__}"
+    __parseargs_make_argument_help_string__ "${arg_depiction}" "${nargs}"
+    arg_depiction="${__parseargs_return_value__}"
+    __parseargs_return_value__="${saved_return_value}"
     local opt="$(dict_get_simple "${arg_spec}" "short" )"
     local optl="$(dict_get_simple "${arg_spec}" "long" )"
-#echo "arg_desc:'${arg_desc}'  opt: '${opt}'  optl:'${optl}' positional_name:'${positional_name}' arg_spec:'${arg_spec}'" >&2
+echo "arg_desc:'${arg_desc}'  opt: '${opt}'  optl:'${optl}' arg_depiction:'${arg_depiction}' arg_spec:'${arg_spec}'" >&2
     local separation='        '
     if [ -n "${arg_desc}" ]; then
       arg_desc="${separation}${arg_desc}"
@@ -1104,22 +1109,19 @@ then
     if [ -n "${opt}" ] || [ -n "${optl}" ]; then
       local arg_help='  '
       local maybe_comma=''
-      local maybe_nl=''
       if [ -n "${opt}" ]; then
-        opt="-${opt}"
+        opt="-${opt} ${arg_depiction}"
         arg_help="${arg_help}${opt}"
         maybe_comma=', '
-        maybe_nl="\n"
       fi
       if [ -n "${optl}" ]; then
-        optl="--${optl}"
+        optl="--${optl} ${arg_depiction}"
         arg_help="${arg_help}${maybe_comma}${optl}"
-        maybe_nl="\n"
         if [ -z "${opt}" ]; then
           opt="${optl}"
         fi
       fi
-      arg_help="${arg_help}${arg_desc}${maybe_nl}"
+      arg_help="${arg_help}${arg_desc}\n"
       local opts="$(dict_get "${__parseargs_return_value__}" 'opts' )"
 #echo "arg_help:'${arg_help}' opts:'${opts}'" >&2
       opts="${opts% }"
@@ -1131,23 +1133,11 @@ then
         if [ -n "${usage}" ]; then
           usage="${usage} "
         fi
-        local action="$(dict_get_simple "${arg_spec}" "action" )"
-
-        case "${action}" in
-          store|append|extend)
-            opt="${opt} $(dict_get_simple "${arg_spec}" "destination" )"
-            ;;
-          sub_command | sub_argument)
-            # TODO
-            ;;
-          *)
-            ;;
-        esac
         usage="${usage}[${opt}]"
         __parseargs_return_value__="$(dict_set "${__parseargs_return_value__}" 'uopts' "${usage}" )"
       fi
     else # positional argument...
-      local arg_help="  ${positional_name}${arg_desc}\n"
+      local arg_help="  ${arg_depiction}${arg_desc}\n"
       local posits="$(dict_get "${__parseargs_return_value__}" 'posits' )"
       posits="${posits% }"
       posits="${posits}${arg_help} "
@@ -1157,10 +1147,44 @@ then
         if [ -n "${usage}" ]; then
           usage="${usage} "
         fi
-        usage="${usage}${positional_name}"
+        usage="${usage}${arg_depiction}"
         __parseargs_return_value__="$(dict_set "${__parseargs_return_value__}" 'uposits' "${usage}" )"
       fi
     fi
+  }
+
+  __parseargs_make_argument_help_string__() {
+    local argname="${1}"
+    local nargs="${2}"
+    case "${nargs}" in
+      0)
+        __parseargs_return_value__=''
+        ;;
+      ''|1)
+        __parseargs_return_value__="${argname}"
+        ;;
+      2)
+        __parseargs_return_value__="${argname}-1 ${argname}-2"
+        ;;
+      3)
+        __parseargs_return_value__="${argname}-1 ${argname}-2 ${argname}-3"
+        ;;
+      4)
+        __parseargs_return_value__="${argname}-1 ${argname}-2 ${argname}-3 ${argname}-4"
+        ;;
+      '?')
+        __parseargs_return_value__="[${argname}]"
+        ;;
+      '*')
+        __parseargs_return_value__="[${argname}-1 [${argname}-2 ...]]"
+        ;;
+      '+')
+        __parseargs_return_value__="${argname}-1 [${argname}-2 ...]"
+        ;;
+      *)
+        __parseargs_return_value__="${argname}-1 ${argname}-2 ... ${argname}-${nargs}"
+        ;;
+    esac
   }
 
   __parseargs_check_for_missing_positionals__() {
