@@ -1064,7 +1064,7 @@ then
                   "__parseargs_op_build_argument_help__" \
                   "${deduce_usage}"
     if "${deduce_usage}"; then
-      local usage="$(dict_get_simple "${__parseargs_return_value__}" 'uopts') $(dict_get_simple "${__parseargs_return_value__}" 'uposits')\n"
+      local usage="$(dict_get_simple "${__parseargs_return_value__}" 'uopts') $(dict_get_simple "${__parseargs_return_value__}" 'uposits')"
     fi
 
     local desc="$(dict_get_simple "${__parseargs_parser__}" 'description')"
@@ -1073,6 +1073,10 @@ then
     local opts="$(dict_get_simple "${__parseargs_return_value__}" 'opts')"
     local prog="$(dict_get_simple "${__parseargs_parser__}" 'prog')"
     local help="usage: ${prog} ${usage}\n"
+    if "${deduce_usage}"; then
+      __parseargs_help_wrap_and_fill_append__ "${help}" '' "         " 72 72 0
+      help="${__parseargs_return_value__}\n"
+    fi
     if [ -n "${desc}" ]; then
       help="${help}\n${desc}\n"
     fi
@@ -1096,16 +1100,14 @@ then
     local arg_depiction="$(dict_get_simple "${arg_spec}" "destination" )"
     local nargs="$(dict_get_simple "${arg_spec}" "nargs" )"
     local saved_return_value="${__parseargs_return_value__}"
+    __parseargs_help_wrap_and_fill_append__ "${arg_desc}" '' "                         " 25 72 25
+    arg_desc="${__parseargs_return_value__}"
     __parseargs_make_argument_help_string__ "${arg_depiction}" "${nargs}"
     arg_depiction="${__parseargs_return_value__}"
     __parseargs_return_value__="${saved_return_value}"
     local opt="$(dict_get_simple "${arg_spec}" "short" )"
     local optl="$(dict_get_simple "${arg_spec}" "long" )"
-echo "arg_desc:'${arg_desc}'  opt: '${opt}'  optl:'${optl}' arg_depiction:'${arg_depiction}' arg_spec:'${arg_spec}'" >&2
-    local separation='        '
-    if [ -n "${arg_desc}" ]; then
-      arg_desc="${separation}${arg_desc}"
-    fi
+#echo "arg_desc:'${arg_desc}'  opt: '${opt}'  optl:'${optl}' arg_depiction:'${arg_depiction}' arg_spec:'${arg_spec}'" >&2
     if [ -n "${opt}" ] || [ -n "${optl}" ]; then
       local arg_help='  '
       local maybe_comma=''
@@ -1121,7 +1123,10 @@ echo "arg_desc:'${arg_desc}'  opt: '${opt}'  optl:'${optl}' arg_depiction:'${arg
           opt="${optl}"
         fi
       fi
-      arg_help="${arg_help}${arg_desc}\n"
+      saved_return_value="${__parseargs_return_value__}"
+      __parseargs_help_wrap_and_fill_append__ "${arg_help}" "${arg_desc}" "     " 25 72 0
+      arg_help="${__parseargs_return_value__}\n"
+    __parseargs_return_value__="${saved_return_value}"
       local opts="$(dict_get "${__parseargs_return_value__}" 'opts' )"
 #echo "arg_help:'${arg_help}' opts:'${opts}'" >&2
       opts="${opts% }"
@@ -1137,7 +1142,10 @@ echo "arg_desc:'${arg_desc}'  opt: '${opt}'  optl:'${optl}' arg_depiction:'${arg
         __parseargs_return_value__="$(dict_set "${__parseargs_return_value__}" 'uopts' "${usage}" )"
       fi
     else # positional argument...
-      local arg_help="  ${arg_depiction}${arg_desc}\n"
+      saved_return_value="${__parseargs_return_value__}"
+      __parseargs_help_wrap_and_fill_append__ "${arg_depiction}" "${arg_desc}" "     " 25 72 0
+      arg_help="${__parseargs_return_value__}\n"
+    __parseargs_return_value__="${saved_return_value}"
       local posits="$(dict_get "${__parseargs_return_value__}" 'posits' )"
       posits="${posits% }"
       posits="${posits}${arg_help} "
@@ -1156,6 +1164,7 @@ echo "arg_desc:'${arg_desc}'  opt: '${opt}'  optl:'${optl}' arg_depiction:'${arg
   __parseargs_make_argument_help_string__() {
     local argname="${1}"
     local nargs="${2}"
+
     case "${nargs}" in
       0)
         __parseargs_return_value__=''
@@ -1185,6 +1194,95 @@ echo "arg_desc:'${arg_desc}'  opt: '${opt}'  optl:'${optl}' arg_depiction:'${arg
         __parseargs_return_value__="${argname}-1 ${argname}-2 ... ${argname}-${nargs}"
         ;;
     esac
+  }
+
+  __parseargs_break_string_at_left_cached_pattern__=''
+  __parseargs_break_string_at_index_left__() {
+  # return ${1}[0, ${2}) 
+  # i.e. up to but not including character at string index ${2}
+    local string="${1}"
+    local break_at_idx=${2} # zero based character index
+    if [ ${break_at_idx} -le 0 ]; then
+      __parseargs_return_value__=''
+    elif [ ${break_at_idx} -ge "${#string}" ]; then
+      __parseargs_return_value__="${string}"
+    else
+      local remove_len=$(( ${#string}-${break_at_idx} ))
+      if [ ${#__parseargs_break_string_at_left_cached_pattern__} -ne ${remove_len} ]; then
+        local count=0
+        __parseargs_break_string_at_left_cached_pattern__=''
+        while [ ${count} -lt ${remove_len} ]; do
+          __parseargs_break_string_at_left_cached_pattern__="${__parseargs_break_string_at_left_cached_pattern__}?"
+          count=$(( ${count}+1 ))
+        done
+      fi
+      __parseargs_return_value__="${string%${__parseargs_break_string_at_left_cached_pattern__}}"
+    fi
+  }
+
+  __parseargs_break_string_at_right_cached_pattern__=''
+  __parseargs_break_string_at_index_right__() {
+  # return ${1}[${2}, ${#1}) 
+  # i.e. from and including character at string ${1} index ${2} to end of string
+    local string="${1}"
+    local break_at_idx=${2} # zero based character index
+    if [ ${break_at_idx} -ge "${#string}" ]; then
+      __parseargs_return_value__=''
+    elif [ ${break_at_idx} -le 0 ]; then
+      __parseargs_return_value__="${string}"
+    else
+      local remove_len=${break_at_idx}
+      if [ ${#__parseargs_break_string_at_right_cached_pattern__} -ne ${remove_len} ]; then
+        local count=0
+        __parseargs_break_string_at_right_cached_pattern__=''
+        while [ ${count} -lt ${remove_len} ]; do
+          __parseargs_break_string_at_right_cached_pattern__="${__parseargs_break_string_at_right_cached_pattern__}?"
+          count=$(( ${count}+1 ))
+        done
+      fi
+      __parseargs_return_value__="${string#${__parseargs_break_string_at_right_cached_pattern__}}"
+    fi
+  }
+
+  __parseargs_help_wrap_and_fill_append__() {
+    local source_text="${1}"
+    local append_text="${2}"
+    local indent="${3}"
+    local append_col=${4}
+    local wrap_col=${5}
+    local start_col="${6}"
+
+    local out=''
+    local len="${#source_text}"
+    local wrap_col=${5}
+    local break_col=$(( ${wrap_col}-${start_col} ))
+    while [ $len -gt ${break_col} ]; do
+#echo "out:'${out}'  source_text:'${source_text}'  len:${len}" >&2
+      __parseargs_break_string_at_index_left__ "${source_text}" ${break_col}
+      out="${out}${__parseargs_return_value__}\n"
+      __parseargs_break_string_at_index_right__ "${source_text}" ${break_col}
+      source_text="${indent}${__parseargs_return_value__}"
+      len=$(( $len-${break_col}+${#indent} ))
+      break_col=${wrap_col}
+    done
+    out="${out}${source_text}"
+#echo "out:'${out}'  source_text:'${source_text}'  append_text:'${append_text}'  len:${len}" >&2
+    if [ -n "${append_text}" ]; then
+      if [ ${len} -ge ${append_col} ]; then
+        out="${out}\n"
+        local required_spaces=${append_col}
+      else
+        local required_spaces=$(( ${append_col}-${len} ))
+      fi
+      len=0
+      while [ ${len} -lt ${required_spaces} ]; do
+        out="${out} "
+        len=$(( ${len}+1 ))
+      done
+      __parseargs_return_value__="${out}${append_text}"
+    else
+      __parseargs_return_value__="${out}"
+    fi
   }
 
   __parseargs_check_for_missing_positionals__() {

@@ -2329,7 +2329,7 @@ view_all_parts_help_for_parser_with_short_long_positional_arguments() {
   parser="$(parseargs_add_argument "${parser}" "long" "actions" "nargs" "2" 'help' 'the action to perform to combine the resources')"
   parser="$(parseargs_add_argument "${parser}" "short" "n" 'destination' 'debug' 'action' 'store_true' 'help' 'only show operations performed; do not perform them' )"
   parser="$(parseargs_add_argument "${parser}" "short" "p" long "prefixes" "nargs" "2" 'help' 'prefix data from the input resources')"
-  parser="$(parseargs_add_argument "${parser}" "short" "s" "long" "suffixes" "nargs" "3" 'help' 'suffix data from the input and output resources')"
+  parser="$(parseargs_add_argument "${parser}" "short" "s" "long" "suffixes_longname" "nargs" "5" 'help' 'suffix data from the input and output resources plus two auxillary suffixes that are initially and finally appended to all')"
   local text="$(parseargs_parse_arguments "${parser}" '-h' )"
   is_parser=true
   is_parser="parseargs_is_argument_parser  ${dict}"
