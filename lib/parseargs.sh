@@ -1074,7 +1074,7 @@ then
     local prog="$(dict_get_simple "${__parseargs_parser__}" 'prog')"
     local help="usage: ${prog} ${usage}\n"
     if "${deduce_usage}"; then
-      __parseargs_help_wrap_and_fill_append__ "${help}" '' "         " 72 72 0
+      __parseargs_help_wrap_and_fill_append__ "${help}" '' "         " 80 80 0 20
       help="${__parseargs_return_value__}\n"
     fi
     if [ -n "${desc}" ]; then
@@ -1100,7 +1100,7 @@ then
     local arg_depiction="$(dict_get_simple "${arg_spec}" "destination" )"
     local nargs="$(dict_get_simple "${arg_spec}" "nargs" )"
     local saved_return_value="${__parseargs_return_value__}"
-    __parseargs_help_wrap_and_fill_append__ "${arg_desc}" '' "                         " 25 72 25
+    __parseargs_help_wrap_and_fill_append__ "${arg_desc}" '' "                         " 25 80 25 20
     arg_desc="${__parseargs_return_value__}"
     __parseargs_make_argument_help_string__ "${arg_depiction}" "${nargs}"
     arg_depiction="${__parseargs_return_value__}"
@@ -1124,7 +1124,7 @@ then
         fi
       fi
       saved_return_value="${__parseargs_return_value__}"
-      __parseargs_help_wrap_and_fill_append__ "${arg_help}" "${arg_desc}" "     " 25 72 0
+      __parseargs_help_wrap_and_fill_append__ "${arg_help}" "${arg_desc}" "     " 25 80 0 20
       arg_help="${__parseargs_return_value__}\n"
     __parseargs_return_value__="${saved_return_value}"
       local opts="$(dict_get "${__parseargs_return_value__}" 'opts' )"
@@ -1143,7 +1143,7 @@ then
       fi
     else # positional argument...
       saved_return_value="${__parseargs_return_value__}"
-      __parseargs_help_wrap_and_fill_append__ "${arg_depiction}" "${arg_desc}" "     " 25 72 0
+      __parseargs_help_wrap_and_fill_append__ "${arg_depiction}" "${arg_desc}" "     " 25 80 0 20
       arg_help="${__parseargs_return_value__}\n"
     __parseargs_return_value__="${saved_return_value}"
       local posits="$(dict_get "${__parseargs_return_value__}" 'posits' )"
@@ -1251,15 +1251,23 @@ then
     local append_col=${4}
     local wrap_col=${5}
     local start_col="${6}"
+    local max_word_len=${7}
 
     local out=''
     local len="${#source_text}"
     local wrap_col=${5}
     local break_col=$(( ${wrap_col}-${start_col} ))
+    local word_break_part=''
     while [ $len -gt ${break_col} ]; do
 #echo "out:'${out}'  source_text:'${source_text}'  len:${len}" >&2
       __parseargs_break_string_at_index_left__ "${source_text}" ${break_col}
-      out="${out}${__parseargs_return_value__}\n"
+      word_break_part="${__parseargs_return_value__##*' '}"
+      if [ ${#word_break_part} -le ${max_word_len} ]; then
+        out="${out}${__parseargs_return_value__%' '*}\n"
+        break_col=$(( ${break_col}-${#word_break_part} ))
+      else
+        out="${out}${__parseargs_return_value__%' '*}\n"
+      fi
       __parseargs_break_string_at_index_right__ "${source_text}" ${break_col}
       source_text="${indent}${__parseargs_return_value__}"
       len=$(( $len-${break_col}+${#indent} ))
