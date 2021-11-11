@@ -1081,10 +1081,10 @@ then
       help="${help}\n${desc}\n"
     fi
     if [ -n "${posits}" ]; then
-      help="${help}\npositional arguments:\n${posits}\n"
+      help="${help}\npositional arguments:\n${posits}"
     fi
     if [ -n "${opts}" ]; then
-      help="${help}\noptional arguments:\n${opts}\n"
+      help="${help}\noptional arguments:\n${opts}"
     fi
     if [ -n "${epi}" ]; then
       help="${help}\n${epi}\n"
@@ -1143,7 +1143,7 @@ then
       fi
     else # positional argument...
       saved_return_value="${__parseargs_return_value__}"
-      __parseargs_help_wrap_and_fill_append__ "${arg_depiction}" "${arg_desc}" "     " 25 80 0 20
+      __parseargs_help_wrap_and_fill_append__ "  ${arg_depiction}" "${arg_desc}" "     " 25 80 0 20
       arg_help="${__parseargs_return_value__}\n"
     __parseargs_return_value__="${saved_return_value}"
       local posits="$(dict_get "${__parseargs_return_value__}" 'posits' )"
@@ -1255,7 +1255,6 @@ then
 
     local out=''
     local len="${#source_text}"
-    local wrap_col=${5}
     local break_col=$(( ${wrap_col}-${start_col} ))
     local word_break_part=''
     while [ $len -gt ${break_col} ]; do
