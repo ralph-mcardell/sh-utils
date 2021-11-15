@@ -89,15 +89,16 @@ then
         local dict="${__DICT_TYPE_RECORD__}"
         local keys=${__DICT_RS__}
         while [ $# -gt 1 ]; do
-            local dkey="$(__dict_decorated_key__ "${1}")"
-            if [ "${keys##${__DICT_RS__}*${__DICT_US__}${dkey}}" != "${keys}" ]; then
+            __dict_decorated_key__ "${1}"
+            if [ "${keys##${__DICT_RS__}*${__DICT_US__}${__dict_return_value__}}" != "${keys}" ]; then
                 echo "ERROR: duplicate key \"${1}\" passed to dict_declare_simple." >&2
                 echo ""
                 exit 1
             fi
-            local keys="${keys}${__DICT_US__}${dkey}"
+            local keys="${keys}${__DICT_US__}${__dict_return_value__}"
             local value="${2}"
-            dict="${dict}$(__dict_new_entry__ "${dkey}" "${value}")"
+            __dict_new_entry__ "${__dict_return_value__}" "${value}"
+            dict="${dict}${__dict_return_value__}"
             shift 2
         done
         if [ $# -gt 0 ]; then
@@ -128,6 +129,7 @@ then
     dict_set_simple() {
         __dict_abort_if_not_dict__ "${1}" "dict_set_simple"
         __dict_set__ "$@"
+        echo -n "${__dict_return_value__}"
     }
 
     # @brief Get a value associated with a key from a dict
@@ -146,6 +148,7 @@ then
     dict_get_simple() {
         __dict_abort_if_not_dict__ "${1}" "dict_get_simple"
         __dict_get__ "$@"
+        echo -n "${__dict_return_value__}"
     }
 
     # @brief 'declare' a dict variable, optionally initialiing with entries
@@ -169,18 +172,19 @@ then
         local dict="${__DICT_TYPE_RECORD__}"
         local keys=${__DICT_RS__}
         while [ $# -gt 1 ]; do
-            local dkey="$(__dict_decorated_key__ "${1}")"
-            if [ "${keys##${__DICT_RS__}*${__DICT_US__}${dkey}}" != "${keys}" ]; then
+            __dict_decorated_key__ "${1}"
+            if [ "${keys##${__DICT_RS__}*${__DICT_US__}${__dict_return_value__}}" != "${keys}" ]; then
                 echo "ERROR: duplicate key \"${1}\" passed to dict_declare." >&2
                 echo ""
                 exit 1
             fi
-            local keys="${keys}${__DICT_US__}${dkey}"
+            local keys="${keys}${__DICT_US__}${__dict_return_value__}"
             local value="${2}"
             if dict_is_dict "${value}"; then
                 local value="$(__dict_prepare_value_for_nesting__ "${value}")"
             fi
-            dict="${dict}$(__dict_new_entry__ "${dkey}" "${value}")"
+            __dict_new_entry__ "${__dict_return_value__}" "${value}"
+            dict="${dict}${__dict_return_value__}"
             shift 2
         done
         if [ $# -gt 0 ]; then
@@ -217,7 +221,8 @@ then
         if dict_is_dict "${value}"; then
             local value="$(__dict_prepare_value_for_nesting__ "${value}")"
         fi
-        echo -n "$(__dict_set__ "${1}" "${2}" "${value}")"
+        __dict_set__ "${1}" "${2}" "${value}"
+        echo -n "${__dict_return_value__}"
     }
 
     # @brief Get a value associated with a key from a dict
@@ -238,7 +243,8 @@ then
     #            matching parameter 2 or blank (empty) value.
     dict_get() {
         __dict_abort_if_not_dict__ "${1}" "dict_get"
-        local value="$(__dict_get__ "$@"; echo "${__DICT_GS__}")"
+        __dict_get__ "$@"
+        local value="${__dict_return_value__}${__DICT_GS__}"
         value="${value%${__DICT_GS__}}"
         if __dict_is_nested_dict__ "${value}"; then
             __dict_prepare_value_for_unnesting__ "${value}"
@@ -267,9 +273,15 @@ then
     #            passed dict with the requested entry removed.
     dict_remove() {
         __dict_abort_if_not_dict__ "${1}" "dict_remove"
-        local dict="$(__dict_strip_header__ "${1}" "false")"
-        local dkey="$(__dict_decorated_key__ "${2}")"
-        echo -n "${__DICT_TYPE_VALUE__}$(__dict_prefix_entries__ "${dict}" "${dkey}")$(__dict_suffix_entries__ "${dict}" "${dkey}")"
+        __dict_strip_header__ "${1}" "false"
+        local dict="${__dict_return_value__}"
+        __dict_decorated_key__ "${2}"
+        local dkey="${__dict_return_value__}"
+        __dict_prefix_entries__ "${dict}" "${dkey}"
+        local prefix="${__dict_return_value__}"
+        __dict_suffix_entries__ "${dict}" "${dkey}"
+        local suffix="${__dict_return_value__}"
+        echo -n "${__DICT_TYPE_VALUE__}${prefix}${suffix}"
     }
 
     # @brief Iterate over dict calling a function taking each key value
@@ -287,7 +299,8 @@ then
     # @returns nothing
     dict_for_each() {
         __dict_abort_if_not_dict__ "${1}" "dict_for_each"
-        local dict="$(__dict_strip_header__ "${1}" "true")"
+        __dict_strip_header__ "${1}" "true"
+        local dict="${__dict_return_value__}"
         local binaryFn="${2}"
         shift 2
         local record_number=1
@@ -307,11 +320,10 @@ then
 
     dict_size() {
         __dict_abort_if_not_dict__ "${1}" "dict_size"
-        local size="$(dict_for_each "${1}" "__dict_op_recnums__")"
+        dict_for_each "${1}" "__dict_op_recnums__"
+        local size="${__dict_return_value__}"
         if [ -z "${size}" ]; then
             size="0"
-        else
-            size=${size##*${__DICT_RS__}}
         fi
         echo -n "${size}"
     }
@@ -457,14 +469,16 @@ EOF
     __DICT_TYPE_VALUE__="${__DICT_GS__}DiCt${__DICT_GS__}"
     __DICT_TYPE_RECORD__="${__DICT_TYPE_VALUE__}${__DICT_ENTRY_SEPARATOR__}"
 
+    __dict_return_value__=''
+
     __dict_decorated_key__() {
-        echo -n "${1}${__DICT_FIELD_SEPARATOR__}"
+      __dict_return_value__="${1}${__DICT_FIELD_SEPARATOR__}"
     }
 
     __dict_new_entry__() {
         local decorated_key="${1}"
         local value="${2}"
-        echo -n "${decorated_key}${value}${__DICT_ENTRY_SEPARATOR__}"
+        __dict_return_value__="${decorated_key}${value}${__DICT_ENTRY_SEPARATOR__}"
     }
 
     __dict_prefix_entries__() {
@@ -477,37 +491,42 @@ EOF
     # removal has to be replaced by appending back onto the prefix string
         local prefix="${dict%${__DICT_ENTRY_SEPARATOR__}${decorated_key}*}"
         if [ "${prefix}" != "${dict}" ]; then
-            local prefix="${prefix}${__DICT_ENTRY_SEPARATOR__}"
+            prefix="${prefix}${__DICT_ENTRY_SEPARATOR__}"
         fi
-        echo -n "${prefix}"
+        __dict_return_value__="${prefix}"
     }
 
     __dict_value_and_suffix_entries__() {
         local dict="${1}"
         local decorated_key="${2}"
-        echo -n "${dict#*${__DICT_ENTRY_SEPARATOR__}${decorated_key}}"
+        __dict_return_value__="${dict#*${__DICT_ENTRY_SEPARATOR__}${decorated_key}}"
     }
 
     __dict_value__() {
         local dict="${1}"
         local decorated_key="${2}"
-        local value_plus="$(__dict_value_and_suffix_entries__ "${dict}" "${decorated_key}")"
+        __dict_value_and_suffix_entries__ "${dict}" "${decorated_key}"
+        local value_plus="${__dict_return_value__}"
         if [ "${value_plus}" != "${dict}" ]; then
-            echo -n "${value_plus%%${__DICT_ENTRY_SEPARATOR__}*}"
+            __dict_return_value__="${value_plus%%${__DICT_ENTRY_SEPARATOR__}*}"
+        else
+            __dict_return_value__=''
         fi
     }
 
     __dict_suffix_entries__() {
         local dict="${1}"
         local decorated_key="${2}"
-        local value_plus="$(__dict_value_and_suffix_entries__ "${dict}" "${decorated_key}")"
+        __dict_value_and_suffix_entries__ "${dict}" "${decorated_key}"
+        local value_plus="${__dict_return_value__}"
+        local suffix_entries=''
         if [ "${value_plus}" != "${dict}" ]; then
             suffix_entries="${value_plus#*${__DICT_ENTRY_SEPARATOR__}}"
             if [ "${suffix_entries}" = "${value_plus}" ]; then
                 suffix_entries=''
             fi
-            echo -n "${suffix_entries}"
         fi
+        __dict_return_value__="${suffix_entries}"
     }
 
     __dict_strip_header__() {
@@ -520,7 +539,7 @@ EOF
         fi
         local entries="${dict#${stripped}}"
         if [ "${entries}" != "${dict}" ]; then
-            echo -n "${entries}"
+            __dict_return_value__="${entries}"
         fi
     }
 
@@ -554,23 +573,31 @@ EOF
     }
 
     __dict_set__() {
-        local dict="$(__dict_strip_header__ "${1}" "false")"
-        local dkey="$(__dict_decorated_key__ "${2}")"
+        __dict_strip_header__ "${1}" "false"
+        local dict="${__dict_return_value__}"
+        __dict_decorated_key__ "${2}"
+        local dkey="${__dict_return_value__}"
         local value="${3}"
-        echo -n "${__DICT_TYPE_VALUE__}"
+
+        local result="${__DICT_TYPE_VALUE__}"
         __dict_prefix_entries__ "${dict}" "${dkey}"
+        result="${result}${__dict_return_value__}"
         __dict_new_entry__ "${dkey}" "${value}"
+        result="${result}${__dict_return_value__}"
         __dict_suffix_entries__ "${dict}" "${dkey}"
+        result="${result}${__dict_return_value__}"
+        __dict_return_value__="${result}"
     }
 
     __dict_get__() {
-        local dict="$(__dict_strip_header__ "${1}" "false")"
-        local dkey="$(__dict_decorated_key__ "${2}")"
-        __dict_value__ "${dict}" "${dkey}"
+        __dict_strip_header__ "${1}" "false"
+        local dict="${__dict_return_value__}"
+        __dict_decorated_key__ "${2}"
+        __dict_value__ "${dict}" "${__dict_return_value__}"
     }
 
     __dict_op_recnums__() {
-        echo -n "${__DICT_RS__}${3}"
+        __dict_return_value__="${3}"
     }
 
     __dict_pretty_print__() {
