@@ -81,6 +81,7 @@ non_dict_variables_are_not_tolerated() {
 
 cannot_retrieve_values_from_empty_dict() {
   local dict=$(dict_declare)
+  REQUIRE "$(dict_count "${dict}")" -eq "0"
   REQUIRE "$(dict_size "${dict}")" -eq "0"
   CHECK "$(dict_get "${dict}" 'some_key')x" = "x"
   CHECK "$(dict_get_simple "${dict}" 'some_key')x" = "x"
@@ -99,6 +100,7 @@ can_add_multiple_initial_values_on_dict_declaration() {
   dict=$(dict_declare "${key1}" "${expected1}" \
                       "${key2}" "${expected2}" "${key3}" "${expected3}")
 
+  REQUIRE "$(dict_count "${dict}")" -eq "3"
   REQUIRE "$(dict_size "${dict}")" -eq "3"
   CHECK "$(dict_get "${dict}" "${key1}")A" = "${expected1}A"
   CHECK "$(dict_get "${dict}" "${key2}")B" = "${expected2}B"
@@ -117,6 +119,7 @@ can_add_multiple_initial_simple_values_only_on_dict_declaration() {
   dict=$(dict_declare_simple "${key1}" "${expected1}" \
                              "${key2}" "${expected2}" "${key3}" "${expected3}")
   REQUIRE "$(dict_size "${dict}")" -eq "3"
+  REQUIRE "$(dict_count "${dict}")" -eq "3"
 
   CHECK "$(dict_get "${dict}" "${key1}")A" = "${expected1}A"
   CHECK "$(dict_get "${dict}" "${key2}")B" = "${expected2}B"
@@ -160,6 +163,7 @@ can_retrieve_just_the_value_for_key_for_dict_containing_single_entry() {
   local key='key1'
 
   local dict="$(dict_set $(dict_declare) "${key}" "${expected}")"
+  REQUIRE "$(dict_count "${dict}")" -eq "1"
   REQUIRE "$(dict_size "${dict}")" -eq "1"
 
 # Pass dict_get result directly inline with call to CHECK
@@ -188,6 +192,7 @@ can_retrieve_just_the_values_for_keys_for_dict_containing_multiple_entries() {
   local dict="$(dict_declare_simple "${key1}" "${expected1}")"
   dict="$(dict_set_simple "${dict}" "${key2}" "${expected2}")"
   dict="$(dict_set "${dict}" "${key3}" "${expected3}")"
+  REQUIRE "$(dict_count "${dict}")" -eq "3"
   REQUIRE "$(dict_size "${dict}")" -eq "3"
 
   CHECK "$(dict_get "${dict}" "${key1}")A" = "${expected1}A"
@@ -337,6 +342,7 @@ can_add_retrieve_values_with_keys_contained_in_other_keys() {
   dict="$(dict_set_simple "${dict}" "${key2}" "${expected2}")"
   dict="$(dict_set_simple "${dict}" "${key3}" "${expected3}")"
   REQUIRE "$(dict_size "${dict}")" -eq "3"
+  REQUIRE "$(dict_count "${dict}")" -eq "3"
 
   CHECK "$(dict_get "${dict}" "${key1}")A" = "${expected1}A"
   CHECK "$(dict_get "${dict}" "${key2}")B" = "${expected2}B"
@@ -410,6 +416,7 @@ can_remove_whole_entry_specified_by_key_from_dict() {
   dict="$(dict_set "${dict}" "${key3}" "${expected3}")"
 
   REQUIRE "$(dict_size "${dict}")" -eq "3"
+  REQUIRE "$(dict_count "${dict}")" -eq "3"
   REQUIRE "$(dict_get "${dict}" "${key1}")A" = "${expected1}A"
   REQUIRE "$(dict_get "${dict}" "${key2}")B" = "${expected2}B"
   REQUIRE "$(dict_get "${dict}" "${key3}")C" = "${expected3}C"
@@ -428,6 +435,7 @@ can_remove_whole_entry_specified_by_key_from_dict() {
 
   dict="$(dict_remove "${dict}" "${key1}")"
   CHECK "$(dict_size "${dict}")" -eq "0"
+  CHECK "$(dict_count "${dict}")" -eq "0"
   CHECK "$(dict_get "${dict}" "${key1}")A" = "A"
   CHECK "$(dict_get "${dict}" "${key2}")B" = "B"
   CHECK "$(dict_get "${dict}" "${key3}")C" = "C"
@@ -507,6 +515,7 @@ added_nested_dict_values_can_be_retrieved_correctly() {
   vv="$(dict_get "${v}" "${key2}1_3")"
   REQUIRE -n "${vv}"
   CHECK "$(dict_size "${vv}")" -eq "3"
+  CHECK "$(dict_count "${vv}")" -eq "3"
   CHECK "$(dict_get "${vv}" "${key1}2_2")A" = "${expected1}2_2A"
   CHECK "$(dict_get "${vv}" "${key2}2_2")A" = "${expected2}2_2A"
   CHECK "$(dict_get "${vv}" "${key3}2_2")A" = "${expected3}2_2A"
@@ -593,6 +602,7 @@ initialised_nested_dict_values_can_be_retrieved_correctly() {
   vv="$(dict_get "${v}" "${key2}1_3")"
   REQUIRE -n "${vv}"
   CHECK "$(dict_size "${vv}")" -eq "3"
+  CHECK "$(dict_count "${vv}")" -eq "3"
   CHECK "$(dict_get "${vv}" "${key1}2_2")A" = "${expected1}2_2A"
   CHECK "$(dict_get "${vv}" "${key2}2_2")A" = "${expected2}2_2A"
   CHECK "$(dict_get "${vv}" "${key3}2_2")A" = "${expected3}2_2A"
@@ -650,7 +660,7 @@ nested_dict_values_can_be_removed_correctly() {
   dict="$(dict_set "${dict}" "${key2}" "${dict_1_2}")"
   dict="$(dict_set "${dict}" "${key3}" "${dict_1_3}")"
   REQUIRE "$(dict_size "${dict}")" -eq "3"
-
+  REQUIRE "$(dict_count "${dict}")" -eq "3"
   REQUIRE "$(dict_get "${dict}" "${key1}")A" = "${dict_1_1}A"
   REQUIRE "$(dict_get "${dict}" "${key2}")B" = "${dict_1_2}B"
   REQUIRE "$(dict_get "${dict}" "${key3}")C" = "${dict_1_3}C"
@@ -669,6 +679,7 @@ nested_dict_values_can_be_removed_correctly() {
 
   dict="$(dict_remove "${dict}" "${key1}")"
   REQUIRE "$(dict_size "${dict}")" -eq "0"
+  REQUIRE "$(dict_count "${dict}")" -eq "0"
   CHECK "$(dict_get "${dict}" "${key1}")A" = "A"
   CHECK "$(dict_get "${dict}" "${key2}")B" = "B"
   CHECK "$(dict_get "${dict}" "${key3}")C" = "C"
@@ -1261,6 +1272,10 @@ can_json_pretty_print_nested_dict() {
 }
 
 #set -x
+#TEST nested_dict_values_can_be_removed_correctly
+#PRINT_TEST_COUNTS
+#exit 0
+
 TEST empty_string_is_not_a_dict
 TEST arbitrary_string_is_not_a_dict
 TEST declared_dict_variable_is_a_dict
