@@ -180,12 +180,14 @@ then
                 echo ""
                 exit 1
             fi
-            local keys="${keys}${__DICT_US__}${__dict_return_value__}"
+            local dkey="${__dict_return_value__}"
+            local keys="${keys}${__DICT_US__}${dkey}"
             local value="${2}"
             if dict_is_dict "${value}"; then
-                local value="$(__dict_prepare_value_for_nesting__ "${value}")"
+                __dict_prepare_value_for_nesting__ "${value}"
+                value="${__dict_return_value__}"
             fi
-            __dict_new_entry__ "${__dict_return_value__}" "${value}"
+            __dict_new_entry__ "${dkey}" "${value}"
             dict="${dict}${__dict_return_value__}"
             __dict_add_to_size__ "${dict}" 1
             dict="${__dict_return_value__}"
@@ -224,10 +226,11 @@ then
         __dict_abort_if_not_dict__ "${1}" "dict_set"
         local value="${3}"
         if dict_is_dict "${value}"; then
-            local value="$(__dict_prepare_value_for_nesting__ "${value}")"
+            __dict_prepare_value_for_nesting__ "${value}"
+            value="${__dict_return_value__}"
         fi
         __dict_set__ "${1}" "${2}" "${value}"
-#echo "@@ @@     DICT_SET:   updated size: $(dict_print_raw "${__dict_return_value__}")'" >&2
+#echo "@@ @@     DICT_SET:    updated size: '$(dict_print_raw "${__dict_return_value__}")'" >&2
         echo -n "${__dict_return_value__}"
     }
 
@@ -253,9 +256,9 @@ then
         value="${value%${__DICT_GS__}}"
         if __dict_is_nested_dict__ "${value}"; then
             __dict_prepare_value_for_unnesting__ "${value}"
-        else
-            echo -n "${value}"
+            value="${__dict_return_value__}"
         fi
+        echo -n "${value}"
     }
 
     # @brief Remove an entry having a matching key form a dict
@@ -281,8 +284,6 @@ then
 #echo "@@ @@ dict_remove: dict passed to:'$(dict_print_raw "${1}")'" >&2
         __dict_strip_header__ "${1}" "false"
         local dict="${__dict_return_value__}"
-       __dict_get_size__ "${1}"
-        local size="${__dict_return_value__}"        
 #echo "@@ @@ dict_remove:  stripped dict:'$(dict_print_raw "${dict}")'" >&2
         __dict_decorated_key__ "${2}"
         local dkey="${__dict_return_value__}"
@@ -290,11 +291,12 @@ then
         local prefix="${__dict_return_value__}"
 #echo "@@ @@ dict_remove:         prefix:'$(dict_print_raw "${prefix}")'" >&2
         if [ "${prefix}" = "${dict}" ]; then
-          echo -n "${dict}"
+          echo -n "${1}"
         else
+          __dict_get_size__ "${1}"
+          local size=$(( ${__dict_return_value__}-1 ))
           __dict_suffix_entries__ "${dict}" "${dkey}"
           local suffix="${__dict_return_value__}"
-          size=$(( ${size}-1 ))
 #echo "@@ @@ dict_remove:         suffix:'$(dict_print_raw "${suffix}")'" >&2
           dict="${__DICT_HDR_ENTRY_BASE__}${size}${prefix}${suffix}"
           echo -n "${dict}"
@@ -327,7 +329,8 @@ then
             local value="${record#*${__DICT_FIELD_SEPARATOR__}}"
             local dict="${dict#*${__DICT_ENTRY_SEPARATOR__}}"
             if __dict_is_nested_dict__ "${value}"; then
-                value="$(__dict_prepare_value_for_unnesting__ "${value}")"
+                __dict_prepare_value_for_unnesting__ "${value}"
+                value="${__dict_return_value__}"
             fi
         #    echo "dict:\"${dict}\" record:\"${record}\" key:\"${key}\" value:\"${value}\"" | tr "${__DICT_GS__}${__DICT_RS__}${__DICT_US__}" ']^_' >&2
             ${binaryFn} "${key}" "${value}" "${record_number}" "$@"
@@ -470,7 +473,8 @@ then
             local var_name="${var_name}${5}"
         fi
         if __dict_is_nested_dict__ "${var_value}"; then
-            var_value="$(__dict_prepare_value_for_unnesting__ "${var_value}")"
+            __dict_prepare_value_for_unnesting__ "${var_value}"
+            var_value="${__dict_return_value__}"
         fi
         read ${var_name} << EOF 
 ${var_value}
@@ -599,16 +603,18 @@ EOF
 
     __dict_prepare_value_for_nesting__() {
         local value="${1}"
-        sed "s/${__DICT_US__}/${__DICT_GS__}${__DICT_US__}/g; s/${__DICT_RS__}/${__DICT_GS__}${__DICT_RS__}/g" << EOF
+        __dict_return_value__="$(sed "s/${__DICT_US__}/${__DICT_GS__}${__DICT_US__}/g; s/${__DICT_RS__}/${__DICT_GS__}${__DICT_RS__}/g" << EOF
 ${value}
 EOF
+)"
     }
 
     __dict_prepare_value_for_unnesting__() {
         local value="${1}"
-        sed "s/${__DICT_GS__}${__DICT_US__}/${__DICT_US__}/g; s/${__DICT_GS__}${__DICT_RS__}/${__DICT_RS__}/g" << EOF
+        __dict_return_value__="$(sed "s/${__DICT_GS__}${__DICT_US__}/${__DICT_US__}/g; s/${__DICT_GS__}${__DICT_RS__}/${__DICT_RS__}/g" << EOF
 ${value}
 EOF
+)"
     }
 
     __dict_is_nested_dict__() {
