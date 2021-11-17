@@ -11,6 +11,9 @@
 # Values can also be other dict (formatted strings), that is dicts can be
 # nested in dicts.
 #
+# Uses POSIX/Open Group IEEE Std 1003.1-2017 shell command language facilities
+# plus utility local and commands tr, sed.
+#
 # As hinted above the implementation is a specially formatted string which
 # uses ASCII separator control code values to separate key from value within
 # an entry and entries from each other. Entries are stored in the order they
@@ -18,7 +21,7 @@
 # matching, cutting, pasting and (for nesting / unnesting) subsitution via
 # sed do not expect anything like decent performance. On the other hand they
 # are just strings so are naturally serialised and can be saved and restored
-# to files or sent and recieved over character streams (network, serial etc.)
+# to files or sent and received over character streams (network, serial etc.)
 #
 # Use:
 # dict_declare        to declare a dict variable, optionally initialised
@@ -33,6 +36,12 @@
 # dict_remove         to remove a key,value entry from a dict. Returns the
 #                     updated dict.
 # dict_is_dict        to see if a variable's value represents a dict type.
+# dict_size           return the integer value of the size of the dict,
+# dict_count          being the number of records. dict_size is ~O(1)
+#                     whereas dict_count is ~O(n), hence dict_size is intended
+#                     to be usually used over dict_count, which iterates
+#                     over the entries in a dict and returnd the count of
+#                     records itereted over.
 # dict_for_each       to iterate over the entries of a dict, having
 #                     a function called for each key value pair.
 # dict_print_raw      to print the raw string of a dict variable with
@@ -338,12 +347,30 @@ then
         done
     }
 
+    # @brief Return number of entries in a dict
+    #
+    # Returns saved size of dict as updated on entry addition and removal.
+    # Hence executes in ~O(1) 
+    #
+    # @param 1 : dict value to return size of
+    # @returns size of dict: the number of key value entries in the dict
     dict_size() {
         __dict_abort_if_not_dict__ "${1}" "dict_size"
         __dict_get_size__ "${1}"
         echo -n "${__dict_return_value__}"
     }
 
+
+    # @brief Return number of entries in a dict
+    #
+    # Iterate over the entries in the passed dict countig the number of
+    # entries. Hence executes in ~O(n).
+    #
+    # Value returned by dict_size and dict_count should _always_ be the
+    # same for the same dict input.
+    #
+    # @param 1 : dict value to return count of entries for
+    # @returns count of key value entries in the dict
     dict_count() {
         __dict_abort_if_not_dict__ "${1}" "dict_count"
         dict_for_each "${1}" "__dict_op_recnums__"
@@ -455,7 +482,21 @@ then
     # things will happen. To provided a suffix without a prefix specify
     # the prefix as a hyphen.
     #
-    # If the value represents a nested dict then the value is unested.
+    # If the value represents a nested dict then the value is unnested.
+    #
+    # Usage examples:
+    #
+    #  1/ simple: create variables matching key names of entries in dict
+    #    dict_for_each "${dict}" dict_op_to_var_flat
+    #
+    #  2/ with prefix: create variables of the form 'dict_keyname'
+    #    dict_for_each "${dict}" dict_op_to_var_flat 'dict_'
+    #
+    #  3/ with suffix: create variables of the form 'keyname_dict'
+    #    dict_for_each "${dict}" dict_op_to_var_flat '-' '_dict'
+    #
+    #  4/ with prefix and suffix: create variables of the form 'dict_keyname_0'
+    #    dict_for_each "${dict}" dict_op_to_var_flat 'dict_' '_0'
     #
     # @param 1 : key value
     # @param 2 : value value
