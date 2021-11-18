@@ -741,10 +741,10 @@ then
       local value="${2}"
       if dict_is_dict "${value}"; then
         __parseargs_return_value__="${argument}"
-        __parseargs_extend_argument_index__="$(dict_size "${existing_argument}" "${dest}" )"
+        __parseargs_extend_argument_index__="$(dict_size "${argument}" "${dest}" )"
         dict_for_each "${value}" '__parseargs_extend_dict_fn__'
       else
-        local next_index="$(dict_size "${existing_argument}" "${dest}" )"
+        local next_index="$(dict_size "${argument}" "${dest}" )"
         __parseargs_return_value__="$(dict_set_simple "${argument}" "${next_index}" "${value}" )"
       fi
   }
