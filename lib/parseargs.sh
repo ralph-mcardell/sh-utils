@@ -20,8 +20,15 @@ then
 
   parseargs_new_argument_parser() {
     local empty_dict="$(dict_declare_simple)"
-    local parser="$(dict_declare_simple \
-                     "__PARSEARG_TYPE__" "argument_parser"
+    local parser="$(dict_declare \
+                     "__PARSEARG_TYPE__" "argument_parser" \
+                    "__arguments__" "${empty_dict}"  \
+                    "__positionals__" "${empty_dict}" \
+                    "__longopts__" "${empty_dict}"  \
+                    "__shortopts__" "${empty_dict}"  \
+                    "__subparsers__" "${empty_dict}" \
+                    "__sp_aliases__" "${empty_dict}" \
+                    "__optstring__" ":" \
                   )"
     local need_prog=true
     local add_help=true
@@ -58,14 +65,6 @@ then
     if "${need_prog}"; then
       parser="$(dict_set_simple "${parser}" "prog" "${0}")"
     fi
-
-    parser="$(dict_set "${parser}" "__arguments__" "${empty_dict}")"
-    parser="$(dict_set "${parser}" "__positionals__" "${empty_dict}")"
-    parser="$(dict_set "${parser}" "__longopts__" "${empty_dict}")"
-    parser="$(dict_set "${parser}" "__shortopts__" "${empty_dict}")"
-    parser="$(dict_set "${parser}" "__subparsers__" "${empty_dict}")"
-    parser="$(dict_set "${parser}" "__sp_aliases__" "${empty_dict}")"
-    parser="$(dict_set_simple "${parser}" "__optstring__" ":")"
 
     if "${add_help}"; then
       parser="$( parseargs_add_argument "${parser}" 'short' 'h' 'long' 'help' 'action' 'help' 'help' 'show this help message and exit' 2>&1)"
