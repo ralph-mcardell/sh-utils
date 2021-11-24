@@ -380,12 +380,13 @@ then
 
   parseargs_add_sub_parser() {
     __parseargs_abort_if_not_parser__ "${1}" "parseargs_add_sub_parser"
-    if ! parseargs_is_argument_parser "${3}"; then
-      __parseargs_error_exit__ "Third (sub-parser) argument passed to parseargs_add_sub_parser is not an argument parser type. Quitting current (sub-)shell."
+    if ! parseargs_is_argument_parser "${4}"; then
+      __parseargs_error_exit__ "Forth (sub-parser) argument passed to parseargs_add_sub_parser is not an argument parser type. Quitting current (sub-)shell."
     fi
     local parser="${1}"
-    local subparser_id="${2}"
-    local subparser="${3}"
+    local arg_dest="${2}"
+    local subparser_id="${3}"
+    local subparser="${4}"
     shift 3
     local subparsers="$(dict_get "${parser}" "__subparsers__")"
     if [ -z "${subparsers}" ]; then
