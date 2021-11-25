@@ -860,6 +860,51 @@ make_arg_parser_with_and_short_optional_sub_argument_with_default_and_sub_argume
   CHECK "$(dict_get "${cmd_arg}" "count")" = "0"
 }
 
+make_arg_parser_with_short_optional_sub_arguments_and_overlapping_positional_sub_commands_and_parse_some_arguments() {
+  local parser="$(parseargs_new_argument_parser)"
+  parser="$(parseargs_add_argument "${parser}" "name" "command" 'action' 'sub_command' )"
+  parser="$(parseargs_add_argument "${parser}" 'short' 'x' "destination" "xcmd" 'action' 'sub_argument' )"
+  local copycmdparser="$(parseargs_new_argument_parser)"
+  copycmdparser="$(parseargs_add_argument "${copycmdparser}" "name" "source")"
+  copycmdparser="$(parseargs_add_argument "${copycmdparser}" "name" "target")"
+  local delcmdparser="$(parseargs_new_argument_parser)"
+  delcmdparser="$(parseargs_add_argument "${delcmdparser}" "name" "item")"
+  local movecmdparser="$(parseargs_new_argument_parser)"
+  movecmdparser="$(parseargs_add_argument "${movecmdparser}" 'short' 's'  'long' "source")"
+  movecmdparser="$(parseargs_add_argument "${movecmdparser}" 'short' 't'  'long' "target")"
+  parser="$(parseargs_add_sub_parser "${parser}" "command" "copy" "${copycmdparser}" )"
+  parser="$(parseargs_add_sub_parser "${parser}" "command" "delete" "${delcmdparser}" )"
+  parser="$(parseargs_add_sub_parser "${parser}" "xcmd" "move" "${movecmdparser}" )"
+  parser="$(parseargs_add_sub_parser "${parser}" "xcmd" "delete" "${delcmdparser}" )"
+  local arguments="$(parseargs_parse_arguments "${parser}" "-x" "move" '-s' "HERE" -x move --target "THERE" "copy" "FROM" "TO")"
+  local command="$(dict_get "${arguments}" "command")"
+  CHECK "$(dict_size "${command}")" = "1"
+  local cmd_arg="$(dict_get "${command}" "copy")"
+  CHECK "$(dict_size "${cmd_arg}")" = "2"
+  CHECK "$(dict_get "${cmd_arg}" "source")" = "FROM"
+  CHECK "$(dict_get "${cmd_arg}" "target")" = "TO"
+
+  local xcmd="$(dict_get "${arguments}" "xcmd")"
+  CHECK "$(dict_size "${xcmd}")" = "1"
+  local cmd_arg="$(dict_get "${xcmd}" "move")"
+  CHECK "$(dict_size "${cmd_arg}")" = "2"
+  CHECK "$(dict_get "${cmd_arg}" "source")" = "HERE"
+  CHECK "$(dict_get "${cmd_arg}" "target")" = "THERE"
+
+  arguments="$(parseargs_parse_arguments "${parser}" "-x" "delete" "BADWOLF" "delete" "UNLOVED")"
+  command="$(dict_get "${arguments}" "command")"
+  CHECK "$(dict_size "${command}")" = "1"
+  local cmd_arg="$(dict_get "${command}" "delete")"
+  CHECK "$(dict_size "${cmd_arg}")" = "1"
+  CHECK "$(dict_get "${cmd_arg}" "item")" = "UNLOVED"
+
+  xcmd="$(dict_get "${arguments}" "xcmd")"
+  CHECK "$(dict_size "${xcmd}")" = "1"
+  cmd_arg="$(dict_get "${xcmd}" "delete")"
+  CHECK "$(dict_size "${cmd_arg}")" = "1"
+  CHECK "$(dict_get "${cmd_arg}" "item")" = "BADWOLF"
+}
+
 make_arg_parser_with_long_optional_arguments_and_parse_all_arguments() {
   local parser="$(parseargs_new_argument_parser)"
   parser="$(parseargs_add_argument "${parser}" "long" "source")"
@@ -2407,6 +2452,7 @@ TEST make_arg_parser_with_short_optional_sub_arguments_and_parse_some_arguments
 TEST make_arg_parser_with_short_optional_sub_arguments_and_alias_and_parse_some_arguments
 TEST make_arg_parser_with_short_optional_sub_argument_with_sub_argument_with_default_and_parse_no_sub_arguments
 TEST make_arg_parser_with_and_short_optional_sub_argument_with_default_and_sub_argument_parse_no_sub_arguments
+TEST make_arg_parser_with_short_optional_sub_arguments_and_overlapping_positional_sub_commands_and_parse_some_arguments
 TEST make_arg_parser_with_long_optional_arguments_and_parse_all_arguments
 TEST make_arg_parser_with_long_optional_arguments_and_explicit_action_store_and_parse_all_arguments
 TEST make_arg_parser_with_long_optional_arguments_with_action_append_and_parse_all_arguments
