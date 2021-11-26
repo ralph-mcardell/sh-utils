@@ -1119,6 +1119,7 @@ then
     local arg_desc="$(dict_get_simple "${arg_spec}" "help" )"
     local arg_depiction="$(dict_get_simple "${arg_spec}" "destination" )"
     local nargs="$(dict_get_simple "${arg_spec}" "nargs" )"
+    local required="$(dict_get_simple "${arg_spec}" "required")"
     local saved_return_value="${__parseargs_return_value__}"
     __parseargs_help_wrap_and_fill_append__ "${arg_desc}" '' "                         " 25 80 25 20
     arg_desc="${__parseargs_return_value__}"
@@ -1158,7 +1159,11 @@ then
         if [ -n "${usage}" ]; then
           usage="${usage} "
         fi
-        usage="${usage}[${opt}]"
+        if [ -n "${required}" ] && "${required}"; then
+          usage="${usage}${opt}"
+        else
+          usage="${usage}[${opt}]"
+        fi
         __parseargs_return_value__="$(dict_set "${__parseargs_return_value__}" 'uopts' "${usage}" )"
       fi
     else # positional argument...

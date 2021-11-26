@@ -2349,10 +2349,10 @@ view_default_help_for_parser_with_short_long_positional_arguments() {
   local parser="$(parseargs_new_argument_parser)"
   parser="$(parseargs_add_argument "${parser}" "name" "sources" "nargs" "2")"
   parser="$(parseargs_add_argument "${parser}" "name" "target")"
-  parser="$(parseargs_add_argument "${parser}" "long" "actions" "nargs" "2" )"
+  parser="$(parseargs_add_argument "${parser}" "long" "actions" "nargs" "2" 'required' 'true')"
   parser="$(parseargs_add_argument "${parser}" "short" "n" 'destination' 'debug' 'action' 'store_true' )"
   parser="$(parseargs_add_argument "${parser}" "short" "p" long "prefixes" "nargs" "2")"
-  parser="$(parseargs_add_argument "${parser}" "short" "s" "long" "suffixes" "nargs" "3")"
+  parser="$(parseargs_add_argument "${parser}" "short" "s" "long" "suffixes" "nargs" "3" 'required' 'false')"
   local text="$(parseargs_parse_arguments "${parser}" '-h' )"
   is_parser=true
   is_parser="parseargs_is_argument_parser  ${dict}"
