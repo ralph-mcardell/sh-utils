@@ -1682,7 +1682,7 @@ argument_nargs_attribute_cannot_be_out_of_range_integer() {
   CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "nargs" "invalid"
 }
 
-argument_nargs_attribute_cannot_be_non_glob_non_interger_value() {
+argument_nargs_attribute_cannot_be_non_glob_non_integer_value() {
   local parser="$(parseargs_new_argument_parser)"
   local returned_error=""
   returned_error="$(parseargs_add_argument "${parser}" "name" "arguments" "nargs" "three" 2>&1)"
@@ -1706,6 +1706,17 @@ argument_nargs_attribute_cannot_be_non_glob_non_interger_value() {
   returned_error="$(parseargs_add_argument "${parser}" "name" "arguments" "nargs" "?*+" 2>&1)"
   CHECK $? -eq 1
   CHECK_CONTAINS_ALL "${returned_error}" "ERROR" "nargs" "invalid"
+}
+
+argument_metavar_dict_value_size_must_match_nargs_attribute_value() {
+  local parser="$(parseargs_new_argument_parser)"
+  local returned_error=""
+  returned_error="$(parseargs_add_argument "${parser}" "name" "arguments" "nargs" "2" 'metavar' "$(dict_declare_simple 'arg1' '_' 'arg2' '_' 'arg3' '_')" 2>&1)"
+  CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" 'metavar' 'match' "nargs"
+  returned_error="$(parseargs_add_argument "${parser}" "name" "arguments" "nargs" "2" 'metavar' "$(dict_declare_simple 'arg1' '_')" 2>&1)"
+  CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${returned_error}" "ERROR" 'metavar' 'match' "nargs"
 }
 
 argument_cannot_be_both_positional_and_optional() {
@@ -1845,6 +1856,17 @@ argument_choices_attribute_cannot_be_repeated_in_single_parseargs_add_argument_c
   __check_repeated_argument_attribute_for_single_argument__ "choices" "${choices}" "${choices}"
 }
 
+argument_help_attribute_cannot_be_repeated_in_single_parseargs_add_argument_call() {
+   __check_repeated_argument_attribute_for_single_argument__ "help" "true" "True"
+}
+
+argument_version_attribute_cannot_be_repeated_in_single_parseargs_add_argument_call() {
+   __check_repeated_argument_attribute_for_single_argument__ "version" "1" "2"
+}
+
+argument_metavar_attribute_cannot_be_repeated_in_single_parseargs_add_argument_call() {
+   __check_repeated_argument_attribute_for_single_argument__ "metavar" "mv" "meva"
+}
 # add other xxx_attribute_cannot_be_repeated tests as support is added...
 
 extra_positional_arguments_ignored_when_parsed() {
@@ -2369,9 +2391,9 @@ view_all_parts_help_for_parser_with_short_long_positional_arguments() {
   local parser="$(parseargs_new_argument_parser 'prog' 'test-help-max' 'usage' 'custom usage text' \
                   'description' 'testing all help formatting with all parts specified explicily' \
                   'epilogue' 'this test specifies all textual help parts explicitly:\n - program name\n - explicit usage text\n - short description\n - longer following epilogue text\n - argument descriptions')"
-  parser="$(parseargs_add_argument "${parser}" "name" "sources" "nargs" "2" 'help' 'the two input resources')"
+  parser="$(parseargs_add_argument "${parser}" "name" "sources" "nargs" "2" 'metavar' 'source' 'help' 'the two input resources')"
   parser="$(parseargs_add_argument "${parser}" "name" "target" 'help' 'the single output resource')"
-  parser="$(parseargs_add_argument "${parser}" "long" "actions" "nargs" "2" 'help' 'the action to perform to combine the resources')"
+  parser="$(parseargs_add_argument "${parser}" "long" "actions" "nargs" "2" 'metavar' "$(dict_declare_simple 'act1' '_' 'act2' '_')" 'help' 'the action to perform to combine the resources')"
   parser="$(parseargs_add_argument "${parser}" "short" "n" 'destination' 'debug' 'action' 'store_true' 'help' 'only show operations performed; do not perform them' )"
   parser="$(parseargs_add_argument "${parser}" "short" "p" long "prefixes" "nargs" "2" 'help' 'prefix data from the input resources')"
   parser="$(parseargs_add_argument "${parser}" "short" "s" "long" "suffixes_longname" "nargs" "5" 'help' 'suffix data from the input and output resources plus two auxillary suffixes that are initially and finally appended to all')"
@@ -2503,7 +2525,8 @@ TEST parser_with_missing_required_optional_sub_argument_is_an_error
 TEST argument_nargs_attribute_can_be_in_range_integer
 TEST argument_nargs_attribute_can_be_single_glob_character
 TEST argument_nargs_attribute_cannot_be_out_of_range_integer
-TEST argument_nargs_attribute_cannot_be_non_glob_non_interger_value
+TEST argument_nargs_attribute_cannot_be_non_glob_non_integer_value
+TEST argument_metavar_dict_value_size_must_match_nargs_attribute_value
 TEST argument_cannot_be_both_positional_and_optional
 TEST argument_needs_name_or_long_and_or_short_attribute
 TEST short_option_must_be_single_character
@@ -2518,6 +2541,9 @@ TEST argument_const_attribute_cannot_be_repeated_in_single_parseargs_add_argumen
 TEST argument_default_attribute_cannot_be_repeated_in_single_parseargs_add_argument_call
 TEST argument_required_attribute_cannot_be_repeated_in_single_parseargs_add_argument_call
 TEST argument_choices_attribute_cannot_be_repeated_in_single_parseargs_add_argument_call
+TEST argument_help_attribute_cannot_be_repeated_in_single_parseargs_add_argument_call
+TEST argument_version_attribute_cannot_be_repeated_in_single_parseargs_add_argument_call
+TEST argument_metavar_attribute_cannot_be_repeated_in_single_parseargs_add_argument_call
 TEST extra_positional_arguments_ignored_when_parsed
 TEST extra_positional_multi_arguments_ignored_when_parsed
 TEST too_few_positional_arguments_is_an_error_when_parsed

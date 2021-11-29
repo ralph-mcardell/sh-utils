@@ -93,6 +93,7 @@ then
     local action=""
     local num_args=''
     local help=''
+    local metavar=''
     local version=''
     local have_default=false
     local have_const=false
@@ -178,6 +179,10 @@ then
         help)
           __parseargs_abort_if_have_attribute_value__ "${help}" 'help'
           help="${2}"
+          ;;
+        metavar)
+          __parseargs_abort_if_have_attribute_value__ "${metavar}" 'metavar'
+          metavar="${2}"
           ;;
         *)
           __parseargs_error_exit__ "Unrecognised parser argument attribute '${1}'."
@@ -348,6 +353,14 @@ then
     argument="$(dict_set_simple "${argument}" "action" "${action}")"
     if [ -n "${help}" ]; then
       argument="$(dict_set_simple "${argument}" "help" "${help}")"
+    fi
+    if [ -n "${metavar}" ]; then
+      if dict_is_dict "${metavar}"; then
+        if [ "$(dict_size "${metavar}")" -ne "${num_args}"  ]; then
+          __parseargs_error_exit__ "Number of metavar values does not match number of arguments (nargs=${num_args}) for argument '${dest}'."
+        fi
+      fi
+      argument="$(dict_set "${argument}" "metavar" "${metavar}")"
     fi
 
     if "${storing_something}"; then
@@ -1117,7 +1130,10 @@ then
     local record_number="${3}"
     local deduce_usage="${4}"
     local arg_desc="$(dict_get_simple "${arg_spec}" "help" )"
-    local arg_depiction="$(dict_get_simple "${arg_spec}" "destination" )"
+    local arg_depiction="$(dict_get "${arg_spec}" "metavar" )"
+    if [ -z "${arg_depiction}" ]; then
+      arg_depiction="$(dict_get_simple "${arg_spec}" "destination" )"
+    fi
     local nargs="$(dict_get_simple "${arg_spec}" "nargs" )"
     local required="$(dict_get_simple "${arg_spec}" "required")"
     local saved_return_value="${__parseargs_return_value__}"
@@ -1190,35 +1206,48 @@ then
     local argname="${1}"
     local nargs="${2}"
 
-    case "${nargs}" in
-      0)
-        __parseargs_return_value__=''
-        ;;
-      ''|1)
-        __parseargs_return_value__="${argname}"
-        ;;
-      2)
-        __parseargs_return_value__="${argname}-1 ${argname}-2"
-        ;;
-      3)
-        __parseargs_return_value__="${argname}-1 ${argname}-2 ${argname}-3"
-        ;;
-      4)
-        __parseargs_return_value__="${argname}-1 ${argname}-2 ${argname}-3 ${argname}-4"
-        ;;
-      '?')
-        __parseargs_return_value__="[${argname}]"
-        ;;
-      '*')
-        __parseargs_return_value__="[${argname}-1 [${argname}-2 ...]]"
-        ;;
-      '+')
-        __parseargs_return_value__="${argname}-1 [${argname}-2 ...]"
-        ;;
-      *)
-        __parseargs_return_value__="${argname}-1 ${argname}-2 ... ${argname}-${nargs}"
-        ;;
-    esac
+    if dict_is_dict "${argname}"; then
+      __parseargs_return_value__=''
+      dict_for_each "${argname}" '__parseargs_op_make_argument_help_string__'
+    else
+      case "${nargs}" in
+        0)
+          __parseargs_return_value__=''
+          ;;
+        ''|1)
+          __parseargs_return_value__="${argname}"
+          ;;
+        2)
+          __parseargs_return_value__="${argname}-1 ${argname}-2"
+          ;;
+        3)
+          __parseargs_return_value__="${argname}-1 ${argname}-2 ${argname}-3"
+          ;;
+        4)
+          __parseargs_return_value__="${argname}-1 ${argname}-2 ${argname}-3 ${argname}-4"
+          ;;
+        '?')
+          __parseargs_return_value__="[${argname}]"
+          ;;
+        '*')
+          __parseargs_return_value__="[${argname}-1 [${argname}-2 ...]]"
+          ;;
+        '+')
+          __parseargs_return_value__="${argname}-1 [${argname}-2 ...]"
+          ;;
+        *)
+          __parseargs_return_value__="${argname}-1 ${argname}-2 ... ${argname}-${nargs}"
+          ;;
+      esac
+    fi
+  }
+
+  __parseargs_op_make_argument_help_string__() {
+    if [ -z "${__parseargs_return_value__}" ]; then
+      __parseargs_return_value__="${1}"
+    else
+      __parseargs_return_value__="${__parseargs_return_value__} ${1}"
+    fi
   }
 
   __parseargs_break_string_at_left_cached_pattern__=''
