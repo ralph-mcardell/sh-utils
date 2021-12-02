@@ -1148,21 +1148,24 @@ then
     if [ -n "${opt}" ] || [ -n "${optl}" ]; then
       local arg_help='  '
       local maybe_comma=''
+      if [ -n "${arg_depiction}" ]; then
+        arg_depiction=" ${arg_depiction}"
+      fi
       if [ -n "${opt}" ]; then
-        opt="-${opt} ${arg_depiction}"
+        opt="-${opt}${arg_depiction}"
         arg_help="${arg_help}${opt}"
         maybe_comma=', '
       fi
       if [ -n "${optl}" ]; then
-        optl="--${optl} ${arg_depiction}"
+        optl="--${optl}${arg_depiction}"
         arg_help="${arg_help}${maybe_comma}${optl}"
         if [ -z "${opt}" ]; then
           opt="${optl}"
         fi
       fi
-      __parseargs_help_arg_help_and_deduced_usage__ "${arg_help}" 'opts' 'uopts' "${opt}" "${required}"
+      __parseargs_help_arg_help_and_deduced_usage__ "${arg_help}" 'opts' "${deduce_usage}" 'uopts' "${opt}" "${required}"
     else # positional argument...
-      __parseargs_help_arg_help_and_deduced_usage__ "${arg_depiction}" 'posits' 'uposits' "${arg_depiction}"
+      __parseargs_help_arg_help_and_deduced_usage__ "${arg_depiction}" 'posits' "${deduce_usage}" 'uposits' "${arg_depiction}"
     fi
   }
 
@@ -1170,14 +1173,13 @@ then
   {
     local arg_help="${1}"
     local arg_type="${2}"
-    local usage_type=''
-    local arg_usage=''
-    local required=''
-    if [ $# -ge 4 ]; then
-      usage_type="${3}"
-      arg_usage="${4}"
-      if [ $# -ge 5 ]; then
-        required="${5}"
+    local deduce_usage="${3}"
+    if "${deduce_usage}"; then
+      local usage_type="${4}"
+      local arg_usage="${5}"
+      local required=''
+      if [ $# -ge 6 ]; then
+        required="${6}"
       fi
     fi
     saved_return_value="${__parseargs_return_value__}"
@@ -1190,7 +1192,7 @@ then
     arg_types_help="${arg_types_help}${arg_help} "
 #echo "${arg_type} (updated):'${arg_types_help}'" >&2
     __parseargs_return_value__="$(dict_set "${__parseargs_return_value__}" "${arg_type}" "${arg_types_help}" )"
-    if [ -n "${usage_type}" ]; then
+    if "${deduce_usage}"; then
       local usage="$(dict_get "${__parseargs_return_value__}" "${usage_type}" )"
       if [ -n "${usage}" ]; then
         usage="${usage} "
