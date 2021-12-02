@@ -1144,18 +1144,59 @@ then
     local opt="$(dict_get_simple "${arg_spec}" "short" )"
     local optl="$(dict_get_simple "${arg_spec}" "long" )"
 #echo "arg_desc:'${arg_desc}'  opt: '${opt}'  optl:'${optl}' arg_depiction:'${arg_depiction}' arg_spec:'${arg_spec}'" >&2
-    if [ -n "${opt}" ] || [ -n "${optl}" ]; then
-      __parseargs_help_combine_option_ids_and_arg_depiction__ "${arg_depiction}" "${opt}" "${optl}"
-      arg_depiction="${__parseargs_return_value__}"
+    local action="$(dict_get_simple "${arg_spec}" "action" )"
+    if [ "${action}" = 'sub_command' ] || [ "${action}" = 'sub_argument' ]; then
+      local dest="$(dict_get_simple "${arg_spec}" "destination" )"
+      local arg_sub_parsers="$(dict_get "${__parseargs_subparsers__}" "${dest}" )"
+      __parseargs_built_deduced_usage_text__=''
+      if [ -n "${arg_sub_parsers}" ]; then
+        dict_for_each "${arg_sub_parsers}" '__parseargs_op_help_builder_for_sub_arguments__'
+        local aliases="$(dict_get "${__parseargs_subparser_alias__}" "${dest}" )"
+        if [ -n "${aliases}" ]; then
+          dict_for_each "${aliases}" '__parseargs_op_help_builder_for_sub_argument_aliases__'
+        fi
+      fi
+      arg_depiction="{${__parseargs_built_deduced_usage_text__}} ..."
+      local usage_type='uposits'
+      if [ -n "${opt}" ] || [ -n "${optl}" ]; then
+        __parseargs_help_combine_option_ids_and_arg_depiction__ "${arg_depiction}" "${opt}" "${optl}"
+        arg_depiction="${__parseargs_built_deduced_usage_text__}"
+        usage_type='uopts'
+      else
+        required='true'
+      fi
       __parseargs_return_value__="${saved_return_value}"
-      __parseargs_help_arg_help_and_deduced_usage__ "${arg_depiction}" 'opts' "${deduce_usage}" 'uopts' "${__parseargs_option_deduced_usage_text__}" "${required}"
-    else # positional argument...
-      __parseargs_return_value__="${saved_return_value}"
-      __parseargs_help_arg_help_and_deduced_usage__ "${arg_depiction}" 'posits' "${deduce_usage}" 'uposits' "${arg_depiction}"
+      __parseargs_help_make_arg_deduced_usage__ "${usage_type}" "${arg_depiction}" "${required}"
+    else
+      if [ -n "${opt}" ] || [ -n "${optl}" ]; then
+        __parseargs_help_combine_option_ids_and_arg_depiction__ "${arg_depiction}" "${opt}" "${optl}"
+        arg_depiction="${__parseargs_return_value__}"
+        __parseargs_return_value__="${saved_return_value}"
+        __parseargs_help_arg_help_and_deduced_usage__ "${arg_depiction}" 'opts' "${deduce_usage}" 'uopts' "${__parseargs_built_deduced_usage_text__}" "${required}"
+      else # positional argument...
+        __parseargs_return_value__="${saved_return_value}"
+        __parseargs_help_arg_help_and_deduced_usage__ "${arg_depiction}" 'posits' "${deduce_usage}" 'uposits' "${arg_depiction}"
+      fi
     fi
   }
 
-  __parseargs_option_deduced_usage_text__=''
+  __parseargs_built_deduced_usage_text__=''
+
+  __parseargs_op_help_builder_for_sub_arguments__() {
+    local sp_id="${1}"
+    local subparser="${2}"
+    if [ -z "${__parseargs_built_deduced_usage_text__}" ]; then
+      __parseargs_built_deduced_usage_text__="${sp_id}"
+    else
+      __parseargs_built_deduced_usage_text__="${__parseargs_built_deduced_usage_text__},${sp_id}"
+    fi
+  }
+
+  __parseargs_op_help_builder_for_sub_argument_aliases__() {
+    local sp_alias_id="${1}"
+    __parseargs_built_deduced_usage_text__="${__parseargs_built_deduced_usage_text__},${sp_alias_id}"
+  }
+
   __parseargs_help_combine_option_ids_and_arg_depiction__() {
       local arg_depiction="${1}"
       local opt="${2}"
@@ -1177,7 +1218,7 @@ then
           opt="${optl}"
         fi
       fi
-      __parseargs_option_deduced_usage_text__="${opt}"
+      __parseargs_built_deduced_usage_text__="${opt}"
    }
 
   __parseargs_help_arg_help_and_deduced_usage__()
@@ -1204,18 +1245,27 @@ then
 #echo "${arg_type} (updated):'${arg_types_help}'" >&2
     __parseargs_return_value__="$(dict_set "${__parseargs_return_value__}" "${arg_type}" "${arg_types_help}" )"
     if "${deduce_usage}"; then
-      local usage="$(dict_get "${__parseargs_return_value__}" "${usage_type}" )"
-      if [ -n "${usage}" ]; then
-        usage="${usage} "
-      fi
-      if [ -n "${required}" ] && "${required}"; then
-        usage="${usage}${arg_usage}"
-      else
-        usage="${usage}[${arg_usage}]"
-      fi
-      __parseargs_return_value__="$(dict_set "${__parseargs_return_value__}" "${usage_type}" "${usage}" )"
+      __parseargs_help_make_arg_deduced_usage__ "${usage_type}" "${arg_usage}" "${required}"
     fi
   }
+
+__parseargs_help_make_arg_deduced_usage__() {
+    local usage_type="${1}"
+    local arg_usage="${2}"
+    local required="${3}"
+
+    local usage="$(dict_get "${__parseargs_return_value__}" "${usage_type}" )"
+    if [ -n "${usage}" ]; then
+      usage="${usage} "
+    fi
+    if [ -n "${required}" ] && "${required}"; then
+      usage="${usage}${arg_usage}"
+    else
+      usage="${usage}[${arg_usage}]"
+    fi
+    __parseargs_return_value__="$(dict_set "${__parseargs_return_value__}" "${usage_type}" "${usage}" )"
+
+}
 
   __parseargs_make_argument_help_string__() {
     local argname="${1}"
@@ -1334,9 +1384,21 @@ then
         out="${out}${__parseargs_return_value__%' '*}\n"
         break_col=$(( ${break_col}-${#word_break_part} ))
       else
-        out="${out}${__parseargs_return_value__%' '*}\n"
+        word_break_part="${__parseargs_return_value__##*','}"
+        if [ ${#word_break_part} -le ${max_word_len} ]; then
+          out="${out}${__parseargs_return_value__%','*},\n"
+          break_col=$(( ${break_col}-${#word_break_part} ))
+        else
+          out="${out}${__parseargs_return_value__}\n"
+        fi
       fi
       __parseargs_break_string_at_index_right__ "${source_text}" ${break_col}
+      word_break_part="${__parseargs_return_value__#' '}"
+      if [ ${#word_break_part} -ne ${#__parseargs_return_value__} ]; then
+        len=$(( $len-1 ))
+        __parseargs_return_value__=${word_break_part}
+      fi
+
       source_text="${indent}${__parseargs_return_value__}"
       len=$(( $len-${break_col}+${#indent} ))
       break_col=${wrap_col}
