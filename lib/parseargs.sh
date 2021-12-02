@@ -1160,45 +1160,47 @@ then
           opt="${optl}"
         fi
       fi
-      saved_return_value="${__parseargs_return_value__}"
-      __parseargs_help_wrap_and_fill_append__ "${arg_help}" "${arg_desc}" "     " 25 80 0 20
-      arg_help="${__parseargs_return_value__}\n"
-    __parseargs_return_value__="${saved_return_value}"
-      local opts="$(dict_get "${__parseargs_return_value__}" 'opts' )"
-#echo "arg_help:'${arg_help}' opts:'${opts}'" >&2
-      opts="${opts% }"
-      opts="${opts}${arg_help} "
-#echo "opts (updated):'${opts}'" >&2
-      __parseargs_return_value__="$(dict_set "${__parseargs_return_value__}" 'opts' "${opts}" )"
-      if "${deduce_usage}"; then
-        local usage="$(dict_get "${__parseargs_return_value__}" 'uopts' )"
-        if [ -n "${usage}" ]; then
-          usage="${usage} "
-        fi
-        if [ -n "${required}" ] && "${required}"; then
-          usage="${usage}${opt}"
-        else
-          usage="${usage}[${opt}]"
-        fi
-        __parseargs_return_value__="$(dict_set "${__parseargs_return_value__}" 'uopts' "${usage}" )"
-      fi
+      __parseargs_help_arg_help_and_deduced_usage__ "${arg_help}" 'opts' 'uopts' "${opt}" "${required}"
     else # positional argument...
-      saved_return_value="${__parseargs_return_value__}"
-      __parseargs_help_wrap_and_fill_append__ "  ${arg_depiction}" "${arg_desc}" "     " 25 80 0 20
-      arg_help="${__parseargs_return_value__}\n"
-    __parseargs_return_value__="${saved_return_value}"
-      local posits="$(dict_get "${__parseargs_return_value__}" 'posits' )"
-      posits="${posits% }"
-      posits="${posits}${arg_help} "
-      __parseargs_return_value__="$(dict_set "${__parseargs_return_value__}" 'posits' "${posits}" )"
-      if "${deduce_usage}"; then
-        local usage="$(dict_get "${__parseargs_return_value__}" 'uposits' )"
-        if [ -n "${usage}" ]; then
-          usage="${usage} "
-        fi
-        usage="${usage}${arg_depiction}"
-        __parseargs_return_value__="$(dict_set "${__parseargs_return_value__}" 'uposits' "${usage}" )"
+      __parseargs_help_arg_help_and_deduced_usage__ "${arg_depiction}" 'posits' 'uposits' "${arg_depiction}"
+    fi
+  }
+
+  __parseargs_help_arg_help_and_deduced_usage__()
+  {
+    local arg_help="${1}"
+    local arg_type="${2}"
+    local usage_type=''
+    local arg_usage=''
+    local required=''
+    if [ $# -ge 4 ]; then
+      usage_type="${3}"
+      arg_usage="${4}"
+      if [ $# -ge 5 ]; then
+        required="${5}"
       fi
+    fi
+    saved_return_value="${__parseargs_return_value__}"
+    __parseargs_help_wrap_and_fill_append__ "${arg_help}" "${arg_desc}" "     " 25 80 0 20
+    arg_help="${__parseargs_return_value__}\n"
+  __parseargs_return_value__="${saved_return_value}"
+    local arg_types_help="$(dict_get "${__parseargs_return_value__}" "${arg_type}" )"
+#echo "arg_help:'${arg_help}' ${arg_type}:'${arg_types_help}'" >&2
+    arg_types_help="${arg_types_help% }"
+    arg_types_help="${arg_types_help}${arg_help} "
+#echo "${arg_type} (updated):'${arg_types_help}'" >&2
+    __parseargs_return_value__="$(dict_set "${__parseargs_return_value__}" "${arg_type}" "${arg_types_help}" )"
+    if [ -n "${usage_type}" ]; then
+      local usage="$(dict_get "${__parseargs_return_value__}" "${usage_type}" )"
+      if [ -n "${usage}" ]; then
+        usage="${usage} "
+      fi
+      if [ -n "${required}" ] && "${required}"; then
+        usage="${usage}${arg_usage}"
+      else
+        usage="${usage}[${arg_usage}]"
+      fi
+      __parseargs_return_value__="$(dict_set "${__parseargs_return_value__}" "${usage_type}" "${usage}" )"
     fi
   }
 
