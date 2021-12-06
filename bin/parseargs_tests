@@ -2376,10 +2376,6 @@ view_default_help_for_parser_with_short_long_positional_arguments() {
   parser="$(parseargs_add_argument "${parser}" "short" "p" long "prefixes" "nargs" "2")"
   parser="$(parseargs_add_argument "${parser}" "short" "s" "long" "suffixes" "nargs" "3" 'required' 'false')"
   local text="$(parseargs_parse_arguments "${parser}" '-h' )"
-  is_parser=true
-  is_parser="parseargs_is_argument_parser  ${dict}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE_FALSE "${is_parser}"
   echo '\n\n---------------------------------------------------------------------------------'
   echo 'view_default_help_for_parser_with_short_long_positional_arguments output:'
   echo '\n---------------------------------------------------------------------------------'
@@ -2398,10 +2394,6 @@ view_all_parts_help_for_parser_with_short_long_positional_arguments() {
   parser="$(parseargs_add_argument "${parser}" "short" "p" long "prefixes" "nargs" "2" 'help' 'prefix data from the input resources')"
   parser="$(parseargs_add_argument "${parser}" "short" "s" "long" "suffixes_longname" "nargs" "5" 'help' 'suffix data from the input and output resources plus two auxillary suffixes that are initially and finally appended to all')"
   local text="$(parseargs_parse_arguments "${parser}" '-h' )"
-  is_parser=true
-  is_parser="parseargs_is_argument_parser  ${dict}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE_FALSE "${is_parser}"
   echo '---------------------------------------------------------------------------------'
   echo 'view_all_parts_help_for_parser_with_short_long_positional_arguments output:'
   echo '\n---------------------------------------------------------------------------------'
@@ -2409,15 +2401,15 @@ view_all_parts_help_for_parser_with_short_long_positional_arguments() {
   echo '---------------------------------------------------------------------------------\n'
 }
 
-view_default_help_for_parser_with_sub_commands_and_sub_arguments() {
-  local parser="$(parseargs_new_argument_parser)"
-  parser="$(parseargs_add_argument "${parser}" "name" "command" 'action' 'sub_command')"
-  parser="$(parseargs_add_argument "${parser}" "short" "x" 'destination' 'external' 'action' 'sub_argument')"
-  parser="$(parseargs_add_argument "${parser}" "short" "p" 'long' 'passthrough' 'action' 'sub_argument')"
-  parser="$(parseargs_add_argument "${parser}" 'long' 'stage' 'action' 'sub_argument')"
+view_deduced_usuage_help_for_parser_with_sub_commands_and_sub_arguments() {
+  local parser="$(parseargs_new_argument_parser 'epilogue' 'end text, should come after sub-argument and sub-command help sections')"
+  parser="$(parseargs_add_argument "${parser}" "name" "command" 'action' 'sub_command' 'help' 'Command action to perform')"
+  parser="$(parseargs_add_argument "${parser}" "short" "x" 'destination' 'external' 'action' 'sub_argument' 'help' 'Arguments passed to external sub-system')"
+  parser="$(parseargs_add_argument "${parser}" "short" "p" 'long' 'passthrough' 'action' 'sub_argument' 'help' 'Arguments passed through to external sub-system')"
+  parser="$(parseargs_add_argument "${parser}" 'long' 'stage' 'action' 'sub_argument' 'help' 'Arguments for specified build stage')"
   local sp="$(parseargs_new_argument_parser)"
-  sp="$(parseargs_add_argument "${sp}" "name" "target")"
-  sp="$(parseargs_add_argument "${sp}" "name" "source")"
+  sp="$(parseargs_add_argument "${sp}" "name" "target" 'help' 'target object to produce')"
+  sp="$(parseargs_add_argument "${sp}" "name" "source" 'help' 'source object to act on')"
   parser="$(parseargs_add_sub_parser "${parser}" "command" "copy" "${sp}" 'cp')"
   parser="$(parseargs_add_sub_parser "${parser}" "command" "move" "${sp}" 'mv' 'ren' 'rename')"
   parser="$(parseargs_add_sub_parser "${parser}" "external" "copy" "${sp}" 'cp')"
@@ -2425,14 +2417,16 @@ view_default_help_for_parser_with_sub_commands_and_sub_arguments() {
   parser="$(parseargs_add_sub_parser "${parser}" "passthrough" "copy" "${sp}" 'cp')"
   parser="$(parseargs_add_sub_parser "${parser}" "passthrough" "move" "${sp}" 'mv' 'ren' 'rename')"
   parser="$(parseargs_add_sub_parser "${parser}" "stage" "copy" "${sp}" 'cp')"
-  parser="$(parseargs_add_sub_parser "${parser}" "stage" "move" "${sp}" 'mv' 'ren' 'rename')"
+  parser="$(parseargs_add_sub_parser "${parser}" "stage" "move" "${sp}" 'mv' 'rename' 'lnk' 'ren')"
   local text="$(parseargs_parse_arguments "${parser}" '-h' )"
-  is_parser=true
-  is_parser="parseargs_is_argument_parser  ${dict}"
-  REQUIRE -n "${is_parser}"
-  REQUIRE_FALSE "${is_parser}"
   echo '\n\n---------------------------------------------------------------------------------'
   echo 'view_default_help_for_parser_with_sub_commands output:'
+  echo '\n---------------------------------------------------------------------------------'
+  echo "${text}" 
+  echo '---------------------------------------------------------------------------------\n'
+  text="$(parseargs_parse_arguments "${parser}" '-x' 'mv' '-h' )"
+  echo '\n\n---------------------------------------------------------------------------------'
+  echo 'view_default_help_for_parser_with_sub_commands output (-x mv -h)'
   echo '\n---------------------------------------------------------------------------------'
   echo "${text}" 
   echo '---------------------------------------------------------------------------------\n'
@@ -2440,7 +2434,9 @@ view_default_help_for_parser_with_sub_commands_and_sub_arguments() {
 
 
 #set -x
+#TEST view_default_help_for_parser_with_short_long_positional_arguments
 #TEST view_all_parts_help_for_parser_with_short_long_positional_arguments
+#TEST view_deduced_usuage_help_for_parser_with_sub_commands_and_sub_arguments
 #PRINT_TEST_COUNTS
 #exit 0
 TEST parsearg_functions_complain_if_parameter_not_a_parseargs_parser
@@ -2642,5 +2638,5 @@ TEST optional_argument_with_append_const_action_must_specify_const
 TEST optional_argument_with_a_version_action_must_specify_version
 TEST view_default_help_for_parser_with_short_long_positional_arguments
 TEST view_all_parts_help_for_parser_with_short_long_positional_arguments
-TEST view_default_help_for_parser_with_sub_commands_and_sub_arguments
+TEST view_deduced_usuage_help_for_parser_with_sub_commands_and_sub_arguments
 PRINT_TEST_COUNTS

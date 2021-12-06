@@ -1096,14 +1096,15 @@ then
     dict_for_each "${__parseargs_arg_specs__}" \
                   "__parseargs_op_build_argument_help__" \
                   "${deduce_usage}"
+    local help_data="${__parseargs_return_value__}"
     if "${deduce_usage}"; then
-      local usage="$(dict_get_simple "${__parseargs_return_value__}" 'uopts') $(dict_get_simple "${__parseargs_return_value__}" 'uposits')"
+      local usage="$(dict_get_simple "${help_data}" 'uopts') $(dict_get_simple "${help_data}" 'uposits')"
     fi
 
     local desc="$(dict_get_simple "${__parseargs_parser__}" 'description')"
     local epi="$(dict_get_simple "${__parseargs_parser__}" 'epilogue')"
-    local posits="$(dict_get_simple "${__parseargs_return_value__}" 'posits')"
-    local opts="$(dict_get_simple "${__parseargs_return_value__}" 'opts')"
+    local posits="$(dict_get_simple "${help_data}" 'posits')"
+    local opts="$(dict_get_simple "${help_data}" 'opts')"
     local prog="$(dict_get_simple "${__parseargs_parser__}" 'prog')"
     local help="usage: ${prog} ${usage}\n"
     if "${deduce_usage}"; then
@@ -1119,6 +1120,12 @@ then
     if [ -n "${opts}" ]; then
       help="${help}\noptional arguments:\n${opts}"
     fi
+    local subs="$(dict_get "${help_data}" 'subs')"
+    if [ -n "${subs}" ]; then
+      __parseargs_return_value__=''
+      dict_for_each "${subs}" '__parseargs_op_help_string_builder_for_sub_arguments__'
+      help="${help}${__parseargs_return_value__}\n"
+    fi
     if [ -n "${epi}" ]; then
       help="${help}\n${epi}\n"
     fi
@@ -1126,6 +1133,7 @@ then
   }
 
   __parseargs_op_build_argument_help__() {
+    local arg_id="${1}"
     local arg_spec="${2}"
     local record_number="${3}"
     local deduce_usage="${4}"
@@ -1137,16 +1145,14 @@ then
     local nargs="$(dict_get_simple "${arg_spec}" "nargs" )"
     local required="$(dict_get_simple "${arg_spec}" "required")"
     local saved_return_value="${__parseargs_return_value__}"
-    __parseargs_help_wrap_and_fill_append__ "${arg_desc}" '' "                         " 25 80 25 20
-    arg_desc="${__parseargs_return_value__}"
-    __parseargs_make_argument_help_string__ "${arg_depiction}" "${nargs}"
-    arg_depiction="${__parseargs_return_value__}"
     local opt="$(dict_get_simple "${arg_spec}" "short" )"
     local optl="$(dict_get_simple "${arg_spec}" "long" )"
 #echo "arg_desc:'${arg_desc}'  opt: '${opt}'  optl:'${optl}' arg_depiction:'${arg_depiction}' arg_spec:'${arg_spec}'" >&2
     local action="$(dict_get_simple "${arg_spec}" "action" )"
     if [ "${action}" = 'sub_command' ] || [ "${action}" = 'sub_argument' ]; then
       local dest="$(dict_get_simple "${arg_spec}" "destination" )"
+      __parseargs_help_wrap_and_fill_append__ "${arg_desc}" '' '  ' 2 80 2 20
+      arg_desc="${__parseargs_return_value__}"
       local arg_sub_parsers="$(dict_get "${__parseargs_subparsers__}" "${dest}" )"
       __parseargs_built_deduced_usage_text__=''
       if [ -n "${arg_sub_parsers}" ]; then
@@ -1167,7 +1173,19 @@ then
       fi
       __parseargs_return_value__="${saved_return_value}"
       __parseargs_help_make_arg_deduced_usage__ "${usage_type}" "${arg_depiction}" "${required}"
+      local help_rec="$(dict_declare_simple 'head' "${dest}" 'desc' "${arg_desc}" 'short' "${arg_depiction}")"
+      local subs="$(dict_get "${__parseargs_return_value__}" 'subs')"
+      if [ -z "${subs}" ]; then
+        subs="$(dict_declare "${arg_id}" "${help_rec}")"
+      else
+        subs="$(dict_set "${subs}" "${arg_id}" "${help_rec}")"
+      fi
+      __parseargs_return_value__="$(dict_set "${__parseargs_return_value__}" 'subs' "${subs}")"
     else
+      __parseargs_help_wrap_and_fill_append__ "${arg_desc}" '' "                         " 25 80 25 20
+      arg_desc="${__parseargs_return_value__}"
+      __parseargs_make_argument_help_string__ "${arg_depiction}" "${nargs}"
+      arg_depiction="${__parseargs_return_value__}"
       if [ -n "${opt}" ] || [ -n "${optl}" ]; then
         __parseargs_help_combine_option_ids_and_arg_depiction__ "${arg_depiction}" "${opt}" "${optl}"
         arg_depiction="${__parseargs_return_value__}"
@@ -1179,6 +1197,17 @@ then
       fi
     fi
   }
+
+  __parseargs_op_help_string_builder_for_sub_arguments__() {
+    local help_rec="${2}"
+#echo "Add top-level sub argument/command help for argument '${1}' from data '${help_rec}'" >&2
+    __parseargs_return_value__="${__parseargs_return_value__}\n$(dict_get_simple "${help_rec}" 'head'):\n"
+    local desc="$(dict_get_simple "${help_rec}" 'desc')"
+    if [ -n "${desc}" ]; then
+      __parseargs_return_value__="${__parseargs_return_value__}  ${desc}\n"
+    fi
+    __parseargs_return_value__="${__parseargs_return_value__}\n  $(dict_get_simple "${help_rec}" 'short')\n"
+ }
 
   __parseargs_built_deduced_usage_text__=''
 
@@ -1396,7 +1425,7 @@ __parseargs_help_make_arg_deduced_usage__() {
       word_break_part="${__parseargs_return_value__#' '}"
       if [ ${#word_break_part} -ne ${#__parseargs_return_value__} ]; then
         len=$(( $len-1 ))
-        __parseargs_return_value__=${word_break_part}
+        __parseargs_return_value__="${word_break_part}"
       fi
 
       source_text="${indent}${__parseargs_return_value__}"
