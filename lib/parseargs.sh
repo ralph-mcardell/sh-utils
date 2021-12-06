@@ -1172,10 +1172,10 @@ then
         __parseargs_help_combine_option_ids_and_arg_depiction__ "${arg_depiction}" "${opt}" "${optl}"
         arg_depiction="${__parseargs_return_value__}"
         __parseargs_return_value__="${saved_return_value}"
-        __parseargs_help_arg_help_and_deduced_usage__ "${arg_depiction}" 'opts' "${deduce_usage}" 'uopts' "${__parseargs_built_deduced_usage_text__}" "${required}"
+        __parseargs_help_arg_help_and_deduced_usage__ "${arg_depiction}" "${arg_desc}" 'opts' "${deduce_usage}" 'uopts' "${__parseargs_built_deduced_usage_text__}" "${required}"
       else # positional argument...
         __parseargs_return_value__="${saved_return_value}"
-        __parseargs_help_arg_help_and_deduced_usage__ "${arg_depiction}" 'posits' "${deduce_usage}" 'uposits' "${arg_depiction}"
+        __parseargs_help_arg_help_and_deduced_usage__ "${arg_depiction}" "${arg_desc}" 'posits' "${deduce_usage}" 'uposits' "${arg_depiction}"
       fi
     fi
   }
@@ -1224,14 +1224,15 @@ then
   __parseargs_help_arg_help_and_deduced_usage__()
   {
     local arg_help="${1}"
-    local arg_type="${2}"
-    local deduce_usage="${3}"
+    local arg_desc="${2}"
+    local arg_type="${3}"
+    local deduce_usage="${4}"
     if "${deduce_usage}"; then
-      local usage_type="${4}"
-      local arg_usage="${5}"
+      local usage_type="${5}"
+      local arg_usage="${6}"
       local required=true
-      if [ $# -ge 6 ]; then
-        required="${6}"
+      if [ $# -ge 7 ]; then
+        required="${7}"
       fi
     fi
     saved_return_value="${__parseargs_return_value__}"
@@ -1264,7 +1265,6 @@ __parseargs_help_make_arg_deduced_usage__() {
       usage="${usage}[${arg_usage}]"
     fi
     __parseargs_return_value__="$(dict_set "${__parseargs_return_value__}" "${usage_type}" "${usage}" )"
-
 }
 
   __parseargs_make_argument_help_string__() {
