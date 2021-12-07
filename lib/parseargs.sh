@@ -1157,11 +1157,13 @@ then
       __parseargs_built_deduced_usage_text__=''
       __parseargs_sub_key_help_text__=''
       if [ -n "${arg_sub_parsers}" ]; then
-        dict_for_each "${arg_sub_parsers}" '__parseargs_op_help_builder_for_sub_arguments__'
+
         local aliases="$(dict_get "${__parseargs_subparser_alias__}" "${dest}" )"
+        __parseargs_return_value__="$(dict_declare_simple)"
         if [ -n "${aliases}" ]; then
           dict_for_each "${aliases}" '__parseargs_op_help_builder_for_sub_argument_aliases__'
         fi
+        dict_for_each "${arg_sub_parsers}" '__parseargs_op_help_builder_for_sub_arguments__' "${__parseargs_return_value__}"
       fi
       arg_depiction="{${__parseargs_built_deduced_usage_text__}} ..."
       local usage_type='uposits'
@@ -1217,23 +1219,38 @@ then
   __parseargs_op_help_builder_for_sub_arguments__() {
     local sp_id="${1}"
     local subparser="${2}"
-#cho "Build sub argument help for Subparser: (ID'${sp_id}'):(parser:'${subparser}')" >&2
+    local all_aliases="${4}"
+    local sp_id_aliases="$(dict_get_simple "${all_aliases}" "${sp_id}")"
+    local sp_id_and_aliases_list="${sp_id}"
+    local sp_id_with_alias_list="${sp_id}"
+    if [ -n "${sp_id_aliases}" ]; then
+      sp_id_and_aliases_list="${sp_id_and_aliases_list},${sp_id_aliases}"
+      sp_id_with_alias_list="${sp_id_with_alias_list} (${sp_id_aliases})"
+    fi
+#echo "Build sub argument help for Subparser: (ID'${sp_id}'):(parser:'${subparser}')" >&2
     local arg_desc="$(dict_get_simple "${subparser}" 'description')"
     __parseargs_help_wrap_and_fill_append__ "${arg_desc}" '' "                         " 25 80 25 20
     arg_desc="${__parseargs_return_value__}"
-    __parseargs_help_wrap_and_fill_append__ "    ${sp_id}" "${arg_desc}" "     " 25 80 0 20
+    __parseargs_help_wrap_and_fill_append__ "    ${sp_id_with_alias_list}" "${arg_desc}" "     " 25 80 0 20
     __parseargs_sub_key_help_text__="${__parseargs_sub_key_help_text__}${__parseargs_return_value__}\n"
 
     if [ -z "${__parseargs_built_deduced_usage_text__}" ]; then
-      __parseargs_built_deduced_usage_text__="${sp_id}"
+      __parseargs_built_deduced_usage_text__="${sp_id_and_aliases_list}"
     else
-      __parseargs_built_deduced_usage_text__="${__parseargs_built_deduced_usage_text__},${sp_id}"
+      __parseargs_built_deduced_usage_text__="${__parseargs_built_deduced_usage_text__},${sp_id_and_aliases_list}"
     fi
   }
 
   __parseargs_op_help_builder_for_sub_argument_aliases__() {
     local sp_alias_id="${1}"
-    __parseargs_built_deduced_usage_text__="${__parseargs_built_deduced_usage_text__},${sp_alias_id}"
+    local sp_id="${2}"
+    local aliases="$(dict_get_simple "${__parseargs_return_value__}" "${sp_id}")"
+#echo "Build sub argument aliases data for help: (alias ID'${sp_alias_id}'):(sp_id:'${sp_id}'); sp_is:alias map:'${__parseargs_return_value__}'" >&2
+    if [ -z "${aliases}" ]; then
+      __parseargs_return_value__="$(dict_set_simple "${__parseargs_return_value__}" "${sp_id}" "${sp_alias_id}")"
+    else
+      __parseargs_return_value__="$(dict_set_simple "${__parseargs_return_value__}" "${sp_id}" "${aliases},${sp_alias_id}")"
+    fi
   }
 
   __parseargs_help_combine_option_ids_and_arg_depiction__() {
