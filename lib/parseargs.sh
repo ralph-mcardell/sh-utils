@@ -1155,6 +1155,7 @@ then
       arg_desc="${__parseargs_return_value__}"
       local arg_sub_parsers="$(dict_get "${__parseargs_subparsers__}" "${dest}" )"
       __parseargs_built_deduced_usage_text__=''
+      __parseargs_sub_key_help_text__=''
       if [ -n "${arg_sub_parsers}" ]; then
         dict_for_each "${arg_sub_parsers}" '__parseargs_op_help_builder_for_sub_arguments__'
         local aliases="$(dict_get "${__parseargs_subparser_alias__}" "${dest}" )"
@@ -1173,7 +1174,7 @@ then
       fi
       __parseargs_return_value__="${saved_return_value}"
       __parseargs_help_make_arg_deduced_usage__ "${usage_type}" "${arg_depiction}" "${required}"
-      local help_rec="$(dict_declare_simple 'head' "${dest}" 'desc' "${arg_desc}" 'short' "${arg_depiction}")"
+      local help_rec="$(dict_declare_simple 'head' "${dest}" 'desc' "${arg_desc}" 'short' "${arg_depiction}" 'long' "${__parseargs_sub_key_help_text__}")"
       local subs="$(dict_get "${__parseargs_return_value__}" 'subs')"
       if [ -z "${subs}" ]; then
         subs="$(dict_declare "${arg_id}" "${help_rec}")"
@@ -1207,13 +1208,22 @@ then
       __parseargs_return_value__="${__parseargs_return_value__}  ${desc}\n"
     fi
     __parseargs_return_value__="${__parseargs_return_value__}\n  $(dict_get_simple "${help_rec}" 'short')\n"
+    __parseargs_return_value__="${__parseargs_return_value__}$(dict_get_simple "${help_rec}" 'long')\n"
  }
 
   __parseargs_built_deduced_usage_text__=''
+  __parseargs_sub_key_help_text__=''
 
   __parseargs_op_help_builder_for_sub_arguments__() {
     local sp_id="${1}"
     local subparser="${2}"
+#cho "Build sub argument help for Subparser: (ID'${sp_id}'):(parser:'${subparser}')" >&2
+    local arg_desc="$(dict_get_simple "${subparser}" 'description')"
+    __parseargs_help_wrap_and_fill_append__ "${arg_desc}" '' "                         " 25 80 25 20
+    arg_desc="${__parseargs_return_value__}"
+    __parseargs_help_wrap_and_fill_append__ "    ${sp_id}" "${arg_desc}" "     " 25 80 0 20
+    __parseargs_sub_key_help_text__="${__parseargs_sub_key_help_text__}${__parseargs_return_value__}\n"
+
     if [ -z "${__parseargs_built_deduced_usage_text__}" ]; then
       __parseargs_built_deduced_usage_text__="${sp_id}"
     else

@@ -2407,7 +2407,7 @@ view_deduced_usuage_help_for_parser_with_sub_commands_and_sub_arguments() {
   parser="$(parseargs_add_argument "${parser}" "short" "x" 'destination' 'external' 'action' 'sub_argument' 'help' 'Arguments passed to external sub-system')"
   parser="$(parseargs_add_argument "${parser}" "short" "p" 'long' 'passthrough' 'action' 'sub_argument' 'help' 'Arguments passed through to external sub-system')"
   parser="$(parseargs_add_argument "${parser}" 'long' 'stage' 'action' 'sub_argument' 'help' 'Arguments for specified build stage')"
-  local sp="$(parseargs_new_argument_parser)"
+  local sp="$(parseargs_new_argument_parser 'description' 'common sub command description')"
   sp="$(parseargs_add_argument "${sp}" "name" "target" 'help' 'target object to produce')"
   sp="$(parseargs_add_argument "${sp}" "name" "source" 'help' 'source object to act on')"
   parser="$(parseargs_add_sub_parser "${parser}" "command" "copy" "${sp}" 'cp')"
@@ -2434,11 +2434,11 @@ view_deduced_usuage_help_for_parser_with_sub_commands_and_sub_arguments() {
 
 
 #set -x
-#TEST view_default_help_for_parser_with_short_long_positional_arguments
-#TEST view_all_parts_help_for_parser_with_short_long_positional_arguments
-#TEST view_deduced_usuage_help_for_parser_with_sub_commands_and_sub_arguments
-#PRINT_TEST_COUNTS
-#exit 0
+TEST view_default_help_for_parser_with_short_long_positional_arguments
+TEST view_all_parts_help_for_parser_with_short_long_positional_arguments
+TEST view_deduced_usuage_help_for_parser_with_sub_commands_and_sub_arguments
+PRINT_TEST_COUNTS
+exit 0
 TEST parsearg_functions_complain_if_parameter_not_a_parseargs_parser
 TEST requesting_a_new_parser_returns_a_valid_parser
 TEST make_arg_parser_with_positional_arguments_and_parse_some_arguments
