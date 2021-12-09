@@ -47,36 +47,46 @@ declared_dict_variable_is_a_dict() {
 
 non_dict_variables_are_not_tolerated() {
   # checking $? only works if value not placed in local variable viz:
-  gret=$(dict_set '' "${key}" "${expected}")
+  gret=$(dict_set '' "${key}" "${expected}" 2>&1)
   CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${gret}" 'not' 'dict'
   unset gret
 # or local declared 1st then set:
   local ret
   notdict="key${__DICT_FIELD_SEPARATOR__}value${__DICT_ENTRY_SEPARATOR__}"
-  ret=$(dict_set "${notdict}" "key2" "something")
+  ret=$(dict_set "${notdict}" "key2" "something" 2>&1)
   CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${ret}" 'not' 'dict'
   notdict="key${__DICT_FIELD_SEPARATOR__}value${__DICT_ENTRY_SEPARATOR__}"
-  ret=$(dict_set_simple "${notdict}" "key2" "something-simple")
+  ret=$(dict_set_simple "${notdict}" "key2" "something-simple" 2>&1)
   CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${ret}" 'not' 'dict'
   notdict="key${__DICT_FIELD_SEPARATOR__}value${__DICT_ENTRY_SEPARATOR__}"
-  ret=$(dict_get "${notdict}" "key" )
+  ret=$(dict_get "${notdict}" "key" 2>&1)
   CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${ret}" 'not' 'dict'
   notdict="key${__DICT_FIELD_SEPARATOR__}value${__DICT_ENTRY_SEPARATOR__}"
-  ret=$(dict_get_simple "${notdict}" "key" )
+  ret=$(dict_get_simple "${notdict}" "key" 2>&1)
   CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${ret}" 'not' 'dict'
   notdict="key${__DICT_FIELD_SEPARATOR__}value${__DICT_ENTRY_SEPARATOR__}"
-  ret=$(dict_remove "${notdict}" "key" )
+  ret=$(dict_remove "${notdict}" "key" 2>&1)
   CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${ret}" 'not' 'dict'
   notdict="key${__DICT_FIELD_SEPARATOR__}value${__DICT_ENTRY_SEPARATOR__}"
-  $(dict_for_each "${notdict}" "key" )
+  ret=$(dict_for_each "${notdict}" "key" 2>&1)
   CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${ret}" 'not' 'dict'
   notdict="key${__DICT_FIELD_SEPARATOR__}value${__DICT_ENTRY_SEPARATOR__}"
-  $(dict_size "${notdict}" )
+  ret=$(dict_size "${notdict}" 2>&1) 
   CHECK $? -eq 1
-  $(dict_pretty_print "${notdict}" "${notdict}" )
+  CHECK_CONTAINS_ALL "${ret}" 'not' 'dict'
+  ret=$(dict_pretty_print "${notdict}" "${notdict}" 2>&1)
   CHECK $? -eq 1
-  $(dict_pretty_print "$(dict_declare_simple)" "${notdict}" )
+  CHECK_CONTAINS_ALL "${ret}" 'not' 'dict'
+  ret=$(dict_pretty_print "$(dict_declare_simple)" "${notdict}" 2>&1) 
   CHECK $? -eq 1
+  CHECK_CONTAINS_ALL "${ret}" 'not' 'dict'
 }
 
 cannot_retrieve_values_from_empty_dict() {
@@ -130,17 +140,17 @@ can_add_multiple_initial_simple_values_only_on_dict_declaration() {
 
 cannot_set_duplicate_keys_in_dict_declaration() {
   local ret
-  ret=$(dict_declare "K" "V" "K" "VV")
+  ret=$(dict_declare "K" "V" "K" "VV" 2>&1)
   CHECK $? -eq 1
   local is_dict="dict_is_dict ${ret}"
   CHECK_FALSE "${is_dict}"
-  CHECK -z "${ret}"
+  CHECK_CONTAINS_ALL "${ret}" "ERROR" 'duplicate' 'key'
 
-  ret=$(dict_declare_simple "K" "V" "K" "VV")
+  ret=$(dict_declare_simple "K" "V" "K" "VV" 2>&1)
   CHECK $? -eq 1
   is_dict="dict_is_dict ${ret}"
   CHECK_FALSE "${is_dict}"
-  CHECK -z "${ret}"
+  CHECK_CONTAINS_ALL "${ret}" "ERROR" 'duplicate' 'key'
 }
 
 can_set_keys_duplicated_in_part_in_dict_declaration() {
@@ -1157,8 +1167,9 @@ EOF
 
 check_is_json() {
   local candidate="${1}"
-  echo -n "${candidate}" | python -c "import sys,json;sys.tracebacklimit=0;json.loads(sys.stdin.read())"
-  local ret="$?"
+  local ret
+  ret=$(echo -n "${candidate}" | python -c "import sys,json;sys.tracebacklimit=0;json.loads(sys.stdin.read()) " 2>&1)
+  ret="$?"
 #  echo "@@@@@ json check of \""${candidate}"\" exitcode: \"${ret}\"" >&2
   if [ "${ret}" -eq 0 ]; then
     echo -n "true"
