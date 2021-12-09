@@ -120,26 +120,34 @@ then
 
     # @brief Set - add or update - a key, value entry in a dict
     #
-    # Passed a dict to update, a key and a value.
+    # Passed a dict to update, one or more key and value parameter pairs.
     # Returns the updated dict value.
     #
-    # BOTH the key and value cannot be another dict, and cannot contain
+    # NO key or value can be another dict, and cannot contain
     # ASCII US, RS, GS, FS characters.
     #
     # If there is no entry in the passed dict having a key value matching
-    # matching the passed key a new entry is appended to the dict value returned.
+    # matching a passed key a new entry is appended to the dict value returned.
     #
     # Otherwise the value of the existing entry in the passed dict having a key
-    # value matching that of the passed key is updated to the new value.
+    # value matching that of a passed key is updated to the new associated
+    # passed value.
     #
     # @param 1 : dict value to set value in
     # @param 2 : Entry key value.
     # @param 3 : Entry value value.
+    # @param 4, 6, ... 4+2n : (optional) Additional key value
+    # @param 5, 7, ... 5+2n : (optional) Additional value value
     # @returns : dict value containing the updated or added (appended)
-    #            entry.
+    #            entries.
     dict_set_simple() {
         __dict_abort_if_not_dict__ "${1}" "dict_set_simple"
-        __dict_set__ "$@"
+        __dict_return_value__="${1}"
+        shift
+        while [ $# -ge 2 ]; do
+          __dict_set__ "${__dict_return_value__}" "${1}" "${2}"
+          shift 2
+        done
         echo -n "${__dict_return_value__}"
     }
 
@@ -211,34 +219,44 @@ then
 
     # @brief Set - add or update - a key, value entry in a dict
     #
-    # Passed a dict to update, a key and a value.
+    # Passed a dict to update, one or more key and value parameter pairs.
     # Returns the updated dict value.
     #
-    # The key cannot be another dict, and cannot contain ASCII
+    # A key cannot be another dict, and cannot contain ASCII
     # US, RS, GS, FS characters.
     #
-    # The value maybe another dict but otherwise cannot contain
+    # Values maybe another dict but otherwise cannot contain
     # ASCII US, RS, GS, FS characters.
     #
     # If there is no entry in the passed dict having a key value matching
-    # matching the passed key a new entry is appended to the dict value returned.
+    # a passed key a new entry is appended to the dict value returned.
     #
-    # Otherwise the value of the existing entry in the passed dict having a key
-    # value matching that of the passed key is updated to the new value.
+    # Otherwise values of existing entries in the passed dict having a key
+    # value matching that of a passed key are updated to the new associated
+    # passed value.
     #
     # @param 1 : dict value to set value in
     # @param 2 : Entry key value.
     # @param 3 : Entry value value.
+    # @param 4, 6, ... 4+2n : (optional) Additional key value
+    # @param 5, 7, ... 5+2n : (optional) Additional value value
+    #
     # @returns : dict value containing the updated or added (appended)
     #            entry.
     dict_set() {
         __dict_abort_if_not_dict__ "${1}" "dict_set"
-        local value="${3}"
-        if dict_is_dict "${value}"; then
-            __dict_prepare_value_for_nesting__ "${value}"
-            value="${__dict_return_value__}"
-        fi
-        __dict_set__ "${1}" "${2}" "${value}"
+        local dict="${1}"
+        shift
+        while [ $# -ge 2 ]; do
+            local value="${2}"
+            if dict_is_dict "${value}"; then
+                __dict_prepare_value_for_nesting__ "${value}"
+                value="${__dict_return_value__}"
+            fi
+            __dict_set__ "${dict}" "${1}" "${value}"
+            dict="${__dict_return_value__}"
+            shift 2
+        done
 #echo "@@ @@     DICT_SET:    updated size: '$(dict_print_raw "${__dict_return_value__}")'" >&2
         echo -n "${__dict_return_value__}"
     }

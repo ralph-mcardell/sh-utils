@@ -207,6 +207,56 @@ can_retrieve_just_the_values_for_keys_for_dict_containing_multiple_entries() {
   CHECK "$(dict_get_simple "${dict}" 'some_key')x" = "x"
 }
 
+can_set_multilple_entries_in_single_call_dict_set_simple() {
+  local expected1='value 1'
+  local expected2='value 2'
+  local expected3='value 3'
+  local key1='key1'
+  local key2='key2'
+  local key3='key3'
+
+  local dict="$(dict_declare_simple)"
+  dict="$(dict_set_simple "${dict}" "${key1}" "${expected1}" "${key2}" "${expected2}" "${key3}" "${expected3}")"
+  REQUIRE "$(dict_count "${dict}")" -eq "3"
+  REQUIRE "$(dict_size "${dict}")" -eq "3"
+
+  CHECK "$(dict_get "${dict}" "${key1}")A" = "${expected1}A"
+  CHECK "$(dict_get "${dict}" "${key2}")B" = "${expected2}B"
+  CHECK "$(dict_get "${dict}" "${key3}")C" = "${expected3}C"
+
+  CHECK "$(dict_get_simple "${dict}" "${key1}")A" = "${expected1}A"
+  CHECK "$(dict_get_simple "${dict}" "${key2}")B" = "${expected2}B"
+  CHECK "$(dict_get_simple "${dict}" "${key3}")C" = "${expected3}C"
+
+  CHECK "$(dict_get "${dict}" 'some_key')x" = "x"
+  CHECK "$(dict_get_simple "${dict}" 'some_key')x" = "x"
+}
+
+can_set_multilple_entries_in_single_call_dict_set() {
+  local expected1='value 1'
+  local expected2='value 2'
+  local expected3='value 3'
+  local key1='key1'
+  local key2='key2'
+  local key3='key3'
+
+  local dict="$(dict_declare_simple)"
+  dict="$(dict_set "${dict}" "${key1}" "${expected1}" "${key2}" "${expected2}" "${key3}" "${expected3}")"
+  REQUIRE "$(dict_count "${dict}")" -eq "3"
+  REQUIRE "$(dict_size "${dict}")" -eq "3"
+
+  CHECK "$(dict_get "${dict}" "${key1}")A" = "${expected1}A"
+  CHECK "$(dict_get "${dict}" "${key2}")B" = "${expected2}B"
+  CHECK "$(dict_get "${dict}" "${key3}")C" = "${expected3}C"
+
+  CHECK "$(dict_get_simple "${dict}" "${key1}")A" = "${expected1}A"
+  CHECK "$(dict_get_simple "${dict}" "${key2}")B" = "${expected2}B"
+  CHECK "$(dict_get_simple "${dict}" "${key3}")C" = "${expected3}C"
+
+  CHECK "$(dict_get "${dict}" 'some_key')x" = "x"
+  CHECK "$(dict_get_simple "${dict}" 'some_key')x" = "x"
+}
+
 can_retrieve_the_value_for_key_for_dict_containing_newlines() {
   local expected='value
 1
@@ -1287,6 +1337,8 @@ TEST cannot_set_duplicate_keys_in_dict_declaration
 TEST can_set_keys_duplicated_in_part_in_dict_declaration
 TEST can_retrieve_just_the_value_for_key_for_dict_containing_single_entry
 TEST can_retrieve_just_the_values_for_keys_for_dict_containing_multiple_entries
+TEST can_set_multilple_entries_in_single_call_dict_set_simple
+TEST can_set_multilple_entries_in_single_call_dict_set
 TEST can_retrieve_the_value_for_key_for_dict_containing_newlines
 TEST can_update_values_of_previously_added_entries_using_dict_set
 TEST can_update_values_of_previously_added_entries_using_dict_set_simple
