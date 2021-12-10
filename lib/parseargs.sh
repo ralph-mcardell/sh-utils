@@ -26,8 +26,6 @@ then
                     "__positionals__" "${empty_dict}" \
                     "__longopts__" "${empty_dict}"  \
                     "__shortopts__" "${empty_dict}"  \
-                    "__subparsers__" "${empty_dict}" \
-                    "__sp_aliases__" "${empty_dict}" \
                     "__optstring__" ":" \
                   )"
     local need_prog=true
@@ -401,33 +399,23 @@ then
     local subparser_id="${3}"
     local subparser="${4}"
     shift 4
-    local subparsers="$(dict_get "${parser}" "__subparsers__")"
+    local subparsers="$(dict_get "${parser}" "__subparsers__${arg_dest}")"
     if [ -z "${subparsers}" ]; then
       subparsers="$(dict_declare_simple)"
     fi
-    local arg_subparsers="$(dict_get "${subparsers}" "${arg_dest}")"
-    if [ -z "${arg_subparsers}" ]; then
-      arg_subparsers="$(dict_declare_simple)"
-    fi
-    arg_subparsers="$(dict_set "${arg_subparsers}" "${subparser_id}" "${subparser}")"
-    subparsers="$(dict_set "${subparsers}" "${arg_dest}" "${arg_subparsers}")"
-    parser="$(dict_set "${parser}" "__subparsers__" "${subparsers}")"
+    subparsers="$(dict_set "${subparsers}" "${subparser_id}" "${subparser}")"
+    parser="$(dict_set "${parser}" "__subparsers__${arg_dest}" "${subparsers}")"
 
     if [ "$#" -gt "0" ]; then
-      local aliases="$(dict_get "${parser}" "__sp_aliases__")"
+      local aliases="$(dict_get "${parser}" "__sp_aliases__${arg_dest}")"
       if [ -z "${aliases}" ]; then
         aliases="$(dict_declare_simple)"
       fi
-      local arg_aliases="$(dict_get "${aliases}" "${arg_dest}")"
-      if [ -z "${arg_aliases}" ]; then
-        arg_aliases="$(dict_declare_simple)"
-      fi
       while [ "$#" -gt "0" ]; do
-        arg_aliases="$(dict_set_simple "${arg_aliases}" "${1}" "${subparser_id}")"
+        aliases="$(dict_set_simple "${aliases}" "${1}" "${subparser_id}")"
         shift
       done
-      aliases="$(dict_set "${aliases}" "${arg_dest}" "${arg_aliases}")"
-      parser="$(dict_set "${parser}" "__sp_aliases__" "${aliases}")"
+      parser="$(dict_set "${parser}" "__sp_aliases__${arg_dest}" "${aliases}")"
     fi
     echo -n "${parser}"
   }
@@ -505,8 +493,6 @@ then
     __parseargs_longopts__="$(dict_get "${__parseargs_parser__}" "__longopts__")"
     __parseargs_shortopts__="$(dict_get "${__parseargs_parser__}" "__shortopts__")"
     __parseargs_optstring__="$(dict_get_simple "${__parseargs_parser__}" "__optstring__")"
-    __parseargs_subparsers__="$(dict_get "${__parseargs_parser__}" "__subparsers__")"
-    __parseargs_subparser_alias__="$(dict_get "${__parseargs_parser__}" "__sp_aliases__")"    
   }
 
   __parseargs_split_string_on_arg_rhs__() {
@@ -568,8 +554,6 @@ then
     local outer_longopts="${__parseargs_longopts__}"
     local outer_shortopts="${__parseargs_shortopts__}"
     local outer_optstring="${__parseargs_optstring__}"
-    local outer_subparsers="${__parseargs_subparsers__}"
-    local outer_sp_alias="${__parseargs_subparser_alias__}"
 
     ${function} "$@"
 
@@ -580,8 +564,6 @@ then
     __parseargs_longopts__="${outer_longopts}"
     __parseargs_shortopts__="${outer_shortopts}"
     __parseargs_optstring__="${outer_optstring}"
-    __parseargs_subparsers__="${outer_subparsers}"
-    __parseargs_subparser_alias__="${outer_sp_alias}"
   }
 
   __parseargs_parse_arguments__() {
@@ -823,11 +805,11 @@ then
     local sp_alias="${sp_id}"
 
     local sub_parser=''
-    local arg_sub_parsers="$(dict_get "${__parseargs_subparsers__}" "${dest}" )"
+    local arg_sub_parsers="$(dict_get "${__parseargs_parser__}" "__subparsers__${dest}" )"
     if [ -n "${arg_sub_parsers}" ]; then
       sub_parser="$(dict_get "${arg_sub_parsers}" "${sp_id}" )"
       if [ -z "${sub_parser}" ]; then
-        arg_sp_aliases="$(dict_get "${__parseargs_subparser_alias__}" "${dest}" )"
+        arg_sp_aliases="$(dict_get "${__parseargs_parser__}" "__sp_aliases__${dest}" )"
         if [ -n "${arg_sp_aliases}" ]; then
           sp_id="$(dict_get_simple "${arg_sp_aliases}" "${sp_alias}" )"
           if [ -n "${sp_id}" ]; then
@@ -1153,12 +1135,12 @@ then
       local dest="$(dict_get_simple "${arg_spec}" "destination" )"
       __parseargs_help_wrap_and_fill_append__ "${arg_desc}" '' '  ' 2 80 2 20
       arg_desc="${__parseargs_return_value__}"
-      local arg_sub_parsers="$(dict_get "${__parseargs_subparsers__}" "${dest}" )"
+      local arg_sub_parsers="$(dict_get "${__parseargs_parser__}" "__subparsers__${dest}" )"
       __parseargs_built_deduced_usage_text__=''
       __parseargs_sub_key_help_text__=''
       if [ -n "${arg_sub_parsers}" ]; then
 
-        local aliases="$(dict_get "${__parseargs_subparser_alias__}" "${dest}" )"
+        local aliases="$(dict_get "${__parseargs_parser__}" "__sp_aliases__${dest}" )"
         __parseargs_return_value__="$(dict_declare_simple)"
         if [ -n "${aliases}" ]; then
           dict_for_each "${aliases}" '__parseargs_op_help_builder_for_sub_argument_aliases__'
@@ -1526,7 +1508,7 @@ __parseargs_help_make_arg_deduced_usage__() {
 #echo "@@@ arg='${arg}'"       >&2
         dict_for_each "${arg}" '__parseargs_op_validate_and_fixup_sub_arguments__' 'subcmds' "${dest}"
       else
-        local arg_sub_parsers="$(dict_get "${__parseargs_subparsers__}" "${dest}" )"
+        local arg_sub_parsers="$(dict_get "${__parseargs_parser__}" "__subparsers__${dest}" )"
         if [ -n "${arg_sub_parsers}" ]; then
           dict_for_each "${arg_sub_parsers}" '__parseargs_op_validate_and_fixup_sub_arguments__' 'sp' '_'
         fi
@@ -1598,7 +1580,7 @@ __parseargs_help_make_arg_deduced_usage__() {
       local arg="$(dict_get "${sub_cmds}" "${sp_id}" )"
     else
       local dest="${5}"
-      local arg_sub_parsers="$(dict_get "${__parseargs_subparsers__}" "${dest}" )"
+      local arg_sub_parsers="$(dict_get "${__parseargs_parser__}" "__subparsers__${dest}" )"
       if [ -z "${arg_sub_parsers}" ]; then
         return
       fi
