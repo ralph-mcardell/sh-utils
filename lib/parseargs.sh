@@ -65,7 +65,8 @@ then
     fi
 
     if "${add_help}"; then
-      parser="$( parseargs_add_argument "${parser}" 'short' 'h' 'long' 'help' 'action' 'help' 'help' 'show this help message and exit' 2>&1)"
+      __parseargs_add_argument__ "${parser}" 'short' 'h' 'long' 'help' 'action' 'help' 'help' 'show this help message and exit'
+      parser="${__parseargs_return_value__}"
       if ! parseargs_is_argument_parser "${parser}"; then
         __parseargs_error_exit__ "Failed to add help optional argument to new parser: ${parser}"
       fi
@@ -75,6 +76,188 @@ then
   }
 
   parseargs_add_argument() {
+    __parseargs_add_argument__ "$@"
+    echo -n "${__parseargs_return_value__}"
+  }
+
+  parseargs_add_sub_parser() {
+    __parseargs_abort_if_not_parser__ "${1}" "parseargs_add_sub_parser"
+    if ! parseargs_is_argument_parser "${4}"; then
+      __parseargs_error_exit__ "Forth (sub-parser) argument passed to parseargs_add_sub_parser is not an argument parser type. Quitting current (sub-)shell."
+    fi
+    local parser="${1}"
+    local arg_dest="${2}"
+    local subparser_id="${3}"
+    local subparser="${4}"
+    shift 4
+    local subparsers="$(dict_get "${parser}" "__subparsers__${arg_dest}")"
+    if [ -z "${subparsers}" ]; then
+      subparsers="$(dict_declare_simple)"
+    fi
+    subparsers="$(dict_set "${subparsers}" "${subparser_id}" "${subparser}")"
+    parser="$(dict_set "${parser}" "__subparsers__${arg_dest}" "${subparsers}")"
+
+    if [ "$#" -gt "0" ]; then
+      local aliases="$(dict_get "${parser}" "__sp_aliases__${arg_dest}")"
+      if [ -z "${aliases}" ]; then
+        aliases="$(dict_declare_simple)"
+      fi
+      while [ "$#" -gt "0" ]; do
+        aliases="$(dict_set_simple "${aliases}" "${1}" "${subparser_id}")"
+        shift
+      done
+      parser="$(dict_set "${parser}" "__sp_aliases__${arg_dest}" "${aliases}")"
+    fi
+    echo -n "${parser}"
+  }
+
+  parseargs_parse_arguments() {
+    __parseargs_parse_arguments__ "$@"
+#echo "arguments before validation/fixup:'${__parseargs_return_value__}'." >&2
+  __parseargs_validate_and_fixup_arguments__ "${__parseargs_return_value__}"
+#echo "arguments  after validation/fixup:'${__parseargs_return_value__}'." >&2
+    echo -n "${__parseargs_return_value__}"
+  }
+
+  # Details
+
+  readonly __PARSEARGS_MAX_NARGS__="$(( $(getconf ARG_MAX)/2 ))"
+  __parseargs_return_value__=""
+  __parseargs_shift_caller_args_by__="0"
+  __parseargs_current_positional__="0"
+
+  __parseargs_warn_continue__() {
+    echo "WARNING: ${1}" >&2
+  }
+
+  __parseargs_error_exit__() {
+    echo "ERROR: ${1}" >&2
+    exit 1
+  }
+  __parseargs_abort_if_not_parser__() {
+    if ! parseargs_is_argument_parser "${1}"; then
+      __parseargs_error_exit__ "First argument passed to ${2} is not an argument parser type. Quitting current (sub-)shell."
+    fi
+  }
+  
+  __parseargs_abort_if_have_attribute_value__() {
+    if [ -n "${1}" ]; then
+      __parseargs_error_exit__ "Argument ${2} attribute specified more than once."
+    fi
+  }
+  
+  __parseargs_abort_if_attribute_flag_set__() {
+    if "${1}"; then
+      __parseargs_error_exit__ "Argument ${2} attribute specified more than once."
+    fi
+  }
+  
+  __parseargs_sanitise_destination__() {
+    echo -n "${1}" | tr "-" "_"
+  }
+
+  __parseargs_is_option_string__() {
+    local readonly option_name_suffix="${1#-}"
+    if [ "${option_name_suffix}" = "${1}" ]; then
+      false; return
+    else
+      true; return
+    fi
+  }
+
+  __parseargs_is_option_string_or_empty__() {
+    if [ -z "${1}" ] || __parseargs_is_option_string__ "${1}"; then
+      true; return
+    else
+      false; return
+    fi
+  }
+
+  __parseargs_option_name_from_long_option_string__() {
+    __parseargs_return_value__="${1#--}"
+  }
+
+  __parseargs_set_parse_specs__() {
+    __parseargs_parser__="${1}"
+    __parseargs_arg_specs__="$(dict_get "${__parseargs_parser__}" "__arguments__")"
+    __parseargs_positionals__="$(dict_get "${__parseargs_parser__}" "__positionals__")"
+    __parseargs_longopts__="$(dict_get "${__parseargs_parser__}" "__longopts__")"
+    __parseargs_shortopts__="$(dict_get "${__parseargs_parser__}" "__shortopts__")"
+    __parseargs_optstring__="$(dict_get_simple "${__parseargs_parser__}" "__optstring__")"
+  }
+
+  __parseargs_split_string_on_arg_rhs__() {
+    __parseargs_return_value__="${1#*"${2}"}"
+  }
+
+  __parseargs_split_string_on_eq_lhs__() {
+    __parseargs_return_value__="${1%%\=*}"
+  }
+
+  __parseargs_split_string_on_eq_rhs__() {
+    __parseargs_return_value__="${1#*'='}"
+  }
+
+  __parseargs_is_natural_number__() {
+    case "${1}" in
+      ''|*[!0-9]*)
+        false; return
+        ;;
+      *)
+        true; return
+        ;;
+    esac
+  }
+
+  __parseargs_is_glob_character__() {
+    case "${1}" in
+      '?'|'*'|'+')
+        true; return
+        ;;
+      *)
+        false; return
+        ;;
+    esac
+  }
+
+  __parseargs_is_valid_nargs_number__() {
+    [ "${#1}" -le 18 ] \
+    && __parseargs_is_natural_number__ "${1}" \
+    && [ "${1}" -gt "0" ] \
+    && [ "${1}" -le "${2}" ]
+    return
+  }
+
+  __parseargs_is_valid_nargs_value__() {
+    __parseargs_is_glob_character__  "${1}" \
+    || __parseargs_is_valid_nargs_number__ "${1}" "${2}"
+    return
+  }
+
+  __parseargs_sub_context_around() {
+    local function="${1}"
+    shift
+
+    local outer_current_positional=${__parseargs_current_positional__}
+    local outer_parser="${__parseargs_parser__}"
+    local outer_arg_specs="${__parseargs_arg_specs__}"
+    local outer_positionals="${__parseargs_positionals__}"
+    local outer_longopts="${__parseargs_longopts__}"
+    local outer_shortopts="${__parseargs_shortopts__}"
+    local outer_optstring="${__parseargs_optstring__}"
+
+    ${function} "$@"
+
+    __parseargs_current_positional__=${outer_current_positional}
+    __parseargs_parser__="${outer_parser}"
+    __parseargs_arg_specs__="${outer_arg_specs}"
+    __parseargs_positionals__="${outer_positionals}"
+    __parseargs_longopts__="${outer_longopts}"
+    __parseargs_shortopts__="${outer_shortopts}"
+    __parseargs_optstring__="${outer_optstring}"
+  }
+
+  __parseargs_add_argument__() {
     __parseargs_abort_if_not_parser__ "${1}" "parseargs_add_argument"
     local argument="$(dict_declare_simple)"
     local parser="${1}"
@@ -386,184 +569,7 @@ then
       parser="$(dict_set "${parser}" "__shortopts__" "${shortopts}")"
       parser="$(dict_set_simple "${parser}" "__optstring__" "${optstring}")"
     fi
-    echo -n "${parser}"
-  }
-
-  parseargs_add_sub_parser() {
-    __parseargs_abort_if_not_parser__ "${1}" "parseargs_add_sub_parser"
-    if ! parseargs_is_argument_parser "${4}"; then
-      __parseargs_error_exit__ "Forth (sub-parser) argument passed to parseargs_add_sub_parser is not an argument parser type. Quitting current (sub-)shell."
-    fi
-    local parser="${1}"
-    local arg_dest="${2}"
-    local subparser_id="${3}"
-    local subparser="${4}"
-    shift 4
-    local subparsers="$(dict_get "${parser}" "__subparsers__${arg_dest}")"
-    if [ -z "${subparsers}" ]; then
-      subparsers="$(dict_declare_simple)"
-    fi
-    subparsers="$(dict_set "${subparsers}" "${subparser_id}" "${subparser}")"
-    parser="$(dict_set "${parser}" "__subparsers__${arg_dest}" "${subparsers}")"
-
-    if [ "$#" -gt "0" ]; then
-      local aliases="$(dict_get "${parser}" "__sp_aliases__${arg_dest}")"
-      if [ -z "${aliases}" ]; then
-        aliases="$(dict_declare_simple)"
-      fi
-      while [ "$#" -gt "0" ]; do
-        aliases="$(dict_set_simple "${aliases}" "${1}" "${subparser_id}")"
-        shift
-      done
-      parser="$(dict_set "${parser}" "__sp_aliases__${arg_dest}" "${aliases}")"
-    fi
-    echo -n "${parser}"
-  }
-
-  parseargs_parse_arguments() {
-    __parseargs_parse_arguments__ "$@"
-#echo "arguments before validation/fixup:'${__parseargs_return_value__}'." >&2
-  __parseargs_validate_and_fixup_arguments__ "${__parseargs_return_value__}"
-#echo "arguments  after validation/fixup:'${__parseargs_return_value__}'." >&2
-    echo -n "${__parseargs_return_value__}"
-  }
-
-  # Details
-
-  readonly __PARSEARGS_MAX_NARGS__="$(( $(getconf ARG_MAX)/2 ))"
-  __parseargs_return_value__=""
-  __parseargs_shift_caller_args_by__="0"
-  __parseargs_current_positional__="0"
-
-  __parseargs_warn_continue__() {
-    echo "WARNING: ${1}" >&2
-  }
-
-  __parseargs_error_exit__() {
-    echo "ERROR: ${1}" >&2
-    exit 1
-  }
-  __parseargs_abort_if_not_parser__() {
-    if ! parseargs_is_argument_parser "${1}"; then
-      __parseargs_error_exit__ "First argument passed to ${2} is not an argument parser type. Quitting current (sub-)shell."
-    fi
-  }
-  
-  __parseargs_abort_if_have_attribute_value__() {
-    if [ -n "${1}" ]; then
-      __parseargs_error_exit__ "Argument ${2} attribute specified more than once."
-    fi
-  }
-  
-  __parseargs_abort_if_attribute_flag_set__() {
-    if "${1}"; then
-      __parseargs_error_exit__ "Argument ${2} attribute specified more than once."
-    fi
-  }
-  
-  __parseargs_sanitise_destination__() {
-    echo -n "${1}" | tr "-" "_"
-  }
-
-  __parseargs_is_option_string__() {
-    local readonly option_name_suffix="${1#-}"
-    if [ "${option_name_suffix}" = "${1}" ]; then
-      false; return
-    else
-      true; return
-    fi
-  }
-
-  __parseargs_is_option_string_or_empty__() {
-    if [ -z "${1}" ] || __parseargs_is_option_string__ "${1}"; then
-      true; return
-    else
-      false; return
-    fi
-  }
-
-  __parseargs_option_name_from_long_option_string__() {
-    __parseargs_return_value__="${1#--}"
-  }
-
-  __parseargs_set_parse_specs__() {
-    __parseargs_parser__="${1}"
-    __parseargs_arg_specs__="$(dict_get "${__parseargs_parser__}" "__arguments__")"
-    __parseargs_positionals__="$(dict_get "${__parseargs_parser__}" "__positionals__")"
-    __parseargs_longopts__="$(dict_get "${__parseargs_parser__}" "__longopts__")"
-    __parseargs_shortopts__="$(dict_get "${__parseargs_parser__}" "__shortopts__")"
-    __parseargs_optstring__="$(dict_get_simple "${__parseargs_parser__}" "__optstring__")"
-  }
-
-  __parseargs_split_string_on_arg_rhs__() {
-    __parseargs_return_value__="${1#*"${2}"}"
-  }
-
-  __parseargs_split_string_on_eq_lhs__() {
-    __parseargs_return_value__="${1%%\=*}"
-  }
-
-  __parseargs_split_string_on_eq_rhs__() {
-    __parseargs_return_value__="${1#*'='}"
-  }
-
-  __parseargs_is_natural_number__() {
-    case "${1}" in
-      ''|*[!0-9]*)
-        false; return
-        ;;
-      *)
-        true; return
-        ;;
-    esac
-  }
-
-  __parseargs_is_glob_character__() {
-    case "${1}" in
-      '?'|'*'|'+')
-        true; return
-        ;;
-      *)
-        false; return
-        ;;
-    esac
-  }
-
-  __parseargs_is_valid_nargs_number__() {
-    [ "${#1}" -le 18 ] \
-    && __parseargs_is_natural_number__ "${1}" \
-    && [ "${1}" -gt "0" ] \
-    && [ "${1}" -le "${2}" ]
-    return
-  }
-
-  __parseargs_is_valid_nargs_value__() {
-    __parseargs_is_glob_character__  "${1}" \
-    || __parseargs_is_valid_nargs_number__ "${1}" "${2}"
-    return
-  }
-
-  __parseargs_sub_context_around() {
-    local function="${1}"
-    shift
-
-    local outer_current_positional=${__parseargs_current_positional__}
-    local outer_parser="${__parseargs_parser__}"
-    local outer_arg_specs="${__parseargs_arg_specs__}"
-    local outer_positionals="${__parseargs_positionals__}"
-    local outer_longopts="${__parseargs_longopts__}"
-    local outer_shortopts="${__parseargs_shortopts__}"
-    local outer_optstring="${__parseargs_optstring__}"
-
-    ${function} "$@"
-
-    __parseargs_current_positional__=${outer_current_positional}
-    __parseargs_parser__="${outer_parser}"
-    __parseargs_arg_specs__="${outer_arg_specs}"
-    __parseargs_positionals__="${outer_positionals}"
-    __parseargs_longopts__="${outer_longopts}"
-    __parseargs_shortopts__="${outer_shortopts}"
-    __parseargs_optstring__="${outer_optstring}"
+    __parseargs_return_value__="${parser}"
   }
 
   __parseargs_parse_arguments__() {
