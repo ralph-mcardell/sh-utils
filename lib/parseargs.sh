@@ -1097,7 +1097,7 @@ then
     local help="usage: ${prog} ${usage}\n"
     if "${deduce_usage}"; then
       __parseargs_help_wrap_and_fill_append__ "${help}" '' "         " 80 80 0 20
-      help="${__parseargs_return_value__}\n"
+      help="${__parseargs_return_value__}"
     fi
     if [ -n "${desc}" ]; then
       help="${help}\n${desc}\n"
@@ -1112,7 +1112,7 @@ then
     if [ -n "${subs}" ]; then
       __parseargs_return_value__=''
       dict_for_each "${subs}" '__parseargs_op_help_string_builder_for_sub_arguments__'
-      help="${help}${__parseargs_return_value__}\n"
+      help="${help}${__parseargs_return_value__}"
     fi
     if [ -n "${epi}" ]; then
       help="${help}\n${epi}\n"
