@@ -14,15 +14,14 @@ WORK_DIR=`realpath "${EXEC_DIR}/.."` || {
    WORK_DIR=$(cd "${EXEC_DIR}/.." && pwd -P)
 }
 
-BUILD_DIR="${WORK_DIR}/build"
-SHARED_DIR="${WORK_DIR}/shared"
+LIB_DIR="${WORK_DIR}/lib"
 
-PATH=${PATH}:${SHARED_DIR}:${EXEC_DIR}
-. parseargs
-. sh-test
+PATH=${PATH}:${LIB_DIR}
+. parseargs.sh
+. sh_test.sh
 
 # Check we can 'include' parseargs more than once safely
-. parseargs
+. parseargs.sh
 
 parsearg_functions_complain_if_parameter_not_a_parseargs_parser(){
   local dict="$(dict_declare_simple)"

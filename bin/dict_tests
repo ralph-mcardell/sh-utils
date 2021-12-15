@@ -14,14 +14,13 @@ WORK_DIR=`realpath "${EXEC_DIR}/.."` || {
    WORK_DIR=$(cd "${EXEC_DIR}/.." && pwd -P)
 }
 
-BUILD_DIR="${WORK_DIR}/build"
-SHARED_DIR="${WORK_DIR}/shared"
+LIB_DIR="${WORK_DIR}/lib"
 
-. ${SHARED_DIR}/dict
-. ${EXEC_DIR}/sh-test
+. ${LIB_DIR}/dict.sh
+. ${LIB_DIR}/sh_test.sh
 
 # Check we can 'include' dict more than once safely
-. ${SHARED_DIR}/dict
+. ${LIB_DIR}/dict.sh
 
 __TEST_NL__='
 '

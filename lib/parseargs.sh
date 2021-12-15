@@ -2,7 +2,7 @@
 
 # Parse (command line) arguments.
 
-. dict
+. dict.sh
 
 if [ -z ${__parseargs_included_20210604__} ];
 then
