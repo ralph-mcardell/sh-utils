@@ -4,13 +4,52 @@
 # Licensed under BSD 2-Clause License - see LICENSE.md for full text.
 #
 # Parse (command line) arguments.
+#
+# Allows similar functionality to Python argsparse.
+#
+# Sequence is to create parser 'object' then add arguments and if required
+# sub-parsers to it and finally to use it to parse a set of arguments,
+# generally intended to be command line arguments but can be any set of
+# arguments.
+#
+# Use:
+#  - unless otherwise stated parseargs functions are called using Posix
+#    shell command substition - $( ... )
+# parseargs_is_argument_parser  Check to see if the passed value represents a
+#                               parseargs' parser. Returns true or false.
+#                               Not called using cammand substitution.
+# parseargs_new_argument_parser Create a new parseargs' argumetn parser
+#                               Returns the parser 'object'.
+# parseargs_add_argument        Add a new argument to the passed parser with
+#                               the following passed attributes. Returns the
+#                               updated parser.
+# parseargs_add_sub_parser      Add a parseargs parser as a sub-parser the
+#                               passed parser. Returns the updated parser.
+# parseargs_parse_arguments     Uses the passed parseargs parser to parse
+#                               the following passed arguments. Returns a
+#                               dict (see the sh_utils/lib/dict.sh library)
+#                               with parsed argument key:value pairs, values
+#                               may be a dict if storing multiple values or
+#                               nothing if an argument action terminates
+#                               once performed - help and version printing
+#                               actions.
+#
+# In all functions called via command substition the returned status ($?) is 0
+# for a successful call or non zero for a failure, with any error message
+# logged to stderr.
 
 . dict.sh
 
 if [ -z ${__parseargs_included_20210604__} ];
 then
   __parseargs_included_20210604__=yes
-
+  # @brief return true if first parameter appears to be a Paradd_help
+  #  - has a special __PARSEARG_TYPE__ entry with value argument_parser
+  #
+  # @param 1 : value or variable to query
+  # @returns : true if "${1}" appears to be a parser - that is adheres to the
+  #            dict string format and contains the Parseargs parser type entry,
+  #            false otherwise.
   parseargs_is_argument_parser() {
     if [ $# -ge 1 ] && \
     dict_is_dict "${1}" && \
@@ -21,6 +60,34 @@ then
     fi    
   }
 
+  # @brief return a new Parseargs parser
+  #
+  # By default the new parser will have a default help optional argument.
+  # The function accepts pairs of attribute-name attribute-value arguments.
+  # 
+  # The accepted attributes are:
+  #
+  # 'add_help'      'true' or 'false', 'true' by default. If 'true' then the
+  #                 new parser accepts '-h' or '--help' optional flag
+  #                 arguments which will print help text and exit.
+  # 'prog'          String used as program name in help text output. Defaults
+  #                 to $0.
+  # 'usage'         String used for program usage in help text output. Defaults
+  #                 to a deduced usage string based on parser arguments and
+  #                 subparsers.
+  # 'description'   String used for program description following usage text
+  #                 in help text output. Defaults to blank.
+  # 'epilogue'      String used for program description following positional,
+  #                 optional and sub-command and sub-argument descriptions in
+  #                 help text output. Defaults to blank.
+  # 'argument_default' 
+  #                 Default value global to all arguments of parser to use if
+  #                 a default may be or is required and no argument specific
+  #                 default value is provided. Defaults to no parser-global
+  #                 default value.
+  # @param 2n-1 : Parser wide attribute name; n>=1
+  # @param 2n   : Value for parser wide attribute named by parameter 2n-1.
+  # @returns : Argument parser.
   parseargs_new_argument_parser() {
     local empty_dict="$(dict_declare_simple)"
     local parser="$(dict_declare \
@@ -78,6 +145,113 @@ then
     echo -n "${parser}"
   }
 
+  # @brief Add argument specification to a Parseargs parser
+  #
+  # The function is passed an existing Parseargs parser and returns an
+  # updated Parseargs parser if there are no errors. The function accepts
+  # pairs of attribute-name attribute-value arguments for the 2nd and 3rd
+  # arguments onwards.
+  # 
+  # The accepted attributes are:
+  #
+  # 'destination'   Name of entry key for argument stored value(s) in the
+  #                 result dict from parsing arguments. Defaults to:
+  #                   . 'name' attribute value for positional arguments
+  #                   . 'long' attribute value for optional arguments that
+  #                     have a long option form.
+  #                   . None for optional arguments that only have a short
+  #                     option form  - in these cases a 'destination'
+  #                     attribute value is required.
+  # 'name'          Name for a positional argument. If given then neither
+  #                 'long' or 'short' attributes can be given - an argument
+  #                 cannot be both positional and optional. Default: none.
+  # 'long'          Long optional argument string (e.g. 'longopt' for option
+  #                 --longopt). Default: none. Can be specified with 'short'.
+  # 'short'         Short optional argument character (e.g. 'x' for option
+  #                 -x). Default: none.  Can be specified with 'long'.
+  # 'action'        Action to perform for argument (see below). Defaults to
+  #                 'store' unless 'version' attribute specified when the
+  #                 default is 'version'.
+  # 'nargs'         Number of values comprising this argument. Defaults to 1
+  #                 argument. 0 implies a flag value. Any other positive integer
+  #                 value explicitly given, including 1, results in argument
+  #                 values being stored in a dict. Maximum value is ARG_MAX/2.
+  #                 The following special values are accepted:
+  #                   '?' : 0 or 1 argument values may be given. If no value
+  #                         is given then a predefined value is substituted.
+  #                         For positional arguments this value is either an
+  #                         argument specific default or parser global default
+  #                         attribute value. For optional arguments the substituted
+  #                         value is provided by a const argument attribute value.
+  #                   '*' : 0 or more argument values, stored in a possibly empty
+  #                         dict.
+  #                   '+' : 1 or more argument values, stored in a dict.
+  #                 Default: none
+  # 'const'         A constant value to be used in conjunction with certain action
+  #                 attribute values and for optional arguments that specify 0 or
+  #                 1 values ('nargs' '?'). Default: none
+  # 'default'       A default value to be used in cases of the argument missing  # 'const'         A constant value to be used in conjunction with certain action
+  #                 attribute values and for optional arguments that specify 0 or
+  #                 1 values ('nargs' '?').
+
+  #                 Default: parser argument_default if set otherwise none.
+  # 'required'      A true/false flag value indicating an optional argument
+  #                 is required and must be provided (possibly via a default
+  #                 value). Default: false. Note: positional arguments are
+  #                 always required, even if they have narges of '?' where
+  #                 non provided value provided by default.
+  # 'choices'       Specify a set of strings that are valid choices as values
+  #                 for an argument. The 'choices' attribute value is a dict
+  #                 with each entry key a choice and each entry value any
+  #                 non-empty string - typically '_'. Default: none
+  # 'version'       String value displayed by a 'version' action argument.
+  #                 If the version attribute is set and no action is given then
+  #                 then a version action is assumed and not the usual default
+  #                 of a store action. Default: none
+  # 'help'          Text describing the argument used when processing a 
+  #                 help action argument in the help output. Default: none
+  # 'metavar'       String to use in help output as the basis for this
+  #                 argument's value(s) name(s) rather than the explicit or
+  #                 implict destination attribute value. Default: none.
+  #
+  # Action attribute values:
+  #  'store'        (default if no 'version' attribute set). Store the argument
+  #                 value(s) as an entry in the parse results dict with a
+  #                 key value provided by the explicitly given or implcitly
+  #                 deduced argument specification destination attribute.
+  # 'append'        Store the argument value(s) in an entry in the parse
+  #                 results dict with a key value provided by the explicitly
+  #                 given or implcitly deduced argument specification
+  #                 destination attribute. The entry value is a dict in which
+  #                 each occurrance of an argument value(s) to be stored in
+  #                 the result slot is appended to the dict. Each entry
+  #                 in the value dict has a key index value starting at 0
+  #                 and a value the parsed argument value(s).
+  # 'entend'        Same as action append unless the argument values are
+  #                 a dict in which case each entry value in the dict is
+  #                 appended individually to the result dict entry value
+  #                 dict rather than being added as a whole nest dict.
+  # 'store_const'   Store the single constant value given by the argument
+  #                 specification const attribute. Note that this only
+  #                 really makes sense if multiple optional arguments
+  #                 have the same result dict entry key destination
+  #                 attribute value.
+  # 'append_const'  Store the single constant value given by the
+  #                 argument specification const attribute by appending to
+  #                 eany existing values stored at this destination. Note this
+  #                 only really makes sense if multiple optional arguments
+  #                 have the same result dict entry key destination
+  #                 attribute value.
+  # 'store_true'    Special form of store_const that stores a true value
+  #                 for the result entry having a destina\tion attribute key.
+  # 'store_false'   Special form of store_const that stores a false value
+  #                 for the result entry having a destination attribute key.
+  # ## TODO : complete action descriptions ##
+  #
+  # @param 1    : Parseargs argument parser
+  # @param 2n   : Argument specification attribute name; n>=1
+  # @param 2n+1 : Value for argument specification attribute named by parameter 2n.
+  # @returns : Updated argument parser.
   parseargs_add_argument() {
     __parseargs_add_argument__ "$@"
     echo -n "${__parseargs_return_value__}"
