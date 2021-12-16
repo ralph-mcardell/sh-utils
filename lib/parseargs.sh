@@ -1,5 +1,8 @@
 #!/bin/sh
-
+# Copyright (c) 2021 Ralph. E. McArdell
+# All rights reserved.
+# Licensed under BSD 2-Clause License - see LICENSE.md for full text.
+#
 # Parse (command line) arguments.
 
 . dict.sh
