@@ -246,17 +246,71 @@ then
   #                 for the result entry having a destina\tion attribute key.
   # 'store_false'   Special form of store_const that stores a false value
   #                 for the result entry having a destination attribute key.
-  # ## TODO : complete action descriptions ##
+  # 'count'         Store the count of the number of occurences of an optional
+  #                 argument flag.
+  # 'version'       (default if version attribute given for argument). Output
+  #                 version information provided by the version argument
+  #                 specification attribute.
+  # 'help'          Output help for program using the various parser, argument
+  #                 specifications and sub-parsers help related attribute
+  #                 values.
+  # 'sub_command'   Hand parsing over to a sub-parser (see
+  #                 parseargs_add_sub_parser). The sub-parser is selected by
+  #                 argument destination and the value of the first value 
+  #                 of the argument. This mean that practically a sub-command
+  #                 action argument has to be the last argument parsed as all
+  #                 as all remaining values will be consumed either as the
+  #                 sub-command name (or id) or the sub-command arguments
+  #                 parsed by the selected sub-parser. The result value is
+  #                 the result values dict from the sub-parse operation.
+  #                 e.g.:
+  #                  Positional sub-command:
+  #                     cmd -a x -b y pos1 pos2 subcmd \
+  #                         --subopt this subpos1 subpos2
+  #                  Optional sub-command
+  #                     cmd -a x -b y pos1 pos2 --action subcmd \
+  #                         --subopt this subpos1 subpos2
+  # 'sub_argument'  Similar to sub-command except that it only applies
+  #                 to optional arguments, and only a single sub-parser
+  #                 argument is parsed for each occurence of a sub-argument
+  #                 option. 
+  #                  e.g:
+  #                     cmd -r example.com -p /home/theuser/workdir \
+  #                         -T stage1 --opt1 value -T stage1 --opt2 data \
+  #                         -T stage2 --optpath /path/to/somedir -T stage2 pos1
+  #
+  #  Note that positional arguments can only have store (the default) or
+  #  sub_command actions.
   #
   # @param 1    : Parseargs argument parser
   # @param 2n   : Argument specification attribute name; n>=1
   # @param 2n+1 : Value for argument specification attribute named by parameter 2n.
-  # @returns : Updated argument parser.
+  # @returns : The updated argument parser.
   parseargs_add_argument() {
     __parseargs_add_argument__ "$@"
     echo -n "${__parseargs_return_value__}"
   }
 
+  # @brief Add sub-parser to a Parseargs parser
+  #
+  # A sub-parser is a normal Parseargs parser used to parse sub_command and
+  # sub_argument action arguments.
+  #
+  # A sub-parser is identified by its associated argument's destination
+  # attribute value and a sub-parser identifer (the sub-command or similar).
+  #
+  # As well as a primary sub-parser id, each sub-parser associated with an
+  # argument can also be identified by a number of aliases. For example
+  # an argument with a 'remove' sub-command might specify aliases of 'delete'
+  # 'rm' and 'del'.
+  #
+  # @param 1    : Parseargs argument parser
+  # @param 2    : Destination attribute value of argument the sub-parser is
+  #               associated with.
+  # @param 3    : Sub parser identifer (the sub-command)
+  # @param 4    : The sub-parser - a Parseargs argument parser
+  # @param 5+   : (optional) 0 or more aliases for the sub-parser identifier
+  # @returns : The updated argument parser.
   parseargs_add_sub_parser() {
     __parseargs_abort_if_not_parser__ "${1}" "parseargs_add_sub_parser"
     if ! parseargs_is_argument_parser "${4}"; then
@@ -288,6 +342,45 @@ then
     echo -n "${parser}"
   }
 
+  # @brief Use a Parseargs parser to parse arguments
+  #
+  # Will parse all arguments following the initial argument parser argument
+  # according to the argument specifications and sub-parsers of the passed
+  # parser. The parsing checks the results contains all required argument
+  # values and ensures defaults values are applied to the results where
+  # appropriate.
+  #
+  # The result, unless a help or version action argument is parsed, is a dict
+  # with entries keyed on the destination attribute of the passed parser's
+  # argument specifications, which may have been specified explicily or
+  # determined implicitly from the name attribute of positional arguments
+  # or the long attribute of optional arguments.
+  #
+  # The result entries' values are either a single string (which may be
+  # a positive integer in the case of count action arguments) or a dict
+  # for cases that result in multiple values which are:
+  #
+  # nargs of 1+, * or + : dict keyed on 0 based integer index
+  # append, append_const, extend actions
+  #                     : dict keyed on 0 based integer index
+  #                       note: append with nargs can mean the
+  #                       values of the dict might also be a dict.
+  # sub_command, sub_argument actions:
+  #                     : a parse result dict unless sub-parse help
+  #                       or version action arguments are parsed.
+  #
+  # If a version or help action argument is parsed then the version or help
+  # report text is generated and returned with no further ado. Note that this
+  # applies to version or help action arguments in sub_command or sub_argument
+  # action sub-parsing contexts. For example this allows for more detailed help
+  # to provided for specific sub-commands:
+  #  cmd --options values positionals subcmd -h
+  #
+  # will return the help text specific to subcmd, contained in the parser and
+  # argument attributes of subcmd's associated sub-parser.
+  #
+  # @param 1    : Parseargs argument parser
+  # @param 2+   : The arguments to parse.
   parseargs_parse_arguments() {
     __parseargs_parse_arguments__ "$@"
 #echo "arguments before validation/fixup:'${__parseargs_return_value__}'." >&2
