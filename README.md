@@ -2,7 +2,7 @@
 
 This repository contains Linux (and similar) shell script utility libraries. They rely on basic shell facilities and a few core utility programs. Specifically:
 
-- POSIX (IEEE Std 1003.1-2008) Shell Command Langauge Specification as detailed at the [Open Group Shell Command Langauge Specification page](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_25)
+- POSIX (IEEE Std 1003.1-2008) Shell Command Langauge Specification as detailed at the [Open Group Shell Command Langauge Specification page](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html)
 - the `local` utility
 - the `tr` utility
 - the `sed` utility
