@@ -73,8 +73,8 @@ then
   # 'prog'          String used as program name in help text output. Defaults
   #                 to $0.
   # 'usage'         String used for program usage in help text output. Defaults
-  #                 to a deduced usage string based on parser arguments and
-  #                 subparsers.
+  #                 to a deduced usage string based on parser attributes,
+  #                 arguments and subparsers.
   # 'description'   String used for program description following usage text
   #                 in help text output. Defaults to blank.
   # 'epilogue'      String used for program description following positional,
@@ -378,6 +378,18 @@ then
   #
   # will return the help text specific to subcmd, contained in the parser and
   # argument attributes of subcmd's associated sub-parser.
+  #
+  # Argument are processed from left to right and optional and positional
+  # arguments can be intermixed. The token -- (two hypens) can be used to end
+  # parsing values for a specific argument for cases of an argument specified
+  # with nargs  '*' or '+' where the exact number of values expected is
+  # unknown. This does not work for terminating parsing in a sub_command
+  # context, once parsing in a sub-command context all remain arguments are
+  # assumed to be part of the sub_command. Spaces are used to separate argument
+  # values (that is they are individual passed arguments, or the separate
+  # arguments in $@) and option ids and option argument values. Single
+  # character short options can be combined as long as the preceding short
+  # option requires no values (i.e. is a flag option).
   #
   # @param 1    : Parseargs argument parser
   # @param 2+   : The arguments to parse.
