@@ -20,21 +20,21 @@ or just by name if you have put *sh_test.sh* on the process' PATH:
 
 ## Using to write unit tests
 
-The usage is fairly simple:
+Using *sh_test* is fairly simple:
 
 - write test functions making use of *sh_test* assertion functions.
 - register/execute each test function with the `TEST` *sh_test* function.
 - call the *sh_test* `PRINT_TEST_COUNTS` function at the end.
 - run the test *sh* script.
 
-Note that test function are presumed to neither require nor return any values.
+Note that test functions are presumed to neither require nor return any values.
 
 ### Assertion Functions
 
 There are two types of assertion:
 
-- **REQUIRE** assertions test an expression and exits with a return code of 1 if it fails, calling `PRINT_TEST_COUNTS` just before exiting.
-- **CHECK** assertions test an expression and continue even in the light of a fail.
+- **REQUIRE** assertions test an expression and exit with a return code of 1 on failure, calling `PRINT_TEST_COUNTS` just before exiting.
+- **CHECK** assertions test an expression and continue even on failure.
 
 In both cases the test run counters are updated, these are:
 
@@ -128,7 +128,7 @@ At present there is no way to filter which tests are executed - any test functio
 - `-s`, `--success` : report successful as well as failed assertions.
 - `-t`, `--timings` : report rough per test and total elapsed timings. This includes time executing *sh_test* functions as well as time executing test function code.
 - `-h`, `--help`    : print the command line options with description and exit.
-- `-v`, `--version` : print sh-test version and exit.
+- `-v`, `--version` : print the *sh_test* version and exit.
 
 ---
 Copyright © 2021 R. E. McArdell
