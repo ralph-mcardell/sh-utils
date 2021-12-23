@@ -3,33 +3,152 @@
 # All rights reserved.
 # Licensed under BSD 2-Clause License - see LICENSE.md for full text.
 #
-# Mini unit testing framework for sh (sh not bash) script 'units' - functions
+# Basic unit testing framework for sh (sh not bash) script 'units' - functions.
 #
 
+# @brief Require condition is true and exit if not.
+#
+# Test the passed expression, update the test and assert counts as appropriate,
+# and if false print the test count values and exit with a return code of 1.
+#
+# Call forms:
+#
+# REQUIRE ${actualboolvalue}
+# REQUIRE uo ${actualvalue}
+# REQUIRE ${actualvalue} bo ${expectedvalue}
+#
+# where:
+#  uo is a unary operator such as -z or -n
+#  bo is a binary operator such as = or -lt
+#
+# @param 1       : A true/false value if only 1 parameter passed.
+#                  A unary test operator (e.g. -z) if 2 parameters passed.
+#                  Actual test value if 3 parameters passed.
+# @param 2 (opt) : Actual test value if 2 parameters passed.
+#                  Binary test operator (e.g. -ge) if 3 parameters passed.
+# @param 3 (opt) : Expected value actual value tested against using.
+#                  binary operator.
 REQUIRE() {
   __sh_test_assert__ "REQUIRE" false "$@"
 }
 
+# @brief Expect condition to be true.
+#
+# Test the passed expression, update the test and assert counts as appropriate.
+# Failure if expression false.
+#
+# Call forms:
+#
+# CHECK ${actualboolvalue}
+# CHECK uo ${actualvalue}
+# CHECK ${actualvalue} bo ${expectedvalue}
+#
+# where:
+#  uo is a unary operator such as -z or -n
+#  bo is a binary operator such as = or -lt
+#
+# @param 1       : A true/false value if only 1 parameter passed.
+#                  A unary test operator (e.g. -z) if 2 parameters passed.
+#                  Actual test value if 3 parameters passed.
+# @param 2 (opt) : Actual test value if 2 parameters passed.
+#                  Binary test operator (e.g. -ge) if 3 parameters passed.
+# @param 3 (opt) : Expected value actual value tested against using.
+#                  binary operator.
 CHECK() {
   __sh_test_assert__ "CHECK" false "$@"
 }
 
+# @brief Require condition is false and exit if not.
+#
+# Test the passed expression, update the test and assert counts as appropriate,
+# and if true print the test count values and exit with a return code of 1. 
+#
+# Call forms:
+#
+# REQUIRE_FALSE ${actualboolvalue}
+# REQUIRE_FALSE uo ${actualvalue}
+# REQUIRE_FALSE ${actualvalue} bo ${expectedvalue}
+#
+# where:
+#  uo is a unary operator such as -z or -n
+#  bo is a binary operator such as = or -lt
+#
+# @param 1       : A true/false value if only 1 parameter passed.
+#                  A unary test operator (e.g. -z) if 2 parameters passed.
+#                  Actual test value if 3 parameters passed.
+# @param 2 (opt) : Actual test value if 2 parameters passed.
+#                  Binary test operator (e.g. -ge) if 3 parameters passed.
+# @param 3 (opt) : Expected value actual value tested against using.
+#                  binary operator.
 REQUIRE_FALSE() {
   __sh_test_assert__ "REQUIRE_FALSE" true "$@"
 }
 
+# @brief Expect condition to be false.
+#
+# Test the passed expression, update the test and assert counts as appropriate.
+# Failure if expression true.
+#
+# Call forms:
+#
+# CHECK_FALSE ${actualboolvalue}
+# CHECK_FALSE uo ${actualvalue}
+# CHECK_FALSE ${actualvalue} bo ${expectedvalue}
+#
+# where:
+#  uo is a unary operator such as -z or -n
+#  bo is a binary operator such as = or -lt
+#
+# @param 1       : A true/false value if only 1 parameter passed.
+#                  A unary test operator (e.g. -z) if 2 parameters passed.
+#                  Actual test value if 3 parameters passed.
+# @param 2 (opt) : Actual test value if 2 parameters passed.
+#                  Binary test operator (e.g. -ge) if 3 parameters passed.
+# @param 3 (opt) : Expected value actual value tested against using.
+#                  binary operator.
 CHECK_FALSE() {
   __sh_test_assert__ "CHECK_FALSE" true "$@"
 }
 
+# @brief Expect string to contain all of number of sub strings.
+#
+# Test the passed strings in parameters 2+ are all in the string passed as
+# parameter 1, update the test and assert counts as appropriate. Test fails
+# if not all string in parameters 2+ are substrings of parameter 1.
+#
+# Call form:
+#
+# CHECK_CONTAINS_ALL ${actualstring} ${containedsubstring} ...
+#
+# @param 1  : String to test for contained substrings.
+# @param 2+ : One or more substrings expected to be contained in param 1.
 CHECK_CONTAINS_ALL() {
   __sh_test_assert_contains_all__ "CHECK_CONTAINS_ALL" false "$@"
 }
 
+# @brief Require string to contain all of number of sub strings, exit if not
+#
+# Test the passed strings in parameters 2+ are all in the string passed as
+# parameter 1, update the test and assert counts as appropriate, and if not
+# print the test count values and exit with a return code of 1. 
+#
+# Call form:
+#
+# REQUIRE_CONTAINS_ALL ${actualstring} ${containedsubstring} ...
+#
+# @param 1  : String to test for contained substrings.
+# @param 2+ : One or more substrings required to be contained in param 1.
 REQUIRE_CONTAINS_ALL() {
   __sh_test_assert_contains_all__ "REQUIRE_CONTAINS_ALL" true "$@"
 }
 
+# @brief Invoke function as test.
+#
+# Performs test book keeping around test function invocation. The test
+# function name is passed as string as first parameter. The  test function
+# is passed no arguments and no returned value is expected.
+#
+# @param 1  : Name of test function.
 TEST() {
   if ${__sh_test_is_uninitialised__}; then
     __sh_test_set_flags__ ${__sh_test_command_line_arguments__}
@@ -48,7 +167,7 @@ TEST() {
     echo "ELAPSED TIME: ${elapsed_time} seconds : ${__sh_test_testfn__}"
     __sh_test_total_time_secs__="$( echo "${__sh_test_total_time_secs__} + ${elapsed_time}" | bc -q)"
   fi
-  __sh_test_testfn__="${prev_testfn}"
+  __sh_test_testfn__="${prev_test}"
   if [ ${__sh_test_asserts_failed__} -gt ${initial_failed_assertions} ]; then
     __sh_test_update_failed__
   else
@@ -56,6 +175,9 @@ TEST() {
   fi
 }
 
+# @brief Print accumulated test counts to stdout.
+#
+# Should be called after all test executions.
 PRINT_TEST_COUNTS() {
   local timing_phrase=''
   if ${__sh_test_flag_test_elapsed_times}; then
@@ -73,6 +195,8 @@ ${__sh_test_asserts_failed__} $(__sh_test_maybe_plural__ 'assertion' ${__sh_test
 ${timing_phrase}.
 EOF
 }
+
+# Details 
 
 __sh_test_command_line_arguments__="$@"
 __sh_test_flag_report_always__=false
