@@ -23,7 +23,7 @@ or just by name if you have put *sh_test.sh* on the process' PATH:
 The usage is fairly simple:
 
 - write test functions making use of *sh_test* assertion functions.
-- register each test function with the `TEST` *sh_test* function.
+- register/execute each test function with the `TEST` *sh_test* function.
 - call the *sh_test* `PRINT_TEST_COUNTS` function at the end.
 - run the test *sh* script.
 
@@ -63,7 +63,7 @@ These functions accept 1, 2 or 3 arguments interpreted as a Boolean expression:
     `CHECK_FALSE "${result}"`
 - Two arguments are presumed to be a unary operator followed by the value of the operand:
     `REQUIRE -z "${actual:+x}"`
-- Two arguments are presumed to be an operand value, a binary operator followed by the second operand value:
+- Three arguments are presumed to be an operand value, a binary operator followed by the second operand value:
     `CHECK $? -eq 1`
 
 For `CHECK` and `REQUIRE` the assertion passes if the expression evaluated true.
@@ -72,7 +72,7 @@ For `CHECK_FALSE` and `REQUIRE_FALSE` the assertion passes if the expression eva
 
 #### String containing substrings assertions
 
-The function in this set are:
+The functions in this set are:
 
 - `CHECK_CONTAINS_ALL`
 - `REQUIRE_CONTAINS_ALL`
@@ -94,7 +94,7 @@ TEST calling_api_function_abc_with_negative_value_is_an_error
 
 ### The `PRINT_TEST_COUNTS` function
 
-As mentioned already *sh_test* is simple and printing the summary test statistics to *stdout* is done manually by calling `PRINT_TEST_COUNTS`, typically at the end of the test suite *sh** script.
+As mentioned already *sh_test* is simple and printing the summary test statistics to *stdout* is done manually by calling `PRINT_TEST_COUNTS`, typically at the end of the test suite *sh* script.
 
 The output displays the values of the accumulated counts:
 
@@ -119,16 +119,16 @@ When doing so *sh_test* behaves in a default manner:
 - only output information on failed assertions
 - does not record / output test timings
 
-At present there is no way to filter whioch tests are executed - any test function whose name is passed to the `TEST` function will be executed.
+At present there is no way to filter which tests are executed - any test function whose name is passed to the `TEST` function will be executed.
 
 ### Command line options
 
 *sh_test* provides the following options to test *sh* scripts:
 
-- -s, --success     Report successful as well as failed assertions.
-- -t, --timings     Report rough per test and total elapsed timings. This includes time executing *sh_test* functions as well as time executing test function code.
-- -h, --help        Print the command line options with description and exit.
-- -v, --version     Print sh-test version and exit.
+- `-s`, `--success` : report successful as well as failed assertions.
+- `-t`, `--timings` : report rough per test and total elapsed timings. This includes time executing *sh_test* functions as well as time executing test function code.
+- `-h`, `--help`    : print the command line options with description and exit.
+- `-v`, `--version` : print sh-test version and exit.
 
 ---
 Copyright © 2021 R. E. McArdell
