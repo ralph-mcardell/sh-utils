@@ -181,7 +181,7 @@ TEST() {
 PRINT_TEST_COUNTS() {
   local timing_phrase=''
   if ${__sh_test_flag_test_elapsed_times}; then
-    local timing_phrase=" in ${__sh_test_total_time_secs__} seconds."
+    local timing_phrase=" in ${__sh_test_total_time_secs__} seconds"
   fi
 
   cat << EOF
