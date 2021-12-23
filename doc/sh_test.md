@@ -1,6 +1,6 @@
 # Sh_test : Simple unit tests for sh script library modules
 
-The *sh_utils* shell language library module provides a basic unit test framework. Its primary reason to be was the need to provide unit tests for the other shell language library modules in *sh_utils*.
+The *sh_test* shell language library module provides a basic unit test framework. Its primary reason to be was the need to provide unit tests for the other shell language library modules in *sh_utils*.
 
 ## Installation
 
