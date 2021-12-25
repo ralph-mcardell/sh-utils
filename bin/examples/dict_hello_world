@@ -1,0 +1,35 @@
+#!/bin/sh
+# Copyright (c) 2021 Ralph. E. McArdell
+# All rights reserved.
+# Licensed under BSD 2-Clause License - see LICENSE.md for full text.
+#
+# To use:
+#   - Add dict.sh in the repository lib directory to the PATH. For example
+#     if you have cd'ed to the repository's bin/examples directory:
+#       PATH="../../lib/":"${PATH}"
+#   - Execute dict_hello_world, again if from the repository's bin/examples
+#     directory:
+#       ./dict_hello_world
+
+# Include the dict code. This assumes dict.sh is either in the same directory
+# as the executing script or on the PATH. If not then use the dict.sh path:
+. dict.sh
+
+# Declare a dict 'object' string and populate with entries for the greeting
+# who is greeted, the dict 'object' is returned:
+record="$(dict_declare_simple 'greeting' 'Hello' 'who' 'World')"
+
+# Lookup the values associated with keys greeting and who and echo them to
+# stdout:
+echo "$(dict_get_simple "${record}" 'greeting'), $(dict_get_simple  "${record}" 'who')!"
+
+# Set values for keys greeting and who; as these both exist they are updated.
+# Note that the record variable is both used as an input argument and
+# receives the updated dict:
+record="$(dict_set_simple "${record}" 'greeting' 'Hi' 'who' 'Earth')"
+
+# Lookup and echo the updated associated values to stdout. This time
+# store the returned values in variables and output there values:
+greeting="$(dict_get_simple "${record}" 'greeting')"
+who="$(dict_get_simple  "${record}" 'who')"
+echo "${greeting}, ${who}!"
