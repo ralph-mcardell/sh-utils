@@ -127,5 +127,23 @@ who="$(dict_get_simple  "${record}" 'who')"
 echo "${greeting}, ${who}!"
 ```
 
+## Reference
+
+### Function synopsis
+
+| Function name | Description |
+| ------------- | ----------- |
+| `dict_declare` `dict_declare_simple`  | declare a *dict* variable, optionally initialised with initial key, value entries. Returns the *dict* value that can be associated with a variable. |
+| `dict_set` `dict_set_simple` | add or update one or more key,value pairs to a previously `dict_declare`'d variable. Returns the updated *dict*. |
+| `dict_get` `dict_get_simple` | retrieve a value associated with a key in a previously `dict_declare`'d variable. Return the value if passed key present or blank if it is not. |
+| `dict_remove` | remove a key,value entry from a *dict*. Returns the updated *dict*.|
+| `dict_is_dict` | check if a variable's value represents a *dict* type. |
+| `dict_size` `dict_count` | return the integer value of the size of a *dict*, being the number of records. `dict_size is` ~O(1) whereas `dict_count` is ~O(n), hence `dict_size` is intended to be usually used over `dict_count`, which iterates over the entries in a *dict* and returns the count of records iterated over. |
+| `dict_for_each` | iterate over the entries of a *dict* calling a function for each key value pair. |
+| `dict_print_raw` | print the raw string of a *dict* variable with substitutions for the US, RS, GS and FS non-printing separator characters. Useful for debugging and similar. |
+| `dict_pretty_print` | output *dict* entries with customisable surrounding decoration. |
+| `dict_op_to_var_flat` | for use with `dict_for_each`. Create variables with the value of *dict* entries' value and a name based on the *dict* entries' key value with optional prefix and/or suffix. |
+
 ---
+
 Copyright © 2021 R. E. McArdell
