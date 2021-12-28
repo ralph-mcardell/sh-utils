@@ -161,18 +161,18 @@ If no entry values are themselves *dict*s then `dict_declare_simple` can be safe
 
 #### Return values
 
-| #? | stdout | fail reasons (error message on stderr) |
+| $? | stdout | fail reasons (error message on stderr) |
 | -- | ------ | ------------ |
-| 0        | *dict* value containing 0+ entries that can be used with the other *dict* functions and for which specifically when passed to `dict_is_dict` `dict_is_dict` returns *true*. |  |
+| 0        | *dict* value containing 0+ entries that can be used with the other *dict* functions and if passed to `dict_is_dict` then `dict_is_dict` returns *true*. |  |
 | 1 (fail) | empty string | duplicate key "$key" passed to dict_declare{_simple}. |
 
 ### `dict_set` `dict_set_simple`
 
-`dict_set` and `dict_set_simple` are used to update existing and add new
-entries to an existing *dict* 'object'. If the passed *dict* has an existing
-entry with a key that matches an entry key to set then the existing entry is
-updated otherwise a new entry is appended to the end of the *dict* 'object'
-string.
+`dict_set` and `dict_set_simple` are used to update existing entries and add
+new entries to an existing *dict* 'object'. If the passed *dict* has an
+existing entry with a key that matches an entry key to set then the existing
+entry is updated otherwise a new entry is appended to the end of the *dict*
+'object' string.
 
 If no passed entry values are themselves *dict*s then `dict_set_simple` can
 be safely called. Key values may not be *dict*s for either `dict_set_simple` or
@@ -194,7 +194,7 @@ Substitution*.
 
 #### Return values
 
-| #? | stdout | fail reasons (error message on stderr) |
+| $? | stdout | fail reasons (error message on stderr) |
 | -- | ------ | ------------ |
 | 0        | *dict* value containing the updated and/or added entries. |  |
 | 1 (fail) | empty string | First argument passed to dict_set{_simple} is not a dict(ionary) type. |
@@ -215,14 +215,14 @@ Substitution*.
 
 | Parameter number| Description |
 | --------------- | ----------- |
-| 1    | *dict* value to set entries in. |
+| 1    | *dict* value to lookup value in. |
 | 2    | entry key whose value to return. |
 
 #### Return values
 
-| #? | stdout | fail reasons (error message on stderr) |
+| $? | stdout | fail reasons (error message on stderr) |
 | -- | ------ | ------------ |
-| 0        | value for entry with passed key or empty string if no matching entry existing is passed *dict*. |  |
+| 0        | value for entry with passed key or empty string if no matching entry exists in the passed *dict*. |  |
 | 1 (fail) | empty string | First argument passed to dict_get{_simple} is not a dict(ionary) type. |
 
 ---
