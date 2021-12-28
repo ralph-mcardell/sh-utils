@@ -16,7 +16,7 @@
 . dict.sh
 
 # Declare a dict 'object' string and populate with entries for the greeting
-# who is greeted, the dict 'object' is returned:
+# and who is greeted, the dict 'object' is returned:
 record="$(dict_declare_simple 'greeting' 'Hello' 'who' 'World')"
 
 # Lookup the values associated with keys greeting and who and echo them to
@@ -29,7 +29,7 @@ echo "$(dict_get_simple "${record}" 'greeting'), $(dict_get_simple  "${record}" 
 record="$(dict_set_simple "${record}" 'greeting' 'Hi' 'who' 'Earth')"
 
 # Lookup and echo the updated associated values to stdout. This time
-# store the returned values in variables and output there values:
+# store the returned values in variables and output their values:
 greeting="$(dict_get_simple "${record}" 'greeting')"
 who="$(dict_get_simple  "${record}" 'who')"
 echo "${greeting}, ${who}!"
