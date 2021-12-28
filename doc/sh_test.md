@@ -2,6 +2,17 @@
 
 The *sh_test* shell language library module provides a basic unit test framework. Its primary reason to be was the need to provide unit tests for the other shell language library modules in *sh_utils*.
 
+## Requirements
+
+In addition to the POSIX Shell Command Langauge (Revision of IEEE
+Std 1003.1-2008 - as detailed at
+[The Open Group Shell Command Language page](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_25)
+
+The following facilities are required:
+
+- `local` to declare varibles local to function calls
+- `cat` utility
+
 ## Installation
 
 Ensure that the *sh_test.sh* file in the repository *lib* directory is in a known location and access by pathname or is on the process PATH.
