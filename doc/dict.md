@@ -6,6 +6,18 @@ simple POSIX standard shell language (a.k.a. *sh*) has none.
 The *dict* shell language library module provides an associative map container
 type - or dictionary, dict for short.
 
+## Requirements
+
+In addition to the POSIX Shell Command Langauge (Revision of IEEE
+Std 1003.1-2008 - as detailed at
+[The Open Group Shell Command Language page](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_25)
+
+The following facilities are required:
+
+- `local` to declare varibles local to function calls
+- `tr` utility to translate characters
+- `sed` to replace strings
+
 ## Installation
 
 Ensure that the *dict.sh* file in the repository *lib* directory is in a known
@@ -61,7 +73,7 @@ Functions that set entries pass them as pairs of arguments, for example:
 
 ### Dict entries: keys and values
 
-Dict entries are a string keys and string values. These strings may of
+Dict entries are string keys and string values. These strings may of
 course represent numbers on which arithmetic can be performed.
 
 As mentioned dicts are specially formatted strings and use the ASCII (and
@@ -69,7 +81,7 @@ therefore also Unicode) often overlooked (and hopefully infrequently used)
 separator control characters: FS, GS, RS and US. Hence entry key and value
 strings cannot contain these values.
 
-Dicts can be nested, one dict as an entry value value in another.
+Dicts can be nested, one dict as an entry value of another.
 
 ### Simple dict functions
 
@@ -96,7 +108,7 @@ values.
 . dict.sh
 
 # Declare a dict 'object' string and populate with entries for the greeting
-# who is greeted, the dict 'object' is returned:
+# and who is greeted, the dict 'object' is returned:
 record="$(dict_declare_simple 'greeting' 'Hello' 'who' 'World')"
 
 # Lookup the values associated with keys greeting and who and echo them to
@@ -109,7 +121,7 @@ echo "$(dict_get_simple "${record}" 'greeting'), $(dict_get_simple  "${record}" 
 record="$(dict_set_simple "${record}" 'greeting' 'Hi' 'who' 'Earth')"
 
 # Lookup and echo the updated associated values to stdout. This time
-# store the returned values in variables and output there values:
+# store the returned values in variables and output their values:
 greeting="$(dict_get_simple "${record}" 'greeting')"
 who="$(dict_get_simple  "${record}" 'who')"
 echo "${greeting}, ${who}!"
