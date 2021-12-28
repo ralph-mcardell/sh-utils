@@ -144,6 +144,87 @@ echo "${greeting}, ${who}!"
 | `dict_pretty_print` | output *dict* entries with customisable surrounding decoration. |
 | `dict_op_to_var_flat` | for use with `dict_for_each`. Create variables with the value of *dict* entries' value and a name based on the *dict* entries' key value with optional prefix and/or suffix. |
 
+### `dict_declare` `dict_declare_simple`
+
+`dict_declare` and `dict_declare_simple` are used to create *dict* 'object' strings. If called with no values they return an empty *dict*. If passed pairs of keys and values these are used to populate the new *dict*.
+
+If no entry values are themselves *dict*s then `dict_declare_simple` can be safely called. Key values may not be *dict*s for either `dict_declare_simple` or `dict_declare`. For both `dict_declare` and `dict_declare_simple` neither keys nor values can contain ASCII US, RS, GS or FS characters.
+
+`dict_declare` and `dict_declare_simple` are designed to be called using *Command Substitution*.
+
+#### Parameters
+
+| Parameter number| Description |
+| --------------- | ----------- |
+| 2n-1 | entry n key value. n > 0. |
+| 2n   | entry n value value. n > 0. |
+
+#### Return values
+
+| #? | stdout | fail reasons (error message on stderr) |
+| -- | ------ | ------------ |
+| 0        | *dict* value containing 0+ entries that can be used with the other *dict* functions and for which specifically when passed to `dict_is_dict` `dict_is_dict` returns *true*. |  |
+| 1 (fail) | empty string | duplicate key "$key" passed to dict_declare{_simple}. |
+
+### `dict_set` `dict_set_simple`
+
+`dict_set` and `dict_set_simple` are used to update existing and add new
+entries to an existing *dict* 'object'. If the passed *dict* has an existing
+entry with a key that matches an entry key to set then the existing entry is
+updated otherwise a new entry is appended to the end of the *dict* 'object'
+string.
+
+If no passed entry values are themselves *dict*s then `dict_set_simple` can
+be safely called. Key values may not be *dict*s for either `dict_set_simple` or
+`dict_set`. For both `dict_set` and `dict_set_simple` neither keys nor values
+can contain ASCII US, RS, GS or FS characters.
+
+`dict_set` and `dict_set_simple` are designed to be called using *Command
+Substitution*.
+
+#### Parameters
+
+| Parameter number| Description |
+| --------------- | ----------- |
+| 1    | *dict* value to set entries in. |
+| 2    | entry key value. |
+| 3    | entry value value. |
+| 4+2n | (optional) additional entry key value. n >= 0. |
+| 5+2n | (optional) additional entry value value. n >= 0. |
+
+#### Return values
+
+| #? | stdout | fail reasons (error message on stderr) |
+| -- | ------ | ------------ |
+| 0        | *dict* value containing the updated and/or added entries. |  |
+| 1 (fail) | empty string | First argument passed to dict_set{_simple} is not a dict(ionary) type. |
+
+### `dict_get` `dict_get_simple`
+
+`dict_get` and `dict_get_simple` are used to retreive an entry value from an existing *dict* 'object' given the entry's key value.
+
+If the retrived value is not a *dict* then `dict_get_simple` can be safely
+called. The key value may not be *dict*s for either `dict_get_simple` or
+`dict_get`. For both `dict_get` and `dict_get_simple` neither keys nor values
+can contain ASCII US, RS, GS or FS characters.
+
+`dict_get` and `dict_get_simple` are designed to be called using *Command
+Substitution*.
+
+#### Parameters
+
+| Parameter number| Description |
+| --------------- | ----------- |
+| 1    | *dict* value to set entries in. |
+| 2    | entry key whose value to return. |
+
+#### Return values
+
+| #? | stdout | fail reasons (error message on stderr) |
+| -- | ------ | ------------ |
+| 0        | value for entry with passed key or empty string if no matching entry existing is passed *dict*. |  |
+| 1 (fail) | empty string | First argument passed to dict_get{_simple} is not a dict(ionary) type. |
+
 ---
 
 Copyright © 2021 R. E. McArdell
