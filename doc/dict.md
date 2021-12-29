@@ -138,7 +138,7 @@ echo "${greeting}, ${who}!"
 | `dict_get` `dict_get_simple` | retrieve a value associated with a key in a previously `dict_declare`'d variable. Return the value if passed key present or blank if it is not. |
 | `dict_remove` | remove a key,value entry from a *dict*. Returns the updated *dict*.|
 | `dict_is_dict` | check if a variable's value represents a *dict* type. |
-| `dict_size` `dict_count` | return the integer value of the size of a *dict*, being the number of records. `dict_size is` ~O(1) whereas `dict_count` is ~O(n), hence `dict_size` is intended to be usually used over `dict_count`, which iterates over the entries in a *dict* and returns the count of records iterated over. |
+| `dict_size` `dict_count` | return the integer value of the size of a *dict*, being the number of records. `dict_size` is ~O(1) whereas `dict_count` is ~O(n), hence `dict_size` is intended to be usually used over `dict_count`, which iterates over the entries in a *dict* and returns the count of records iterated over. |
 | `dict_for_each` | iterate over the entries of a *dict* calling a function for each key value pair. |
 | `dict_print_raw` | print the raw string of a *dict* variable with substitutions for the US, RS, GS and FS non-printing separator characters. Useful for debugging and similar. |
 | `dict_pretty_print` | output *dict* entries with customisable surrounding decoration. |
@@ -224,6 +224,115 @@ Substitution*.
 | -- | ------ | ------------ |
 | 0        | value for entry with passed key or empty string if no matching entry exists in the passed *dict*. |  |
 | 1 (fail) | empty string | First argument passed to dict_get{_simple} is not a dict(ionary) type. |
+
+### `dict_remove`
+
+`dict_remove` is used to remove an entry from an existing *dict* 'object'
+given the entry's key value.
+
+The passed key value may not be a *dict* nor contain ASCII US, RS, GS or FS
+characters.
+
+`dict_remove` is designed to be called using *Command Substitution*.
+
+#### Parameters
+
+| Parameter number| Description |
+| --------------- | ----------- |
+| 1    | *dict* value to remove entry from. |
+| 2    | key of entry which is to be removed. |
+
+#### Return values
+
+| $? | stdout | fail reasons (error message on stderr) |
+| -- | ------ | ------------ |
+| 0        | *dict* value matching that passed for the first parameter with the entry matching the passed key value removed which will be an exact copy of the passed in *dict* if no matching entry exists in the passed *dict*. |  |
+| 1 (fail) | empty string | First argument passed to dict_remove is not a dict(ionary) type. |
+
+### `dict_is_dict`
+
+`dict_is_dict` checks the single passed parameter is a *dict*. That is it checks the passed value appears to be in the correct format to be a *dict*.
+
+`dict_is_dict` is intended to be called directly and *not* via *Command
+Substitution*.
+
+#### Parameters
+
+| Parameter number| Description |
+| --------------- | ----------- |
+| 1    | Value to check where it is a *dict* or not |
+
+#### Return values
+
+*true* if the passed value appears to be a *dict*.
+
+*false* if the passed value does not appear to be a *dict*
+
+### `dict_size` `dict_count`
+
+`dict_size` and `dict_count` return the number of entries in a *dict*.
+
+`dict_size` returns an entry count value maintained in the *dict* and thus in
+theory executes in ~O(1) (i.e. constant) time - although it might be some
+factor of **n**, the number of entries, due to having to operate on a string.
+It should be preferred to *dict_count* in most situations.
+
+`dict_count` iterates over the entries in a *dict* to determine the number of
+entries it contains. `dict_count` therefore executes at best in ~O(n) (linear
+time). Its main intended use is for testing and debugging.
+
+`dict_size` and `dict_count` are designed to be called using *Command
+Substitution*.
+
+#### Parameters
+
+| Parameter number| Description |
+| --------------- | ----------- |
+| 1    | *dict* value to obtain number of entries for. |
+
+#### Return values
+
+| $? | stdout | fail reasons (error message on stderr) |
+| -- | ------ | ------------ |
+| 0        | 0 or positive integer value of the number of entries in the passed *dict*. |  |
+| 1 (fail) | empty string | First argument passed to dict_{size \| count} is not a dict(ionary) type. |
+
+### `dict_for_each`
+
+`dict_for_each` iterates over the entries of a *dict*, calling a specified
+function for each entry. The called function is passed:
+
+- the entry key
+- the entry value
+- the number of the entry, indexed from 0
+- any extra parameters passed to `dict_for_each`
+
+`dict_count` and `dict_pretty_print` are implemented in terms of
+`dict_for_each`.
+
+`dict_for_each` is intended to be called directly and *not* via *Command
+Substitution*.
+
+#### Parameters
+
+| Parameter number| Description |
+| --------------- | ----------- |
+| 1    | *dict* value to iterate over the entries of. |
+| 2    | name of function to call for each entry. |
+| 3+   | (optional) additional arguments to pass to each function invocation |
+
+#### Return values
+
+Nothing if the call to `dict_for_each` succeeded.
+
+Will exit the call execution process with a return value of 1 and a 'First
+argument passed to dict_for_each is not a dict(ionary) type.' message on
+*stderr* if the first argument passed is not a *dict*. Note that it is likely
+that `dict_for_each` will be directly called in the context of the calling
+script in which case the error will exit the calling script.
+
+Similar considerations apply to any errors raised by the function called by
+`dict_for_each`.
 
 ---
 
