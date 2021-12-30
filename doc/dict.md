@@ -140,8 +140,8 @@ echo "${greeting}, ${who}!"
 | `dict_is_dict` | check if a variable's value represents a *dict* type. |
 | `dict_size` `dict_count` | return the integer value of the size of a *dict*, being the number of records. `dict_size` is ~O(1) whereas `dict_count` is ~O(n), hence `dict_size` is intended to be usually used over `dict_count`, which iterates over the entries in a *dict* and returns the count of records iterated over. |
 | `dict_for_each` | iterate over the entries of a *dict* calling a function for each key value pair. |
-| `dict_print_raw` | print the raw string of a *dict* variable with substitutions for the US, RS, GS and FS non-printing separator characters. Useful for debugging and similar. |
 | `dict_pretty_print` | output *dict* entries with customisable surrounding decoration. |
+| `dict_print_raw` | print the raw string of a *dict* variable with substitutions for the US, RS, GS and FS non-printing separator characters. Useful for debugging and similar. |
 | `dict_op_to_var_flat` | for use with `dict_for_each`. Create variables with the value of *dict* entries' value and a name based on the *dict* entries' key value with optional prefix and/or suffix. |
 
 ### `dict_declare` `dict_declare_simple`
@@ -260,7 +260,7 @@ Substitution*.
 
 | Parameter number| Description |
 | --------------- | ----------- |
-| 1    | Value to check where it is a *dict* or not |
+| 1    | Value to check whether it is a *dict* or not |
 
 #### Return values
 
@@ -333,6 +333,145 @@ script in which case the error will exit the calling script.
 
 Similar considerations apply to any errors raised by the function called by
 `dict_for_each`.
+
+### `dict_pretty_print`
+
+`dict_pretty_print` outputs to *stdout* the keys and values in a *dict*
+using caller-specified format decoration around data elements of the passed
+*dict*, recursively applying the formatting specificaiton to nested *dict*
+values.
+
+The formatting decoration is specified as a *dict* passed as the second
+parameter that has specific entries. Any entry not provided in the
+specification *dict* is output as an empty string. Hence providing an
+empty specification *dict* will just output each key,value in order,
+including nested key values, with no separation between each key and
+value or between each key, value entry.
+
+The available specification keys and the use of their associated values
+are:
+
+| Specification key | Value's use |
+| ----------------- | ----------- |
+| 'print_prefix'    | Characters output before any other dict output |
+| 'print_suffix'    | Characters output after all other dict output |
+| 'nesting_indent'  | Characters output after newlines for nested dict output; applied to existing indent on each subsequent string. |
+| 'nesting_prefix'  | Characters output before any other nested dict output |
+| 'nesting_suffix'  | Characters output after all other nested dict output |
+| 'dict_prefix'     | Characters output before any dict entry output |
+| 'dict_suffix'     | Characters output after all dict entry output |
+| 'record_separator'| Characters output between 'record_prefix' and 'record_suffix' characters. Useful for producing list separators without trailing separator. |
+| 'record_prefix'   | Characters output before each dict entry output |
+| 'record_suffix'   | Characters output after each dict entry output |
+| 'key_prefix'      | Characters output before each dict entry key output |
+| 'key_suffix'      | Characters output after each dict entry key output |
+| 'value_prefix'    | Characters output before each dict entry value output |
+| 'value_suffix'    | Characters output after each dict entry value output |
+
+As implied in the description of the value for the 'nesting_indent' key
+print specification string values may contain newlines
+
+`dict_pretty_print` may be called directly so as to see the output on the
+console or via *Command Substitution* to capture the output.
+#### Parameters
+
+| Parameter number| Description |
+| --------------- | ----------- |
+| 1    | *dict* value to pretty print. |
+| 2    | *dict* value providing the formatting specification. |
+
+#### Return values
+
+| $? | stdout | fail reasons (error message on stderr) |
+| -- | ------ | ------------ |
+| 0        | pretty printed representation of the *dict* passed as parameter 1. |  |
+| 1 (fail) | empty string | First argument passed to dict_pretty_print is not a dict(ionary) type. |
+| 1 (fail) | empty string | Print specifications argument #2 passed to dict_pretty_print is not a dict(ionary) type. |
+
+### `dict_print_raw`
+
+`dict_print_raw` outputs raw *dict* strings to *stdout* after translating the
+unprintable ASCII US RS GS and FS characters with the *tr* utility.
+
+The characters the unprintable characters are translated to are specified by
+the optional second parameter in the order US RS GS FS (no spaces), which if
+not given default to:
+
+ - US : _ (underscore / low line)
+ - RS : ^ (caret / circumflex accent)
+ - GS : ] (right square bracket)
+ - FS : \ (backslash)
+
+i.e. the string `'_^]\'` is passed to *tr* as the characters to translate to.
+
+`dict_print_raw` is primarily intended as a debug aid to check the format of
+*dict* strings. It may be called directly so as to see the output on the
+console or via *Command Substitution* to capture the output.
+
+#### Parameters
+
+| Parameter number| Description |
+| --------------- | ----------- |
+| 1    | *dict* value to translate the unprintable characters and output. |
+| 2    |  (optional) string of 4 characters to translate the US RS GS FS unprintable format characters to (no spaces, in that order). Defaults to '_^]\\'. |
+
+#### Return values
+
+| $? | stdout | fail reasons (error message on stderr) |
+| -- | ------ | ------------ |
+| 0        | contents of first paraemter after translating the unprintable characters US RS GS FS using the contents of the second (possibly defaulted) parameter using the *tr* utility. |
+|?? (fail) | empty string | none unless *tr* or *echo* produce an error. Specifically note that the first parameter is *not* checked that it is a *dict* type. |
+
+### `dict_op_to_var_flat`
+
+`dict_op_to_var_flat` is an operation function intended to be passed to `dict_for_each`. 
+
+`dict_op_to_var_flat` will create a variable having the value of the value
+passed as the second parameter and a name based on the key-value passed as
+the first parameter.
+
+The name of the created variable in the simplest case is simply the same as
+the key value. Optional prefix and suffix forth and fifth parameters may be
+passed in which case the name will be of the form:
+
+  `${prefix}${key}${suffix}`
+
+that is:
+
+  `${4}${1}${5})`
+
+If the formed string is not a valid variable identifer bad things will happen.
+To provide a suffix without a prefix specify the prefix as a hyphen.
+
+If the value represents a nested dict then the value is unnested.
+
+Usage examples:
+
+1. **simple**: create variables matching key names of entries in *dict*:  
+   `dict_for_each "${dict}" dict_op_to_var_flat`
+
+2. **with prefix**: create variables of the form *dict_keyname*  
+   `dict_for_each "${dict}" dict_op_to_var_flat 'dict_'`
+
+3. **with suffix**: create variables of the form *keyname_dict*  
+   `dict_for_each "${dict}" dict_op_to_var_flat '-' '_dict'`
+
+4. **with prefix and suffix**: create variables of the form *dict_keyname_0*  
+   `dict_for_each "${dict}" dict_op_to_var_flat 'dict_' '_0'`
+
+#### Parameters
+
+| Parameter number| Description |
+| --------------- | ----------- |
+| 1 | key value (passed by `dict_for_each`) |
+| 2 | value value (passed by `dict_for_each`) |
+| 3 | record index (passed by `dict_for_each` - ignored)
+| 4 | (optional) variable name prefix or '-' for suffix only |
+| 5 | (optional) variable name suffix |
+
+#### Return values
+
+None; $? is 0 unless the *read* utility rasies an error, e.g. the constructed variable name is invalid.
 
 ---
 
