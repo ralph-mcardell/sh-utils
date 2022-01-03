@@ -1,0 +1,107 @@
+#!/bin/sh
+# Copyright (c) 2022 Ralph. E. McArdell
+# All rights reserved.
+# Licensed under BSD 2-Clause License - see LICENSE.md for full text.
+#
+# To use:
+#   - Add dict.sh in the repository lib directory to the PATH. For example
+#     if you have cd'ed to the repository's bin/examples directory:
+#       PATH="../../lib/":"${PATH}"
+#   - Execute nesting_dicts, again if from the repository's bin/examples
+#     directory:
+#       ./nesting_dicts
+
+# Include the dict code. This assumes dict.sh is either in the same directory
+# as the executing script or on the PATH. If not then use the dict.sh path:
+. dict.sh
+
+# Define ANSI terminal control sequence constants.
+# Assume we have tr available but only a basic echo that supports
+# neither -e nor \e:
+readonly ASCII_ESC=$(echo '@' | tr '@' '\033')
+readonly ANSI_CMD_PREFIX="${ASCII_ESC}["
+readonly ANSI_CMD_END="2m"
+readonly ANSI_CMD_RESET="${ANSI_CMD_PREFIX}0m"
+readonly ANSI_CMD_FG_MULTIBIT="${ANSI_CMD_PREFIX}38"
+readonly ANSI_CMD_BG_MULTIBIT="${ANSI_CMD_PREFIX}48"
+readonly ANSI_CMD_FG_24BIT="${ANSI_CMD_FG_MULTIBIT};2"
+readonly ANSI_CMD_BG_24BIT="${ANSI_CMD_BG_MULTIBIT};2"
+
+# Build the ANSI terminal command string to set foreground and background
+# colours using 24 bit RGB triples. The fore- and back-ground RGB values
+# are passed as parameters 1 and 2 respectfully in dicts with entries r, g
+# and b with integer values between 0 and 255. The resultant string is
+# returned in the return_value variable.
+set_ansi_24bit_colours_string() {
+  local fg="${1}"
+  local bg="${2}"
+  local r="$(dict_get_simple "${fg}" 'r')"
+  local g="$(dict_get_simple "${fg}" 'g')"
+  local b="$(dict_get_simple "${fg}" 'b')"
+  local fg_cmd="${ANSI_CMD_FG_24BIT};${r};${g};${b}${ANSI_CMD_END}"
+
+  r="$(dict_get_simple "${bg}" 'r')"
+  g="$(dict_get_simple "${bg}" 'g')"
+  b="$(dict_get_simple "${bg}" 'b')"
+  return_value="${fg_cmd}${ANSI_CMD_BG_24BIT};${r};${g};${b}${ANSI_CMD_END}"                                     
+}
+
+# Declare a dict 'object' string and populate with entries for the foreground
+# and background colours to display the greeting in addition to the greeting
+# and who is greeted. Note that we have to use dict_declare rather than
+# dict_declare_simple when initialising with nested dict values:
+record="$(dict_declare 'greeting' 'Hello' 'who' 'World' \
+                       'foreground' "$(dict_declare_simple 'r' '127' \
+                                                           'g' '255' \
+                                                           'b' '80' \
+                                    )" \
+                       'background' "$(dict_declare_simple 'r' '80' \
+                                                           'g' '0' \
+                                                           'b' '0' \
+                                    )" \
+        )"
+
+# Lookup foreground and background RGB triples and pass to 
+# set_ansi_24bit_colours_string. As these values are nested dicts dict_get
+# must be used:
+set_ansi_24bit_colours_string "$(dict_get "${record}" 'foreground')" \
+                              "$(dict_get "${record}" 'background')"
+
+# Lookup the values associated with keys greeting and who and echo them to
+# stdout along with the ANSI colour setting string. As the looked up values
+# are simple strings dict_get_simple can be used:
+echo -n "${return_value}"
+echo -n "$(dict_get_simple "${record}" 'greeting'), $(dict_get_simple  "${record}" 'who')!"
+echo "${ANSI_CMD_RESET}"
+
+# Set values for keys greeting and who; as these both exist they are updated.
+# Note that the record variable is both used as an input argument and
+# receives the updated dict:
+record="$(dict_set_simple "${record}" 'greeting' 'Hi' 'who' 'Earth')"
+
+# Similarly the RGB colours can be set, however as these are stored as
+# nested dicts dict_set must be used. Note that we could combine the
+# previous call to dict_set_simple with the following call to dict_set
+# and set new values for all entries in one go:
+record="$(dict_set "${record}" 'foreground' "$(dict_declare_simple 'r' '255' \
+                                                                   'g' '127' \
+                                                                   'b' '80' \
+                                    )" \
+                               'background' "$(dict_declare_simple 'r' '0' \
+                                                                   'g' '80' \
+                                                                   'b' '0' \
+                                    )" \
+        )"
+
+# Once again pass the colour dict values to set_ansi_24bit_colours_string
+# but this time store in variables first:
+fore="$(dict_get "${record}" 'foreground')"
+back="$(dict_get "${record}" 'background')"
+set_ansi_24bit_colours_string "${fore}" "${back}"
+
+# Lookup and echo the updated associated values to stdout along with the
+# ANSI colour setting string. This time  store the returned values in
+# variables and output their values:
+greeting="$(dict_get_simple "${record}" 'greeting')"
+who="$(dict_get_simple  "${record}" 'who')"
+echo "${return_value}${greeting}, ${who}!${ANSI_CMD_RESET}"

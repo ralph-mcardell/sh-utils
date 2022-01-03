@@ -397,10 +397,10 @@ The characters the unprintable characters are translated to are specified by
 the optional second parameter in the order US RS GS FS (no spaces), which if
 not given default to:
 
- - US : _ (underscore / low line)
- - RS : ^ (caret / circumflex accent)
- - GS : ] (right square bracket)
- - FS : \ (backslash)
+- US : _ (underscore / low line)
+- RS : ^ (caret / circumflex accent)
+- GS : ] (right square bracket)
+- FS : \ (backslash)
 
 i.e. the string `'_^]\'` is passed to *tr* as the characters to translate to.
 
@@ -472,6 +472,334 @@ Usage examples:
 #### Return values
 
 None; $? is 0 unless the *read* utility rasies an error, e.g. the constructed variable name is invalid.
+
+## Example uses
+
+### Nesting dicts
+
+It is very common to find cases where a value associated with a key is itself
+composed of multiple values. This example extends the *Hello World* example
+shown previously by having the greeting *dict* also include the foreground
+and background colours to be used to display the greeting as RGB triples.
+
+The example demonstrates:
+
+- using the non-simple versions of *dict* API functions when any entry
+  value is or maybe a nested *dict*.
+- passing *dict* values as function areguments.
+  
+
+```bash
+#!/bin/sh
+
+# Include the dict code. This assumes dict.sh is either in the same directory
+# as the executing script or on the PATH. If not then use the dict.sh path:
+. dict.sh
+
+# Define ANSI terminal control sequence constants.
+# Assume we have tr available but only a basic echo that supports
+# neither -e nor \e:
+readonly ASCII_ESC=$(echo '@' | tr '@' '\033')
+readonly ANSI_CMD_PREFIX="${ASCII_ESC}["
+readonly ANSI_CMD_END="2m"
+readonly ANSI_CMD_RESET="${ANSI_CMD_PREFIX}0m"
+readonly ANSI_CMD_FG_MULTIBIT="${ANSI_CMD_PREFIX}38"
+readonly ANSI_CMD_BG_MULTIBIT="${ANSI_CMD_PREFIX}48"
+readonly ANSI_CMD_FG_24BIT="${ANSI_CMD_FG_MULTIBIT};2"
+readonly ANSI_CMD_BG_24BIT="${ANSI_CMD_BG_MULTIBIT};2"
+
+# Build the ANSI terminal command string to set foreground and background
+# colours using 24 bit RGB triples. The fore- and back-ground RGB values
+# are passed as parameters 1 and 2 respectfully in dicts with entries r, g
+# and b with integer values between 0 and 255. The resultant string is
+# returned in the return_value variable.
+set_ansi_24bit_colours_string() {
+  local fg="${1}"
+  local bg="${2}"
+  local r="$(dict_get_simple "${fg}" 'r')"
+  local g="$(dict_get_simple "${fg}" 'g')"
+  local b="$(dict_get_simple "${fg}" 'b')"
+  local fg_cmd="${ANSI_CMD_FG_24BIT};${r};${g};${b}${ANSI_CMD_END}"
+
+  r="$(dict_get_simple "${bg}" 'r')"
+  g="$(dict_get_simple "${bg}" 'g')"
+  b="$(dict_get_simple "${bg}" 'b')"
+  return_value="${fg_cmd}${ANSI_CMD_BG_24BIT};${r};${g};${b}${ANSI_CMD_END}"                                     
+}
+
+# Declare a dict 'object' string and populate with entries for the foreground
+# and background colours to display the greeting in addition to the greeting
+# and who is greeted. Note that we have to use dict_declare rather than
+# dict_declare_simple when initialising with nested dict values:
+record="$(dict_declare 'greeting' 'Hello' 'who' 'World' \
+                       'foreground' "$(dict_declare_simple 'r' '127' \
+                                                           'g' '255' \
+                                                           'b' '80' \
+                                    )" \
+                       'background' "$(dict_declare_simple 'r' '80' \
+                                                           'g' '0' \
+                                                           'b' '0' \
+                                    )" \
+        )"
+
+# Lookup foreground and background RGB triples and pass to 
+# set_ansi_24bit_colours_string. As these values are nested dicts dict_get
+# must be used:
+set_ansi_24bit_colours_string "$(dict_get "${record}" 'foreground')" \
+                              "$(dict_get "${record}" 'background')"
+
+# Lookup the values associated with keys greeting and who and echo them to
+# stdout along with the ANSI colour setting string. As the looked up values
+# are simple strings dict_get_simple can be used:
+echo -n "${return_value}"
+echo -n "$(dict_get_simple "${record}" 'greeting'), $(dict_get_simple  "${record}" 'who')!"
+echo "${ANSI_CMD_RESET}"
+
+# Set values for keys greeting and who; as these both exist they are updated.
+# Note that the record variable is both used as an input argument and
+# receives the updated dict:
+record="$(dict_set_simple "${record}" 'greeting' 'Hi' 'who' 'Earth')"
+
+# Similarly the RGB colours can be set, however as these are stored as
+# nested dicts dict_set must be used. Note that we could combine the
+# previous call to dict_set_simple with the following call to dict_set
+# and set new values for all entries in one go:
+record="$(dict_set "${record}" 'foreground' "$(dict_declare_simple 'r' '255' \
+                                                                   'g' '127' \
+                                                                   'b' '80' \
+                                    )" \
+                               'background' "$(dict_declare_simple 'r' '0' \
+                                                                   'g' '80' \
+                                                                   'b' '0' \
+                                    )" \
+        )"
+
+# Once again pass the colour dict values to set_ansi_24bit_colours_string
+# but this time store in variables first:
+fore="$(dict_get "${record}" 'foreground')"
+back="$(dict_get "${record}" 'background')"
+set_ansi_24bit_colours_string "${fore}" "${back}"
+
+# Lookup and echo the updated associated values to stdout along with the
+# ANSI colour setting string. This time  store the returned values in
+# variables and output their values:
+greeting="$(dict_get_simple "${record}" 'greeting')"
+who="$(dict_get_simple  "${record}" 'who')"
+echo "${return_value}${greeting}, ${who}!${ANSI_CMD_RESET}"
+```
+
+### Simulating a set
+
+A set is an unordered collection of values. It is similar to a dictionary
+that only has keys (rather than key:value pairs) as entries. *dict*
+objects can simulate a set by storing set members as key:value pairs with
+any non-empty string *don't care* value, a single underscore - '_' - for
+example.
+
+This example uses *dict* objects in such a simulated set manner with some
+sample common set operation implementations. This example demonstrates:
+
+- using *dict* objects to simulate sets.
+- more uses of `dict_declare_simple`, `dict_get_simple` and `dict_set_simple`.
+- use of `dict_for_each` with *dict* iteration functions.
+- using `dict_pretty_print` with a print specification *dict*.
+
+```bash
+#!/bin/sh
+
+# Include the dict code. This assumes dict.sh is either in the same directory
+# as the executing script or on the PATH. If not then use the dict.sh path:
+. dict.sh
+
+# Define functions to work with dicts simulating sets. Most functions return
+# their value in the gobal set_return_value variable, which we initialse to a
+# known, empty, state here:
+set_return_value=''
+
+# Define a set_declare function that wraps a call to dict_declare_simple.
+# Like dict_declare/dict_declare_simple set_declare take an optional,
+# variable, number of values to initialise the new set-dict with, however
+# each argument is a *whole* set entry which must be paired with a
+# non-empty but otherwise don't care value before being passed to
+# dict_declare_simple:
+set_declare() {
+  # Interleave a '_' value between the passed set values to convert to
+  # dict key value entry argument pairs. This has to be done carefully as
+  # we are consuming and modifying $@ at the same time! The method is:
+  #   1. set the count of how many parameter values $@ contains _before_
+  #      we start. This is because the number of parameters varies as
+  #      each '_' is added.
+  #   2. iterate for each parameter originally in $@ - i.e. count times:
+  #     2.1. grab the next set value, which is the next dict key.
+  #     2.2. remove this value from $@
+  #     2.3. set a new set of parameters, starting with the remaining
+  #          parameters in $@ - including previously updated parameters
+  #          with the '_' values interspersed, and then append the next
+  #          updated key and '_'  interspersed value.
+  #     2.4  decrement the remaining count of parameters to update
+  local count=$#
+  while [ $count -gt 0 ]; do
+    local key="${1}"
+    shift
+    set -- "$@" ${key} '_'
+    count=$(( $count-1 ))
+  done
+
+  # Declare the dict-simulating-a-set with the dict-as-set value assigned
+  # to set_return_value:
+  set_return_value="$(dict_declare_simple "$@")"
+}
+
+# Define set_contains that checks to see if a set (1st parameter)
+# contains a value (2nd parameter). Simply directly returns true if the
+# set contains the value or false if it does not.
+set_contains() {
+  local set="${1}"    # the haystack to search
+  local value="${2}"  # the needle to find
+  local maybe_in="$(dict_get_simple "${set}" "${value}")"
+  if [ -n "${maybe_in}" ]; then
+    true; return
+  else
+    false; return
+  fi
+}
+
+# Define set_add_members that adds one or more members to a set. The set only
+# increases its membership if a value is not already a member of the set. The
+# updated set is returned.
+set_add_members() {
+  local set="${1}"
+  shift
+  # Once again convert set value arguments to dict key value pair arguments
+  local count=$#
+  while [ $count -gt 0 ]; do
+    local key="${1}"
+    shift
+    set -- "$@" ${key} '_'
+    count=$(( $count-1 ))
+  done
+  # pass the set and converted entry values to dict_set_simple. Existing
+  # entries will be overwritten, not performant but logically correct:
+  set_return_value="$(dict_set_simple "${set}" "$@")"
+}
+
+# Define set_union that returns the union of two sets. Uses dict_for_each
+# to append any values in 2nd set not in 1st set to the result which
+# is initially assigned the value of the 1st set. Returns the resultant
+# union set in set_return_value.
+set_union() {
+  set_return_value="${1}"
+  dict_for_each "${2}" set_union_op
+}
+
+# Define set_union_op the per-member operation function for set_union.
+# Called by dict_for_each for each of the members of the 2nd operand that
+# set_union passes to dict_for_each. It calls set_add_members to ensure each
+# one is in the result set in set_return_value.
+set_union_op() {
+  local member="${1}"
+  set_add_members "${set_return_value}" "${member}"
+}
+
+# Define set_intersection thats returns the intersection of two sets. Uses 
+# dict_for_each to append any values in 2nd set also in 1st set to the result
+# which is initially an empty set. dict_for_each is also passed the 1st operand
+# set as an additional parameter to pass to each operation function call.
+# Returns the resultant intersection set in set_return_value.
+set_intersection() {
+  set_declare
+  dict_for_each "${2}" set_intersection_op "${1}"
+}
+
+# Define set_intersection_op the set_intersection per-member operation function.
+# Called by dict_for_each for each of the members of the 2nd operand that
+# set_intersection passes to dict_for_each. dict_for_each also passes the
+# whole set intersection 1st operand set. A value is added to the resultant
+# intersection set if it is in both the 1st operand set and the 2nd operand
+# set, checked by seeing if the 1st operand set contains the 2nd operand set
+# member value and if so the value is added to the result set in
+# set_return_value.
+set_intersection_op() {
+  local member_of_2="${1}"
+  local set_1="${4}"
+  if set_contains "${set_1}" "${member_of_2}"; then
+    set_add_members "${set_return_value}" "${member_of_2}"
+  fi
+}
+
+# Define set_print that formats and outputs the passed set object to stdout.
+# Sets up the print specification for dict_pretty_print and passes
+# the set and specification to dict_pretty_print.
+#
+# The format is that used by Python sets:
+#
+#   { 'member-1', 'member-2', ..., 'member-N' }
+set_print() {
+  # Use backspace character as dict value suffix to backspace over
+  # the dummy '_' set values. It is assumed tr is available but
+  # only a basic echo that does not support -e or \e.
+  local readonly ASCII_BS=$(echo '@' | tr '@' '\010')
+  local print_spec="$( dict_declare_simple \
+                       'dict_prefix' '{ ' \
+                       'dict_suffix' ' }' \
+                       'record_separator' ', ' \
+                       'key_prefix' "'" \
+                       'key_suffix' "'" \
+                       'value_suffix' "${ASCII_BS}" \
+                     )"
+  dict_pretty_print "${1}" "${print_spec}"
+}
+
+#
+# Using the set functions
+# 
+
+# Create and display a couple of sets:
+set_declare 'Kayla' 'Johnny' 'Alexis' 'Bobby' 'Rose' 'Louis' 'Charlotte' 'Elijah'
+friends="${set_return_value}"
+set_declare 'Rose' 'Russell' 'Charlotte' 'Vincent' 'Natalie' 'Johnny' 'Brittany' 'Bobby'
+collegues="${set_return_value}"
+echo -n 'My  friends  are: '
+set_print "${friends}"
+echo -n '\nMy collegues are: '
+set_print "${collegues}"
+echo '\n'
+
+# Add some new friends using set_add_members:
+echo 'I have new friends Eugene and Diana!'
+set_add_members "${friends}" 'Eugene' 'Diana'
+friends="${set_return_value}"
+echo -n 'My  friends  are now: '
+set_print "${friends}"
+
+# Add some new collegues contained in a set, added to existing friends
+# using set_union:
+set_declare 'Diana' 'Randy'
+new_collegues="${set_return_value}"
+echo -n '\n\nNew people '
+set_print "${new_collegues}"
+echo -n ' have just started on my team at work.'
+set_union "${collegues}" "${new_collegues}"
+collegues="${set_return_value}"
+echo -n '\nMy collegues are now: '
+set_print "${collegues}"
+echo '\n'
+
+# Obtain set of all friends and collegues. Some are both and therefore
+# should only appear once. Thus we require the union of friend and collegues:
+set_union "${friends}" "${collegues}"
+all_friends_and_collegues="${set_return_value}"
+echo -n "All my friends and collegues are "
+set_print "${all_friends_and_collegues}"
+echo ''
+
+# Obtain set of people who are both friend and collegue using set_intersection:
+set_intersection "${friends}" "${collegues}"
+both_friend_and_collegue="${set_return_value}"
+echo -n "My friends who are also collegues are "
+set_print "${both_friend_and_collegue}"
+echo ''
+```
 
 ---
 
