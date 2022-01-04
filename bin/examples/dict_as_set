@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright (c) 2021 Ralph. E. McArdell
+# Copyright (c) 2022 Ralph. E. McArdell
 # All rights reserved.
 # Licensed under BSD 2-Clause License - see LICENSE.md for full text.
 #
@@ -42,11 +42,11 @@ set_declare() {
   #          updated key and '_'  interspersed value.
   #     2.4  decrement the remaining count of parameters to update
   local count=$#
-  while [ $count -gt 0 ]; do
+  while [ ${count} -gt 0 ]; do
     local key="${1}"
     shift
     set -- "$@" ${key} '_'
-    count=$(( $count-1 ))
+    count=$(( ${count}-1 ))
   done
 
   # Declare the dict-simulating-a-set with the dict-as-set value assigned
@@ -76,11 +76,11 @@ set_add_members() {
   shift
   # Once again convert set value arguments to dict key value pair arguments
   local count=$#
-  while [ $count -gt 0 ]; do
+  while [ ${count} -gt 0 ]; do
     local key="${1}"
     shift
     set -- "$@" ${key} '_'
-    count=$(( $count-1 ))
+    count=$(( ${count}-1 ))
   done
   # pass the set and converted entry values to dict_set_simple. Existing
   # entries will be overwritten, not performant but logically correct:
@@ -190,7 +190,7 @@ set_print "${collegues}"
 echo '\n'
 
 # Obtain set of all friends and collegues. Some are both and therefore
-# should only appear once. Thus we require the union of friend and collegues:
+# should only appear once. Thus we require the union of friends and collegues:
 set_union "${friends}" "${collegues}"
 all_friends_and_collegues="${set_return_value}"
 echo -n "All my friends and collegues are "
