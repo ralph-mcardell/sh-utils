@@ -786,7 +786,7 @@ set_print "${collegues}"
 echo '\n'
 
 # Obtain set of all friends and collegues. Some are both and therefore
-# should only appear once. Thus we require the union of friend and collegues:
+# should only appear once. Thus we require the union of friends and collegues:
 set_union "${friends}" "${collegues}"
 all_friends_and_collegues="${set_return_value}"
 echo -n "All my friends and collegues are "
@@ -799,6 +799,202 @@ both_friend_and_collegue="${set_return_value}"
 echo -n "My friends who are also collegues are "
 set_print "${both_friend_and_collegue}"
 echo ''
+```
+
+### Simulating a vector (single dimension array)
+
+A vector or single dimension array is a container whose elements are identifed
+by an integer index, usually starting from 0 or 1. Some versions allow negative
+index values - either as a regular index value or one having special meaning
+such as index-from-the-end. Another characteristic of some implementations is
+that elements can only be efficiently added to the end of the vector - that
+is appended to the vector. Removing values from a vector or inserting at the
+beginning or in the middle of a vector are more involved and inefficient
+operations as they require copying the values around the removed / inserted
+element to close the gap or make space. Such a container can also be used as a sequence of values.
+
+This example consists of support for simple vectors that are indexed from 0
+to which values can be appended but should not be removed or inserted
+elsewhere. This is implemented by *dict*s which have sequentially increasing
+integer key values starting at 0. Each appended value has an index value equal
+to the size (number of elements) in the *dict* before the new element is
+appended. The vectors are used as ordered sequences which can be iterated over
+in the order values were added - either initially or by appending. The case
+differs from simulated sets - in which members are stored as dict keys - in
+that:
+
+- values may be repeated (as they are stored as *dict* values)
+- values many be nested *dict*s
+- values can be accessed by index
+
+The example demonstrates:
+
+- using *dict* objects to simulate vectors used as sequences.
+- more uses of `dict_declare`, `dict_set` and `dict_for_each`.
+- using `dict_size` to obtain the number of entries in a *dict*.
+
+```bash
+#!/bin/sh
+
+# Include the dict code. This assumes dict.sh is either in the same directory
+# as the executing script or on the PATH. If not then use the dict.sh path:
+. dict.sh
+
+# Define functions to work with dicts simulating vectors. Most functions return
+# their value in the gobal vector_return_value variable, which we initialse to
+# a known, empty, state here:
+vector_return_value=''
+
+# Define a vector_declare function that wraps a call to dict_declare.
+# Like dict_declare/dict_declare_simple vector_declare takes an optional,
+# variable, number of values to initialise the new vector-dict with, however
+# each argument is a *whole* vector element which must be paired with a
+# 0 based index key value before being passed to dict_declare. dict_declare
+# is called rather than dict_declare_simple as the values may be dicts.
+# The new vector-dict is returned in vector_return_value.
+vector_declare() {
+  # Insert a 0 based index value before the passed vector element values to
+  # convert to dict key value entry argument pairs. This is done carefully
+  # as we are consuming and modifying $@ at the same time! The method is:
+  #   1. set the count of how many parameter values $@ contains _before_
+  #      we start. This is because the number of parameters varies as
+  #      each index is added.
+  #   2. set the initial index value to 0.
+  #   3. iterate for each parameter originally in $@ - i.e. count times:
+  #     3.1. grab the next vector element value, which is the next dict value.
+  #     3.2. remove this value from $@
+  #     3.3. set a new set of parameters, starting with the remaining
+  #          parameters in $@ - including previously updated parameters
+  #          with the index key values interspersed, and then append the
+  #          next updated index key and vector element value.
+  #     3.4  decrement the remaining count of parameters to update
+  #     3.5  increment the index value
+  local count=$#
+  local index=0
+  while [ ${count} -gt 0 ]; do
+    local value="${1}"
+    shift
+    set -- "$@" "${index}" "${value}"
+    count=$(( ${count}-1 ))
+    index=$(( ${index}+1 ))
+  done
+
+  # Declare the dict-simulating-a-vector with the dict-as-vector value
+  # assigned to set_return_value:
+ vector_return_value="$(dict_declare "$@")"
+}
+
+# Define a vector_append function that wraps a call to dict_set.
+# vector_append takes one or more element values to append to the passed 
+# vector-dict, however each value argument is a *whole* vector element which
+# must be paired with the correct index key value before being passed to
+# dict_set. dict_set is called rather than dict_set_simple as the values may
+# be dicts. The new vector-dict is returned in vector_return_value.
+vector_append() {
+  local vector="${1}"
+  shift
+  # Once again convert vector element value arguments to dict key value pair
+  # arguments, this time the initial index is the number of elements in the
+  # vector-dict:
+  local count=$#
+  local index=$(dict_size "${vector}")
+  while [ ${count} -gt 0 ]; do
+    local value="${1}"
+    shift
+    set -- "$@" "${index}" "${value}"
+    count=$(( ${count}-1 ))
+    index=$(( ${index}+1 ))
+  done
+
+  # pass the vector and converted entry values to dict_set:
+  vector_return_value="$(dict_set "${vector}" "$@")"
+}
+
+#
+# Using the vector functions
+#
+
+# Requires Linux with /proc file system, basic grep, awk and sleep.
+# Collect samples of the /proc/meminfo Dirty memory count over several
+# seconds and display a simple graph:
+
+# declare vector with initial sample value
+echo 'Collecting dirty memory kB samples from /proc/meminfo...'
+ASCII_CR=$(echo '@' | tr '@' '\015')
+sample="$(grep "Dirty" /proc/meminfo | awk -F" " '{print$2}')"
+vector_declare ${sample}
+dirty_mem_kB="${vector_return_value}"
+
+# collect remaining samples at ~1 second intervals
+# remember maximum sample value - for use in scaling values to fit graph
+remaining_samples=29
+max_sample=${sample}
+while [ ${remaining_samples} -gt 0 ]; do
+  echo -n "${ASCII_CR}Samples to go: ${remaining_samples}   "
+  sleep 1
+  sample="$(grep "Dirty" /proc/meminfo | awk -F" " '{print$2}')"
+  if [ ${sample} -gt ${max_sample} ]; then
+    max_sample=${sample}
+  fi
+  vector_append "${dirty_mem_kB}" ${sample}
+  dirty_mem_kB="${vector_return_value}"
+  remaining_samples=$(( ${remaining_samples}-1 ))
+done
+echo "${ASCII_CR}                                      "
+
+# The graph will be 'drawn' in another vector with each value representing
+# one line of the graph. Samples values extend up the y-axis and samples
+# are ranged along the x-axis. This would be the typical arrangement for a
+# graph but tricky to on a line based terminal where the obvious
+# arrangement is to output one sample value representation per line.
+readonly graph_lines=30
+readonly graph_sample_scale_factor=$(( ${max_sample}/${graph_lines} ))
+
+# Set up the graph-buffer vector, populating the graph as we go by calling
+# dict_for_each to iterate through the samples to determine whether a marker
+# or spacer should be left for each sample depending on its value and the
+# 'y-value' of the graph line.
+
+# Define a graph_line_op function that is called for each sample for
+# each line with sample value as parameter 2 and the y-coordinate passed
+# as parameter 4 (the ${lines_remaining} argument), running from
+# ${graph_lines}-1 to 0
+graph_line_op() {
+  local sample=${2}
+  local y_coord=${4}
+  local y_value=$(( ${y_coord}*${graph_sample_scale_factor} ))
+  if [ ${sample} -ge ${y_value} ]; then
+    graph_line="${graph_line}* "
+  else
+    graph_line="${graph_line}  "
+  fi
+}
+
+vector_declare
+graph="${vector_return_value}"
+lines_remaining=${graph_lines}
+while [ ${lines_remaining} -gt 0 ]; do
+  # set the graph line with y-axis depiction, then add sample points
+  graph_line='| '
+  lines_remaining=$(( ${lines_remaining}-1 ))
+  dict_for_each "${dirty_mem_kB}" graph_line_op ${lines_remaining}
+  vector_append "${graph}" "${graph_line}"
+  graph="${vector_return_value}"
+done
+# Finish the graph by adding the x-axis depiction to the graph vector
+vector_append "${graph}" \
+              '*--------------------------------------------------------------'
+graph="${vector_return_value}"
+
+echo "${max_sample}kB"
+# Finally output the graph, again using dict_for_each and an operation
+# function that simple echos the line entry value, passed in parameter 2:
+graph_echo_line_op() {
+  echo "${2}"
+}
+
+dict_for_each "${graph}" graph_echo_line_op
+
 ```
 
 ---
