@@ -3,25 +3,23 @@
 While GNU *bash* has collection types - both arrays and associative maps - the
 simple POSIX standard shell language (a.k.a. *sh*) has none.
 
-The *dict* shell language library module provides an associative map container
-type - or dictionary, dict for short.
+The *dict* shell language library module provides an unordered associative map
+container type - or dictionary, dict for short.
 
 ## Requirements
 
 In addition to the POSIX Shell Command Langauge (Revision of IEEE
 Std 1003.1-2008 - as detailed at
-[The Open Group Shell Command Language page](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_25)
+[The Open Group Shell Command Language page](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_25) - the following facilities are required:
 
-The following facilities are required:
-
-- `local` to declare varibles local to function calls
+- `local` to declare variables local to function calls
 - `tr` utility to translate characters
-- `sed` to replace strings
+- `sed` utility to replace strings
 
 ## Installation
 
 Ensure that the *dict.sh* file in the repository *lib* directory is in a known
-location and access by pathname or is on the process PATH.
+location and access by specifying the pathname or is on the process PATH.
 
 ## To use *dict.sh*
 
@@ -76,29 +74,35 @@ Functions that set entries pass them as pairs of arguments, for example:
 Dict entries are string keys and string values. These strings may of
 course represent numbers on which arithmetic can be performed.
 
-As mentioned dicts are specially formatted strings and use the ASCII (and
+As mentioned *dicts* are specially formatted strings and use the ASCII (and
 therefore also Unicode) often overlooked (and hopefully infrequently used)
 separator control characters: FS, GS, RS and US. Hence entry key and value
 strings cannot contain these values.
 
-Dicts can be nested, one dict as an entry value of another.
+*Dicts* can be nested, one *dict* as an entry value of another, however this
+requires extra processing to ensure the special seperator characters in nested *dict* values are modified on insertion and restored on extraction.
+
+*Dict* keys cannot be *dict*s.
 
 ### Simple dict functions
 
 Some functions have variants suffixed with `_simple`. These functions do *not*
-support nesting of *dict* values. Nesting a *dict* as a value of another
-requires additional work and values need to be checked to see if they are
-a *dict* and require the additional handling. The `_simple` function variants
-do not bother to check values, assuming they are *not* *dict*s.
+support nesting of *dict* values. As mention above nesting a *dict* as a
+value of another requires additional work and values need to be checked to
+see if they are a *dict* and require the additional handling. The `_simple`
+function variants do not bother to check values, assuming they are *not*
+*dict*s.
 
 ### Dict Hello World
 
-Here is a Hello World example. It shows:
+Below is shown a *Hello World* example. It shows:
 
 - creating a *dict* and populating it with initial entries with non-*dict*
 values.
 - accessing the entry values so they can be output to *stdout*.
-- updating the values
+- updating the values.
+
+As only simple string values are being stored - no nested *dict*s - the `_simple` versions of *dict* functions are used.
 
 ```bash
 #!/bin/sh
@@ -139,7 +143,7 @@ echo "${greeting}, ${who}!"
 | `dict_remove` | remove a key,value entry from a *dict*. Returns the updated *dict*.|
 | `dict_is_dict` | check if a variable's value represents a *dict* type. |
 | `dict_size` `dict_count` | return the integer value of the size of a *dict*, being the number of records. `dict_size` is ~O(1) whereas `dict_count` is ~O(n), hence `dict_size` is intended to be usually used over `dict_count`, which iterates over the entries in a *dict* and returns the count of records iterated over. |
-| `dict_for_each` | iterate over the entries of a *dict* calling a function for each key value pair. |
+| `dict_for_each` | iterate over the entries of a *dict* calling a function for each key,value pair. |
 | `dict_pretty_print` | output *dict* entries with customisable surrounding decoration. |
 | `dict_print_raw` | print the raw string of a *dict* variable with substitutions for the US, RS, GS and FS non-printing separator characters. Useful for debugging and similar. |
 | `dict_op_to_var_flat` | for use with `dict_for_each`. Create variables with the value of *dict* entries' value and a name based on the *dict* entries' key value with optional prefix and/or suffix. |
@@ -345,7 +349,7 @@ The formatting decoration is specified as a *dict* passed as the second
 parameter that has specific entries. Any entry not provided in the
 specification *dict* is output as an empty string. Hence providing an
 empty specification *dict* will just output each key,value in order,
-including nested key values, with no separation between each key and
+including nested *dict* values, with no separation between each key and
 value or between each key, value entry.
 
 The available specification keys and the use of their associated values
@@ -355,7 +359,7 @@ are:
 | ----------------- | ----------- |
 | 'print_prefix'    | Characters output before any other dict output |
 | 'print_suffix'    | Characters output after all other dict output |
-| 'nesting_indent'  | Characters output after newlines for nested dict output; applied to existing indent on each subsequent string. |
+| 'nesting_indent'  | Characters output after any newlines for nested dict output; applied to existing indent on each subsequent string. |
 | 'nesting_prefix'  | Characters output before any other nested dict output |
 | 'nesting_suffix'  | Characters output after all other nested dict output |
 | 'dict_prefix'     | Characters output before any dict entry output |
@@ -369,10 +373,10 @@ are:
 | 'value_suffix'    | Characters output after each dict entry value output |
 
 As implied in the description of the value for the 'nesting_indent' key
-print specification string values may contain newlines
+print specification string values may contain newlines.
 
-`dict_pretty_print` may be called directly so as to see the output on the
-console or via *Command Substitution* to capture the output.
+`dict_pretty_print` may be called directly to send to output to stdout, or via
+*Command Substitution* to capture the output.
 #### Parameters
 
 | Parameter number| Description |
@@ -395,7 +399,7 @@ unprintable ASCII US RS GS and FS characters with the *tr* utility.
 
 The characters the unprintable characters are translated to are specified by
 the optional second parameter in the order US RS GS FS (no spaces), which if
-not given default to:
+not given defaults to:
 
 - US : _ (underscore / low line)
 - RS : ^ (caret / circumflex accent)
@@ -419,7 +423,7 @@ console or via *Command Substitution* to capture the output.
 
 | $? | stdout | fail reasons (error message on stderr) |
 | -- | ------ | ------------ |
-| 0        | contents of first paraemter after translating the unprintable characters US RS GS FS using the contents of the second (possibly defaulted) parameter using the *tr* utility. |
+| 0        | contents of first parameter after translating the unprintable characters US RS GS FS using the contents of the second (possibly defaulted) parameter using the *tr* utility. |
 |?? (fail) | empty string | none unless *tr* or *echo* produce an error. Specifically note that the first parameter is *not* checked that it is a *dict* type. |
 
 ### `dict_op_to_var_flat`
@@ -438,25 +442,25 @@ passed in which case the name will be of the form:
 
 that is:
 
-  `${4}${1}${5})`
+  `${4}${1}${5}`
 
 If the formed string is not a valid variable identifer bad things will happen.
 To provide a suffix without a prefix specify the prefix as a hyphen.
 
-If the value represents a nested dict then the value is unnested.
+If the value represents a nested *dict* then the value is unnested.
 
 Usage examples:
 
 1. **simple**: create variables matching key names of entries in *dict*:  
    `dict_for_each "${dict}" dict_op_to_var_flat`
 
-2. **with prefix**: create variables of the form *dict_keyname*  
+2. **with prefix**: create variables of the form *dict_keyname*:  
    `dict_for_each "${dict}" dict_op_to_var_flat 'dict_'`
 
-3. **with suffix**: create variables of the form *keyname_dict*  
+3. **with suffix**: create variables of the form *keyname_dict*:  
    `dict_for_each "${dict}" dict_op_to_var_flat '-' '_dict'`
 
-4. **with prefix and suffix**: create variables of the form *dict_keyname_0*  
+4. **with prefix and suffix**: create variables of the form *dict_keyname_0*:  
    `dict_for_each "${dict}" dict_op_to_var_flat 'dict_' '_0'`
 
 #### Parameters
@@ -486,7 +490,7 @@ The example demonstrates:
 
 - using the non-simple versions of *dict* API functions when any entry
   value is or maybe a nested *dict*.
-- passing *dict* values as function areguments.
+- passing *dict* values as function arguments.
   
 
 ```bash
@@ -581,7 +585,7 @@ back="$(dict_get "${record}" 'background')"
 set_ansi_24bit_colours_string "${fore}" "${back}"
 
 # Lookup and echo the updated associated values to stdout along with the
-# ANSI colour setting string. This time  store the returned values in
+# ANSI colour setting string. This time store the returned values in
 # variables and output their values:
 greeting="$(dict_get_simple "${record}" 'greeting')"
 who="$(dict_get_simple  "${record}" 'who')"
@@ -623,8 +627,8 @@ set_return_value=''
 # non-empty but otherwise don't care value before being passed to
 # dict_declare_simple:
 set_declare() {
-  # Interleave a '_' value between the passed set values to convert to
-  # dict key value entry argument pairs. This has to be done carefully as
+  # Insert a '_' value after each passed set value to convert them to
+  # dict key:value entry argument pairs. This has to be done carefully as
   # we are consuming and modifying $@ at the same time! The method is:
   #   1. set the count of how many parameter values $@ contains _before_
   #      we start. This is because the number of parameters varies as
@@ -635,8 +639,8 @@ set_declare() {
   #     2.3. set a new set of parameters, starting with the remaining
   #          parameters in $@ - including previously updated parameters
   #          with the '_' values interspersed, and then append the next
-  #          updated key and '_'  interspersed value.
-  #     2.4  decrement the remaining count of parameters to update
+  #          updated key and inserted '_'  value.
+  #     2.4  decrement the remaining count of parameters to update.
   local count=$#
   while [ $count -gt 0 ]; do
     local key="${1}"
@@ -650,9 +654,9 @@ set_declare() {
   set_return_value="$(dict_declare_simple "$@")"
 }
 
-# Define set_contains that checks to see if a set (1st parameter)
-# contains a value (2nd parameter). Simply directly returns true if the
-# set contains the value or false if it does not.
+# Define a set_contains function that checks to see if a set (1st parameter)
+# contains a value (2nd parameter). Directly returns true if the set contains
+# the value or false if it does not.
 set_contains() {
   local set="${1}"    # the haystack to search
   local value="${2}"  # the needle to find
@@ -664,13 +668,13 @@ set_contains() {
   fi
 }
 
-# Define set_add_members that adds one or more members to a set. The set only
-# increases its membership if a value is not already a member of the set. The
-# updated set is returned.
+# Define a set_add_members function that adds one or more members to a set.
+# The set only increases its membership if a value is not already a member
+# of the set. The updated set is returned in set_return_value.
 set_add_members() {
   local set="${1}"
   shift
-  # Once again convert set value arguments to dict key value pair arguments
+  # Once again convert set value arguments to dict key:value pair arguments
   local count=$#
   while [ $count -gt 0 ]; do
     local key="${1}"
@@ -683,10 +687,10 @@ set_add_members() {
   set_return_value="$(dict_set_simple "${set}" "$@")"
 }
 
-# Define set_union that returns the union of two sets. Uses dict_for_each
-# to append any values in 2nd set not in 1st set to the result which
-# is initially assigned the value of the 1st set. Returns the resultant
-# union set in set_return_value.
+# Define a set_union function that returns the union of two sets.
+# Uses dict_for_each to append any values in 2nd set not in 1st set to
+# the result which is initially assigned the value of the 1st set.
+# Returns the resultant union set in set_return_value.
 set_union() {
   set_return_value="${1}"
   dict_for_each "${2}" set_union_op
@@ -701,11 +705,11 @@ set_union_op() {
   set_add_members "${set_return_value}" "${member}"
 }
 
-# Define set_intersection thats returns the intersection of two sets. Uses 
-# dict_for_each to append any values in 2nd set also in 1st set to the result
-# which is initially an empty set. dict_for_each is also passed the 1st operand
-# set as an additional parameter to pass to each operation function call.
-# Returns the resultant intersection set in set_return_value.
+# Define a set_intersection function returning the intersection of two sets.
+# Uses dict_for_each to append any values in 2nd set also in 1st set to the
+# result which is initially an empty set. dict_for_each is also passed the
+# 1st operand set as an additional parameter to pass to each operation
+# function call. Returns the resultant intersection set in set_return_value.
 set_intersection() {
   set_declare
   dict_for_each "${2}" set_intersection_op "${1}"
@@ -727,9 +731,9 @@ set_intersection_op() {
   fi
 }
 
-# Define set_print that formats and outputs the passed set object to stdout.
-# Sets up the print specification for dict_pretty_print and passes
-# the set and specification to dict_pretty_print.
+# Define a set_print function that formats and outputs set objects to stdout.
+# Sets up the print specification for dict_pretty_print and passes the set
+# and specification to dict_pretty_print.
 #
 # The format is that used by Python sets:
 #
@@ -854,7 +858,7 @@ vector_return_value=''
 # The new vector-dict is returned in vector_return_value.
 vector_declare() {
   # Insert a 0 based index value before the passed vector element values to
-  # convert to dict key value entry argument pairs. This is done carefully
+  # convert to dict key:value entry argument pairs. This is done carefully
   # as we are consuming and modifying $@ at the same time! The method is:
   #   1. set the count of how many parameter values $@ contains _before_
   #      we start. This is because the number of parameters varies as
@@ -865,7 +869,7 @@ vector_declare() {
   #     3.2. remove this value from $@
   #     3.3. set a new set of parameters, starting with the remaining
   #          parameters in $@ - including previously updated parameters
-  #          with the index key values interspersed, and then append the
+  #          with their preceding index key values, and then append the
   #          next updated index key and vector element value.
   #     3.4  decrement the remaining count of parameters to update
   #     3.5  increment the index value
@@ -880,7 +884,7 @@ vector_declare() {
   done
 
   # Declare the dict-simulating-a-vector with the dict-as-vector value
-  # assigned to set_return_value:
+  # assigned to vector_return_value:
  vector_return_value="$(dict_declare "$@")"
 }
 
@@ -893,7 +897,7 @@ vector_declare() {
 vector_append() {
   local vector="${1}"
   shift
-  # Once again convert vector element value arguments to dict key value pair
+  # Once again convert vector element value arguments to dict key:value pair
   # arguments, this time the initial index is the number of elements in the
   # vector-dict:
   local count=$#
@@ -918,15 +922,15 @@ vector_append() {
 # Collect samples of the /proc/meminfo Dirty memory count over several
 # seconds and display a simple graph:
 
-# declare vector with initial sample value
+# Declare vector with initial sample value
 echo 'Collecting dirty memory kB samples from /proc/meminfo...'
 ASCII_CR=$(echo '@' | tr '@' '\015')
 sample="$(grep "Dirty" /proc/meminfo | awk -F" " '{print$2}')"
 vector_declare ${sample}
 dirty_mem_kB="${vector_return_value}"
 
-# collect remaining samples at ~1 second intervals
-# remember maximum sample value - for use in scaling values to fit graph
+# Collect remaining samples at ~1 second intervals
+# Remember maximum sample value - for use in scaling values to fit graph
 remaining_samples=29
 max_sample=${sample}
 while [ ${remaining_samples} -gt 0 ]; do
@@ -943,9 +947,9 @@ done
 echo "${ASCII_CR}                                      "
 
 # The graph will be 'drawn' in another vector with each value representing
-# one line of the graph. Samples values extend up the y-axis and samples
+# one line of the graph. Sample values extend up the y-axis and samples
 # are ranged along the x-axis. This would be the typical arrangement for a
-# graph but tricky to on a line based terminal where the obvious
+# graph but tricky on a line based terminal where the obvious
 # arrangement is to output one sample value representation per line.
 readonly graph_lines=30
 readonly graph_sample_scale_factor=$(( ${max_sample}/${graph_lines} ))
@@ -956,7 +960,7 @@ readonly graph_sample_scale_factor=$(( ${max_sample}/${graph_lines} ))
 # 'y-value' of the graph line.
 
 # Define a graph_line_op function that is called for each sample for
-# each line with sample value as parameter 2 and the y-coordinate passed
+# each line with samply value as parameter 2 and the y-coordinate passed
 # as parameter 4 (the ${lines_remaining} argument), running from
 # ${graph_lines}-1 to 0
 graph_line_op() {

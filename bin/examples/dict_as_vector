@@ -29,7 +29,7 @@ vector_return_value=''
 # The new vector-dict is returned in vector_return_value.
 vector_declare() {
   # Insert a 0 based index value before the passed vector element values to
-  # convert to dict key value entry argument pairs. This is done carefully
+  # convert to dict key:value entry argument pairs. This is done carefully
   # as we are consuming and modifying $@ at the same time! The method is:
   #   1. set the count of how many parameter values $@ contains _before_
   #      we start. This is because the number of parameters varies as
@@ -40,7 +40,7 @@ vector_declare() {
   #     3.2. remove this value from $@
   #     3.3. set a new set of parameters, starting with the remaining
   #          parameters in $@ - including previously updated parameters
-  #          with the index key values interspersed, and then append the
+  #          with their preceding index key values, and then append the
   #          next updated index key and vector element value.
   #     3.4  decrement the remaining count of parameters to update
   #     3.5  increment the index value
@@ -55,7 +55,7 @@ vector_declare() {
   done
 
   # Declare the dict-simulating-a-vector with the dict-as-vector value
-  # assigned to set_return_value:
+  # assigned to vector_return_value:
  vector_return_value="$(dict_declare "$@")"
 }
 
@@ -68,7 +68,7 @@ vector_declare() {
 vector_append() {
   local vector="${1}"
   shift
-  # Once again convert vector element value arguments to dict key value pair
+  # Once again convert vector element value arguments to dict key:value pair
   # arguments, this time the initial index is the number of elements in the
   # vector-dict:
   local count=$#
@@ -93,15 +93,15 @@ vector_append() {
 # Collect samples of the /proc/meminfo Dirty memory count over several
 # seconds and display a simple graph:
 
-# declare vector with initial sample value
+# Declare vector with initial sample value
 echo 'Collecting dirty memory kB samples from /proc/meminfo...'
 ASCII_CR=$(echo '@' | tr '@' '\015')
 sample="$(grep "Dirty" /proc/meminfo | awk -F" " '{print$2}')"
 vector_declare ${sample}
 dirty_mem_kB="${vector_return_value}"
 
-# collect remaining samples at ~1 second intervals
-# remember maximum sample value - for use in scaling values to fit graph
+# Collect remaining samples at ~1 second intervals
+# Remember maximum sample value - for use in scaling values to fit graph
 remaining_samples=29
 max_sample=${sample}
 while [ ${remaining_samples} -gt 0 ]; do
@@ -118,9 +118,9 @@ done
 echo "${ASCII_CR}                                      "
 
 # The graph will be 'drawn' in another vector with each value representing
-# one line of the graph. Samples values extend up the y-axis and samples
+# one line of the graph. Sample values extend up the y-axis and samples
 # are ranged along the x-axis. This would be the typical arrangement for a
-# graph but tricky to on a line based terminal where the obvious
+# graph but tricky on a line based terminal where the obvious
 # arrangement is to output one sample value representation per line.
 readonly graph_lines=30
 readonly graph_sample_scale_factor=$(( ${max_sample}/${graph_lines} ))
@@ -163,7 +163,7 @@ graph="${vector_return_value}"
 
 echo "${max_sample}kB"
 # Finally output the graph, again using dict_for_each and an operation
-# function that simple echos the line entry value, passed in parameter 2:
+# function that simply echos the line entry value, passed in parameter 2:
 graph_echo_line_op() {
   echo "${2}"
 }

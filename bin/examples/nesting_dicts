@@ -100,7 +100,7 @@ back="$(dict_get "${record}" 'background')"
 set_ansi_24bit_colours_string "${fore}" "${back}"
 
 # Lookup and echo the updated associated values to stdout along with the
-# ANSI colour setting string. This time  store the returned values in
+# ANSI colour setting string. This time store the returned values in
 # variables and output their values:
 greeting="$(dict_get_simple "${record}" 'greeting')"
 who="$(dict_get_simple  "${record}" 'who')"
