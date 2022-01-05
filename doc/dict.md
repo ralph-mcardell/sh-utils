@@ -80,7 +80,8 @@ separator control characters: FS, GS, RS and US. Hence entry key and value
 strings cannot contain these values.
 
 *Dicts* can be nested, one *dict* as an entry value of another, however this
-requires extra processing to ensure the special seperator characters in nested *dict* values are modified on insertion and restored on extraction.
+requires extra processing to ensure the special seperator characters in nested
+*dict* values are modified on insertion and restored on extraction.
 
 *Dict* keys cannot be *dict*s.
 
@@ -102,7 +103,8 @@ values.
 - accessing the entry values so they can be output to *stdout*.
 - updating the values.
 
-As only simple string values are being stored - no nested *dict*s - the `_simple` versions of *dict* functions are used.
+As only simple string values are being stored - no nested *dict*s - the `_simple`
+versions of *dict* functions are used.
 
 ```bash
 #!/bin/sh
@@ -150,11 +152,17 @@ echo "${greeting}, ${who}!"
 
 ### `dict_declare` `dict_declare_simple`
 
-`dict_declare` and `dict_declare_simple` are used to create *dict* 'object' strings. If called with no values they return an empty *dict*. If passed pairs of keys and values these are used to populate the new *dict*.
+`dict_declare` and `dict_declare_simple` are used to create *dict* 'object'
+strings. If called with no values they return an empty *dict*. If passed pairs
+of keys and values these are used to populate the new *dict*.
 
-If no entry values are themselves *dict*s then `dict_declare_simple` can be safely called. Key values may not be *dict*s for either `dict_declare_simple` or `dict_declare`. For both `dict_declare` and `dict_declare_simple` neither keys nor values can contain ASCII US, RS, GS or FS characters.
+If no entry values are themselves *dict*s then `dict_declare_simple` can be
+safely called. Key values may not be *dict*s for either `dict_declare_simple`
+or `dict_declare`. For both `dict_declare` and `dict_declare_simple` neither
+keys nor values can contain ASCII US, RS, GS or FS characters.
 
-`dict_declare` and `dict_declare_simple` are designed to be called using *Command Substitution*.
+`dict_declare` and `dict_declare_simple` are designed to be called using
+*Command Substitution*.
 
 #### Parameters
 
@@ -205,7 +213,8 @@ Substitution*.
 
 ### `dict_get` `dict_get_simple`
 
-`dict_get` and `dict_get_simple` are used to retreive an entry value from an existing *dict* 'object' given the entry's key value.
+`dict_get` and `dict_get_simple` are used to retreive an entry value from an
+existing *dict* 'object' given the entry's key value.
 
 If the retrived value is not a *dict* then `dict_get_simple` can be safely
 called. The key value may not be *dict*s for either `dict_get_simple` or
@@ -255,7 +264,8 @@ characters.
 
 ### `dict_is_dict`
 
-`dict_is_dict` checks the single passed parameter is a *dict*. That is it checks the passed value appears to be in the correct format to be a *dict*.
+`dict_is_dict` checks the single passed parameter is a *dict*. That is it
+checks the passed value appears to be in the correct format to be a *dict*.
 
 `dict_is_dict` is intended to be called directly and *not* via *Command
 Substitution*.
@@ -815,7 +825,8 @@ that elements can only be efficiently added to the end of the vector - that
 is appended to the vector. Removing values from a vector or inserting at the
 beginning or in the middle of a vector are more involved and inefficient
 operations as they require copying the values around the removed / inserted
-element to close the gap or make space. Such a container can also be used as a sequence of values.
+element to close the gap or make space. Such a container can also be used as
+a sequence of values.
 
 This example consists of support for simple vectors that are indexed from 0
 to which values can be appended but should not be removed or inserted
