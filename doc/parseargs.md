@@ -43,8 +43,7 @@ All *parseargs* API functions start with the prefix `parseargs_`. Most API funct
   local new_parser="$(parseargs_new_argument_parser)"
 ```
 
-A few are meant to be called for execution in the same process as the calling
-script:
+A few are meant to be called for execution in the same process as the calling script:
 
 ```bash
   if parseargs_is_argument_parser "${maybe_parser}"; then
@@ -59,11 +58,57 @@ If a function operates on a *parser* then it is passed as the first argument *by
 Some functions accept attributes. These are passed as pairs of arguments: *attribute-name* *attribute-value*, for example:
 
 ```bash
-  local new_dict="$(parseargs_new_argument_parser \
+  local new_parser="$(parseargs_new_argument_parser \
                             'prog' 'super-utility' \
                      'description' 'Utility that does super wonder stuff.' \
                    )"
 ```
+
+### Workflow
+
+The sequence for building and using an argument parser is to:
+
+- first create an argument parser with `parseargs_new_argument_parser`, specifying any parser-wide attributes, which are mostly related to program help output.
+- add arguments the parser with `parseargs_add_argument` specifying per-argument attributes. 
+- sub-parsers, for use with `sub_command` and `sub_argument` arguments, can be added with `parseargs_add_sub_parser`. 
+- when the top level argument parser is complete it can be used to parse  arguments, typically `$@`, with `parseargs_parse_arguments`.
+- `parseargs_parse_arguments` returns a *dict* containing the argument values except in the case of: `help` or `version` action optional arguments being given when the requested information is output to *stdout* after which parse call process exits.
+- errors detected during any *parseargs* function call causes an error message to be output to *stderr* and the call process to exit.
+
+## Reference
+
+### `parseargs_new_argument_parser`
+
+`parseargs_new_argument_parser` is used to create argument parsers, which are specially formatted *dict*s (which are specially formatted strings).
+
+`parseargs_new_argument_parser` takes 0 or more pairs of arguments that provide *attribute-name* *attribute-value* argument pairs. It is valid to not provide values for any attributes in which case defaults will be used.
+
+#### Parameters
+
+| Parameter number| Description |
+| --------------- | ----------- |
+| n    | (optional) attribute name, n>=1. |
+| n+1  | (optional, must be provided if argument *n* provided) attribute value, n>=1 |
+
+The following attributes are supported:
+
+| Attribute name | Value description |
+| ----------------- | ----------- |
+| 'prog'    | Name of program as used in help (default: $0 )|
+| 'usage'    | String describing program usage (default: deduced from arguments added to parser)|
+| 'description'    | Text displayed before argument help (default: '') |
+| 'epilogue'    | Text displayed after argument help (default: '') |
+| 'argument_default'    | Global default value for arguments (default: '') |
+| 'add_help'    | Boolean. Add =h / --help option to parser (default: true) |
+
+#### Return values
+
+| $? | stdout | fail reasons (error message on stderr) |
+| -- | ------ | ------------ |
+| 0        | *parser* value containing specified attributes and an argument specification for *help* option unless `'add_help'` `'false'` specified. The returned *parser* can be used with the other *parseargs* functions and if passed to `parseargs_is_argument_parser` then `parseargs_is_argument_parser` returns *true*. |  |
+| 1 (fail) | empty string | Failed to add help optional argument to new parser: ${reason}  [*See `parseargs_add_argument` description for possible reasons*] |
+
+
 
 ---
 
