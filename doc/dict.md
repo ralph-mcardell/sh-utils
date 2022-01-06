@@ -1,16 +1,12 @@
-# Dict : a dictionary associative container for sh scripts
+# *dict* : a dictionary associative container for sh scripts
 
-While GNU *bash* has collection types - both arrays and associative maps - the
-simple POSIX standard shell language (a.k.a. *sh*) has none.
+While GNU *bash* has collection types - both arrays and associative maps - the simple POSIX standard shell language (a.k.a. *sh*) has none.
 
-The *dict* shell language library module provides an unordered associative map
-container type - or dictionary, dict for short.
+The *dict* shell language library module provides an unordered associative map container type - or dictionary, dict for short.
 
 ## Requirements
 
-In addition to the POSIX Shell Command Langauge (Revision of IEEE
-Std 1003.1-2008 - as detailed at
-[The Open Group Shell Command Language page](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_25) - the following facilities are required:
+In addition to the POSIX Shell Command Langauge (Revision of IEEE Std 1003.1-2008 - as detailed at [The Open Group Shell Command Language page](https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_25) - the following facilities are required:
 
 - `local` to declare variables local to function calls
 - `tr` utility to translate characters
@@ -18,13 +14,11 @@ Std 1003.1-2008 - as detailed at
 
 ## Installation
 
-Ensure that the *dict.sh* file in the repository *lib* directory is in a known
-location and access by specifying the pathname or is on the process PATH.
+Ensure that the *dict.sh* file in the repository *lib* directory is in a known location and access by specifying the pathname or is on the process PATH.
 
 ## To use *dict.sh*
 
-In a shell script file that wishes to make use of *dict.sh* facilities include
-it with the source include dot operator either by pathname:
+In a shell script file that wishes to make use of *dict.sh* facilities include it with the source include dot operator either by pathname:
 
 `. /path/to/dict.sh`
 
@@ -36,20 +30,17 @@ or just by name if you have put *dict.sh* on the process' PATH:
 
 ## Using *dict.sh* facilities
 
-A *dict* 'object' is a specially formatted string. *dict* 'objects' are operated
-on by a set of functions.
+A *dict* 'object' is a specially formatted string. *dict* 'objects' are operated on by a set of functions.
 
 ### Calling conventions
 
-All *dict* API functions start with the prefix `dict_`. Most API functions are
-intended to be called using shell *Command Substitution*, for example:
+All *dict* API functions start with the prefix `dict_`. Most API functions are intended to be called using shell *Command Substitution*, for example:
 
 ```bash
   local new_dict="$(dict_declare)"
 ```
 
-A few are meant to be called for execution in the same process as the calling
-script:
+A few are meant to be called for execution in the same process as the calling script:
 
 ```bash
   if dict_is_dict "${maybe_dict}"; then
@@ -59,9 +50,7 @@ script:
   fi
 ```
 
-If a function operates on a *dict* then it is passed as the first argument *by
-value*. Many, but not all, functions return a *dict*, often updated from that
-passed to the function.
+If a function operates on a *dict* then it is passed as the first argument *by value*. Many, but not all, functions return a *dict*, often updated from that passed to the function.
 
 Functions that set entries pass them as pairs of arguments, for example:
 
@@ -71,40 +60,27 @@ Functions that set entries pass them as pairs of arguments, for example:
 
 ### Dict entries: keys and values
 
-Dict entries are string keys and string values. These strings may of
-course represent numbers on which arithmetic can be performed.
+Dict entries are string keys and string values. These strings may of course represent numbers on which arithmetic can be performed.
 
-As mentioned *dicts* are specially formatted strings and use the ASCII (and
-therefore also Unicode) often overlooked (and hopefully infrequently used)
-separator control characters: FS, GS, RS and US. Hence entry key and value
-strings cannot contain these values.
+As mentioned *dicts* are specially formatted strings and use the ASCII (and therefore also Unicode) often overlooked (and hopefully infrequently used) separator control characters: FS, GS, RS and US. Hence entry key and value strings cannot contain these values.
 
-*Dicts* can be nested, one *dict* as an entry value of another, however this
-requires extra processing to ensure the special seperator characters in nested
-*dict* values are modified on insertion and restored on extraction.
+*Dicts* can be nested, one *dict* as an entry value of another, however this requires extra processing to ensure the special seperator characters in nested *dict* values are modified on insertion and restored on extraction.
 
 *Dict* keys cannot be *dict*s.
 
 ### Simple dict functions
 
-Some functions have variants suffixed with `_simple`. These functions do *not*
-support nesting of *dict* values. As mention above nesting a *dict* as a
-value of another requires additional work and values need to be checked to
-see if they are a *dict* and require the additional handling. The `_simple`
-function variants do not bother to check values, assuming they are *not*
-*dict*s.
+Some functions have variants suffixed with `_simple`. These functions do *not* support nesting of *dict* values. As mention above nesting a *dict* as a value of another requires additional work and values need to be checked to see if they are a *dict* and require the additional handling. The `_simple` function variants do not bother to check values, assuming they are *not* *dict*s.
 
 ### Dict Hello World
 
 Below is shown a *Hello World* example. It shows:
 
-- creating a *dict* and populating it with initial entries with non-*dict*
-values.
+- creating a *dict* and populating it with initial entries with non-*dict* values.
 - accessing the entry values so they can be output to *stdout*.
 - updating the values.
 
-As only simple string values are being stored - no nested *dict*s - the `_simple`
-versions of *dict* functions are used.
+As only simple string values are being stored - no nested *dict*s - the `_simple` versions of *dict* functions are used.
 
 ```bash
 #!/bin/sh
@@ -152,17 +128,11 @@ echo "${greeting}, ${who}!"
 
 ### `dict_declare` `dict_declare_simple`
 
-`dict_declare` and `dict_declare_simple` are used to create *dict* 'object'
-strings. If called with no values they return an empty *dict*. If passed pairs
-of keys and values these are used to populate the new *dict*.
+`dict_declare` and `dict_declare_simple` are used to create *dict* 'object' strings. If called with no values they return an empty *dict*. If passed pairs of keys and values these are used to populate the new *dict*.
 
-If no entry values are themselves *dict*s then `dict_declare_simple` can be
-safely called. Key values may not be *dict*s for either `dict_declare_simple`
-or `dict_declare`. For both `dict_declare` and `dict_declare_simple` neither
-keys nor values can contain ASCII US, RS, GS or FS characters.
+If no entry values are themselves *dict*s then `dict_declare_simple` can be safely called. Key values may not be *dict*s for either `dict_declare_simple` or `dict_declare`. For both `dict_declare` and `dict_declare_simple` neither keys nor values can contain ASCII US, RS, GS or FS characters.
 
-`dict_declare` and `dict_declare_simple` are designed to be called using
-*Command Substitution*.
+`dict_declare` and `dict_declare_simple` are designed to be called using *Command Substitution*.
 
 #### Parameters
 
@@ -180,19 +150,11 @@ keys nor values can contain ASCII US, RS, GS or FS characters.
 
 ### `dict_set` `dict_set_simple`
 
-`dict_set` and `dict_set_simple` are used to update existing entries and add
-new entries to an existing *dict* 'object'. If the passed *dict* has an
-existing entry with a key that matches an entry key to set then the existing
-entry is updated otherwise a new entry is appended to the end of the *dict*
-'object' string.
+`dict_set` and `dict_set_simple` are used to update existing entries and add new entries to an existing *dict* 'object'. If the passed *dict* has an existing entry with a key that matches an entry key to set then the existing entry is updated otherwise a new entry is appended to the end of the *dict* 'object' string.
 
-If no passed entry values are themselves *dict*s then `dict_set_simple` can
-be safely called. Key values may not be *dict*s for either `dict_set_simple` or
-`dict_set`. For both `dict_set` and `dict_set_simple` neither keys nor values
-can contain ASCII US, RS, GS or FS characters.
+If no passed entry values are themselves *dict*s then `dict_set_simple` can be safely called. Key values may not be *dict*s for either `dict_set_simple` or `dict_set`. For both `dict_set` and `dict_set_simple` neither keys nor values can contain ASCII US, RS, GS or FS characters.
 
-`dict_set` and `dict_set_simple` are designed to be called using *Command
-Substitution*.
+`dict_set` and `dict_set_simple` are designed to be called using *Command Substitution*.
 
 #### Parameters
 
@@ -213,16 +175,11 @@ Substitution*.
 
 ### `dict_get` `dict_get_simple`
 
-`dict_get` and `dict_get_simple` are used to retreive an entry value from an
-existing *dict* 'object' given the entry's key value.
+`dict_get` and `dict_get_simple` are used to retreive an entry value from an existing *dict* 'object' given the entry's key value.
 
-If the retrived value is not a *dict* then `dict_get_simple` can be safely
-called. The key value may not be *dict*s for either `dict_get_simple` or
-`dict_get`. For both `dict_get` and `dict_get_simple` neither keys nor values
-can contain ASCII US, RS, GS or FS characters.
+If the retrived value is not a *dict* then `dict_get_simple` can be safely called. The key value may not be *dict*s for either `dict_get_simple` or `dict_get`. For both `dict_get` and `dict_get_simple` neither keys nor values can contain ASCII US, RS, GS or FS characters.
 
-`dict_get` and `dict_get_simple` are designed to be called using *Command
-Substitution*.
+`dict_get` and `dict_get_simple` are designed to be called using *Command Substitution*.
 
 #### Parameters
 
@@ -240,11 +197,9 @@ Substitution*.
 
 ### `dict_remove`
 
-`dict_remove` is used to remove an entry from an existing *dict* 'object'
-given the entry's key value.
+`dict_remove` is used to remove an entry from an existing *dict* 'object' given the entry's key value.
 
-The passed key value may not be a *dict* nor contain ASCII US, RS, GS or FS
-characters.
+The passed key value may not be a *dict* nor contain ASCII US, RS, GS or FS characters.
 
 `dict_remove` is designed to be called using *Command Substitution*.
 
@@ -264,11 +219,9 @@ characters.
 
 ### `dict_is_dict`
 
-`dict_is_dict` checks the single passed parameter is a *dict*. That is it
-checks the passed value appears to be in the correct format to be a *dict*.
+`dict_is_dict` checks the single passed parameter is a *dict*. That is it checks the passed value appears to be in the correct format to be a *dict*.
 
-`dict_is_dict` is intended to be called directly and *not* via *Command
-Substitution*.
+`dict_is_dict` is intended to be called directly and *not* via *Command Substitution*.
 
 #### Parameters
 
@@ -286,17 +239,11 @@ Substitution*.
 
 `dict_size` and `dict_count` return the number of entries in a *dict*.
 
-`dict_size` returns an entry count value maintained in the *dict* and thus in
-theory executes in ~O(1) (i.e. constant) time - although it might be some
-factor of **n**, the number of entries, due to having to operate on a string.
-It should be preferred to *dict_count* in most situations.
+`dict_size` returns an entry count value maintained in the *dict* and thus in theory executes in ~O(1) (i.e. constant) time - although it might be some factor of **n**, the number of entries, due to having to operate on a string. It should be preferred to *dict_count* in most situations.
 
-`dict_count` iterates over the entries in a *dict* to determine the number of
-entries it contains. `dict_count` therefore executes at best in ~O(n) (linear
-time). Its main intended use is for testing and debugging.
+`dict_count` iterates over the entries in a *dict* to determine the number of entries it contains. `dict_count` therefore executes at best in ~O(n) (linear time). Its main intended use is for testing and debugging.
 
-`dict_size` and `dict_count` are designed to be called using *Command
-Substitution*.
+`dict_size` and `dict_count` are designed to be called using *Command Substitution*.
 
 #### Parameters
 
@@ -313,19 +260,16 @@ Substitution*.
 
 ### `dict_for_each`
 
-`dict_for_each` iterates over the entries of a *dict*, calling a specified
-function for each entry. The called function is passed:
+`dict_for_each` iterates over the entries of a *dict*, calling a specified function for each entry. The called function is passed:
 
 - the entry key
 - the entry value
 - the number of the entry, indexed from 0
 - any extra parameters passed to `dict_for_each`
 
-`dict_count` and `dict_pretty_print` are implemented in terms of
-`dict_for_each`.
+`dict_count` and `dict_pretty_print` are implemented in terms of `dict_for_each`.
 
-`dict_for_each` is intended to be called directly and *not* via *Command
-Substitution*.
+`dict_for_each` is intended to be called directly and *not* via *Command Substitution*.
 
 #### Parameters
 
@@ -339,31 +283,18 @@ Substitution*.
 
 Nothing if the call to `dict_for_each` succeeded.
 
-Will exit the call execution process with a return value of 1 and a 'First
-argument passed to dict_for_each is not a dict(ionary) type.' message on
-*stderr* if the first argument passed is not a *dict*. Note that it is likely
-that `dict_for_each` will be directly called in the context of the calling
-script in which case the error will exit the calling script.
+Will exit the call execution process with a return value of 1 and a 'First argument passed to dict_for_each is not a dict(ionary) type.' message on *stderr* if the first argument passed is not a *dict*. Note that it is likely that `dict_for_each` will be directly called in the context of the calling script in which case the error will exit the calling script.
 
-Similar considerations apply to any errors raised by the function called by
-`dict_for_each`.
+Similar considerations apply to any errors raised by the function called by `dict_for_each`.
 
 ### `dict_pretty_print`
 
-`dict_pretty_print` outputs to *stdout* the keys and values in a *dict*
-using caller-specified format decoration around data elements of the passed
-*dict*, recursively applying the formatting specificaiton to nested *dict*
-values.
+`dict_pretty_print` outputs to *stdout* the keys and values in a *dict* using caller-specified format decoration around data elements of the passed *dict*, recursively applying the formatting specificaiton to nested *dict* values.
 
-The formatting decoration is specified as a *dict* passed as the second
-parameter that has specific entries. Any entry not provided in the
-specification *dict* is output as an empty string. Hence providing an
-empty specification *dict* will just output each key,value in order,
-including nested *dict* values, with no separation between each key and
-value or between each key, value entry.
+The formatting decoration is specified as a *dict* passed as the second parameter that has specific entries. Any entry not provided in the specification *dict* is output as an empty string. Hence providing an empty specification *dict* will just output each key,value in order,
+including nested *dict* values, with no separation between each key and value or between each key, value entry.
 
-The available specification keys and the use of their associated values
-are:
+The available specification keys and the use of their associated values are:
 
 | Specification key | Value's use |
 | ----------------- | ----------- |
@@ -382,11 +313,9 @@ are:
 | 'value_prefix'    | Characters output before each dict entry value output |
 | 'value_suffix'    | Characters output after each dict entry value output |
 
-As implied in the description of the value for the 'nesting_indent' key
-print specification string values may contain newlines.
+As implied in the description of the value for the 'nesting_indent' key print specification string values may contain newlines.
 
-`dict_pretty_print` may be called directly to send to output to stdout, or via
-*Command Substitution* to capture the output.
+`dict_pretty_print` may be called directly to send to output to stdout, or via *Command Substitution* to capture the output.
 #### Parameters
 
 | Parameter number| Description |
@@ -404,11 +333,9 @@ print specification string values may contain newlines.
 
 ### `dict_print_raw`
 
-`dict_print_raw` outputs raw *dict* strings to *stdout* after translating the
-unprintable ASCII US RS GS and FS characters with the *tr* utility.
+`dict_print_raw` outputs raw *dict* strings to *stdout* after translating the unprintable ASCII US RS GS and FS characters with the *tr* utility.
 
-The characters the unprintable characters are translated to are specified by
-the optional second parameter in the order US RS GS FS (no spaces), which if
+The characters the unprintable characters are translated to are specified by the optional second parameter in the order US RS GS FS (no spaces), which if
 not given defaults to:
 
 - US : _ (underscore / low line)
@@ -418,9 +345,7 @@ not given defaults to:
 
 i.e. the string `'_^]\'` is passed to *tr* as the characters to translate to.
 
-`dict_print_raw` is primarily intended as a debug aid to check the format of
-*dict* strings. It may be called directly so as to see the output on the
-console or via *Command Substitution* to capture the output.
+`dict_print_raw` is primarily intended as a debug aid to check the format of *dict* strings. It may be called directly so as to see the output on the console or via *Command Substitution* to capture the output.
 
 #### Parameters
 
@@ -438,15 +363,11 @@ console or via *Command Substitution* to capture the output.
 
 ### `dict_op_to_var_flat`
 
-`dict_op_to_var_flat` is an operation function intended to be passed to `dict_for_each`. 
+`dict_op_to_var_flat` is an operation function intended to be passed to `dict_for_each`.
 
-`dict_op_to_var_flat` will create a variable having the value of the value
-passed as the second parameter and a name based on the key-value passed as
-the first parameter.
+`dict_op_to_var_flat` will create a variable having the value of the value passed as the second parameter and a name based on the key-value passed as the first parameter.
 
-The name of the created variable in the simplest case is simply the same as
-the key value. Optional prefix and suffix forth and fifth parameters may be
-passed in which case the name will be of the form:
+The name of the created variable in the simplest case is simply the same as the key value. Optional prefix and suffix forth and fifth parameters may be passed in which case the name will be of the form:
 
   `${prefix}${key}${suffix}`
 
@@ -454,8 +375,7 @@ that is:
 
   `${4}${1}${5}`
 
-If the formed string is not a valid variable identifer bad things will happen.
-To provide a suffix without a prefix specify the prefix as a hyphen.
+If the formed string is not a valid variable identifer bad things will happen. To provide a suffix without a prefix specify the prefix as a hyphen.
 
 If the value represents a nested *dict* then the value is unnested.
 
@@ -491,10 +411,7 @@ None; $? is 0 unless the *read* utility rasies an error, e.g. the constructed va
 
 ### Nesting dicts
 
-It is very common to find cases where a value associated with a key is itself
-composed of multiple values. This example extends the *Hello World* example
-shown previously by having the greeting *dict* also include the foreground
-and background colours to be used to display the greeting as RGB triples.
+It is very common to find cases where a value associated with a key is itself composed of multiple values. This example extends the *Hello World* example shown previously by having the greeting *dict* also include the foreground and background colours to be used to display the greeting as RGB triples.
 
 The example demonstrates:
 
@@ -502,7 +419,6 @@ The example demonstrates:
   value is or maybe a nested *dict*.
 - passing *dict* values as function arguments.
   
-
 ```bash
 #!/bin/sh
 
@@ -817,26 +733,9 @@ echo ''
 
 ### Simulating a vector (single dimension array)
 
-A vector or single dimension array is a container whose elements are identifed
-by an integer index, usually starting from 0 or 1. Some versions allow negative
-index values - either as a regular index value or one having special meaning
-such as index-from-the-end. Another characteristic of some implementations is
-that elements can only be efficiently added to the end of the vector - that
-is appended to the vector. Removing values from a vector or inserting at the
-beginning or in the middle of a vector are more involved and inefficient
-operations as they require copying the values around the removed / inserted
-element to close the gap or make space. Such a container can also be used as
-a sequence of values.
+A vector or single dimension array is a container whose elements are identifed by an integer index, usually starting from 0 or 1. Some versions allow negative index values - either as a regular index value or one having special meaning such as index-from-the-end. Another characteristic of some implementations is that elements can only be efficiently added to the end of the vector - that is appended to the vector. Removing values from a vector or inserting at the beginning or in the middle of a vector are more involved and inefficient operations as they require copying the values around the removed / inserted element to close the gap or make space. Such a container can also be used as a sequence of values.
 
-This example consists of support for simple vectors that are indexed from 0
-to which values can be appended but should not be removed or inserted
-elsewhere. This is implemented by *dict*s which have sequentially increasing
-integer key values starting at 0. Each appended value has an index value equal
-to the size (number of elements) in the *dict* before the new element is
-appended. The vectors are used as ordered sequences which can be iterated over
-in the order values were added - either initially or by appending. The case
-differs from simulated sets - in which members are stored as dict keys - in
-that:
+This example consists of support for simple vectors that are indexed from 0 to which values can be appended but should not be removed or inserted elsewhere. This is implemented by *dict*s which have sequentially increasing integer key values starting at 0. Each appended value has an index value equal to the size (number of elements) in the *dict* before the new element is appended. The vectors are used as ordered sequences which can be iterated over in the order values were added - either initially or by appending. The case differs from simulated sets - in which members are stored as dict keys - in that:
 
 - values may be repeated (as they are stored as *dict* values)
 - values many be nested *dict*s
@@ -1014,4 +913,4 @@ dict_for_each "${graph}" graph_echo_line_op
 
 ---
 
-Copyright © 2021 R. E. McArdell
+Copyright © 2022 R. E. McArdell
