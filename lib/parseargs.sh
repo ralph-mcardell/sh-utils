@@ -18,7 +18,7 @@
 # parseargs_is_argument_parser  Check to see if the passed value represents a
 #                               parseargs' parser. Returns true or false.
 #                               Not called using cammand substitution.
-# parseargs_new_argument_parser Create a new parseargs' argumetn parser
+# parseargs_new_argument_parser Create a new parseargs' argument parser
 #                               Returns the parser 'object'.
 # parseargs_add_argument        Add a new argument to the passed parser with
 #                               the following passed attributes. Returns the
