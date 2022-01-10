@@ -190,7 +190,7 @@ then
   # 'const'         A constant value to be used in conjunction with certain action
   #                 attribute values and for optional arguments that specify 0 or
   #                 1 values ('nargs' '?'). Default: none
-  # 'default'       A default value to be used in cases of the argument missing  # 'const'         A constant value to be used in conjunction with certain action
+  # 'default'       A default value to be used in cases of the argument missing
   #                 attribute values and for optional arguments that specify 0 or
   #                 1 values ('nargs' '?').
 
