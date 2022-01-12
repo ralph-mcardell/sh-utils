@@ -75,6 +75,71 @@ The sequence for building and using an argument parser is to:
 - `parseargs_parse_arguments` returns a *dict* containing the argument values except in the case of: `help` or `version` action optional arguments being given when the requested information is output to *stdout* after which the `parseargs_parse_arguments` call process exits.
 - errors detected during any *parseargs* function call causes an error message to be output to *stderr* and the call process to exit.
 
+### Parseargs Hello World
+
+Below is shown a *Hello World* example. It shows:
+
+- creating a *parseargs* argument parser with default attributes.
+- adding argument specifications to a *parseargs* argument parser.
+- using a *parseargs* argument parser to parse the commandline arguments.
+- checking for errors from parsing.
+- checking whether the output is a *dict* of argument values or plain  help (or version) text.
+- extracting and using the argument values.
+
+```bash
+#!/bin/sh
+
+# Include the parseargs code. This assumes parseargs.sh (and dict.sh which it
+# includes) is either in the same directory as the executing script or on the
+# PATH:
+. parseargs.sh
+
+# Create an argument parser with default attributes:
+parser="$(parseargs_new_argument_parser)"
+
+# Add an optional greeting argument which takes a single value to be
+# used as the greeting in the output to stdout, defaulting to 'Hello':
+parser="$(parseargs_add_argument "${parser}" \
+            short g long greeting default Hello)"
+
+# Add an optional subject to be greeted argument which takes a single value
+# to be used as the subject in the output to stdout, defaulting to 'World':
+parser="$(parseargs_add_argument "${parser}" \
+             short s long subject default World)"
+
+# Parse the command line arguments:
+# Try:
+#  ./parseargs_hello_world
+#  ./parseargs_hello_world --help
+#  ./parseargs_hello_world --subject Earth
+#  ./parseargs_hello_world --greeting Hi
+#  ./parseargs_hello_world -g Hi -s Earth
+args="$(parseargs_parse_arguments "${parser}" "${@}")"
+
+# Check parsing did not exit with an error.
+# Note 1: any error or warning messages are written to stderr so are
+#         not captured into the args variable but output to the console
+#         or where stderr redirected to on the command line. To capture
+#         such messages use 2>&1 before the closing parenthesis of the 
+#         command substitution call.
+# Note 2: declaring args above local would overwrite $? in which case
+#         declare args as local empty variable first then assign result
+#         of parseargs_parse_arguments to it.
+rc=$?
+if [ $rc -ne 0 ]; then
+  exit  $rc
+fi
+
+# Check to see if we have a dict containing argument values...
+if dict_is_dict "${args}"; then
+  # Output the greeting:
+  greeting="$(dict_get_simple "${args}" greeting)"
+  subject="$(dict_get_simple "${args}" subject)"
+  echo "${greeting} ${subject}!"
+else # ... otherwise output the text directly as it will be the help text
+  echo "${args}"
+fi
+```
 ### Comparison with Python's *argparse* module
 
 As has been mentioned *parseargs* took inspiration from the Python *argparse* module. Most of the basic *argparse* functionality has been implemented. The following features of *argparse* are not implemented by *parseargs*:

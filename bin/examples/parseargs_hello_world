@@ -1,0 +1,63 @@
+#!/bin/sh
+# Copyright (c) 2021 Ralph. E. McArdell
+# All rights reserved.
+# Licensed under BSD 2-Clause License - see LICENSE.md for full text.
+#
+# To use:
+#   - Add parseargs.sh and dict.sh in the repository lib directory to the PATH.
+#     For example if you have cd'ed to the repository's bin/examples directory:
+#       PATH="../../lib/":"${PATH}"
+#   - Execute parseargs_hello_world, again if from the repository's
+#      bin/examples directory:
+#       ./parseargs_hello_world
+
+# Include the parseargs code. This assumes parseargs.sh (and dict.sh which it
+# includes) is either in the same directory as the executing script or on the
+# PATH:
+. parseargs.sh
+
+# Create an argument parser with default attributes:
+parser="$(parseargs_new_argument_parser)"
+
+# Add an optional greeting argument which takes a single value to be
+# used as the greeting in the output to stdout, defaulting to 'Hello':
+parser="$(parseargs_add_argument "${parser}" \
+            short g long greeting default Hello)"
+
+# Add an optional subject to be greeted argument which takes a single value
+# to be used as the subject in the output to stdout, defaulting to 'World':
+parser="$(parseargs_add_argument "${parser}" \
+             short s long subject default World)"
+
+# Parse the command line arguments:
+# Try:
+#  ./parseargs_hello_world
+#  ./parseargs_hello_world --help
+#  ./parseargs_hello_world --subject Earth
+#  ./parseargs_hello_world --greeting Hi
+#  ./parseargs_hello_world -g Hi -s Earth
+args="$(parseargs_parse_arguments "${parser}" "${@}")"
+
+# Check parsing did not exit with an error.
+# Note 1: any error or warning messages are written to stderr so are
+#         not captured into the args variable but output to the console
+#         or where stderr redirected to on the command line. To capture
+#         such messages use 2>&1 before the closing parenthesis of the 
+#         command substitution call.
+# Note 2: declaring args above local would overwrite $? in which case
+#         declare args as local empty variable first then assign result
+#         of parseargs_parse_arguments to it.
+rc=$?
+if [ $rc -ne 0 ]; then
+  exit  $rc
+fi
+
+# Check to see if we have a dict containing argument values...
+if dict_is_dict "${args}"; then
+  # Output the greeting:
+  greeting="$(dict_get_simple "${args}" greeting)"
+  subject="$(dict_get_simple "${args}" subject)"
+  echo "${greeting} ${subject}!"
+else # ... otherwise output the text directly as it will be the help text
+  echo "${args}"
+fi
