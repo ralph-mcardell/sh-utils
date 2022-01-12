@@ -75,6 +75,79 @@ The sequence for building and using an argument parser is to:
 - `parseargs_parse_arguments` returns a *dict* containing the argument values except in the case of: `help` or `version` action optional arguments being given when the requested information is output to *stdout* after which the `parseargs_parse_arguments` call process exits.
 - errors detected during any *parseargs* function call causes an error message to be output to *stderr* and the call process to exit.
 
+### Comparison with Python's *argparse* module
+
+As has been mentioned *parseargs* took inspiration from the Python *argparse* module. Most of the basic *argparse* functionality has been implemented. The following features of *argparse* are not implemented by *parseargs*:
+
+- the *argparse* *ArgumentParser* constructor's *prefix_chars* parameter has not been implemented. The *parseargs* prefix character is fixed as hypen: single for short optional arguments (e,g, `-o`) and double for long optional arguments (e.g. `--option`).
+- parent parsers as supported by the *argparse* *ArgumentParser* constructor's *parents* parameter have not been implemented in *parseargs*. See below for obtaining limited similar effects.
+- custom help formatters, as supported by the *argparse* *ArgumentParser* constructor's *formatter_class* parameter is not implemented for *parseargs*.
+- explicit printing and formatting of help and usage is not supported by  *parseargs*.
+- *parseargs* has no support for resolving conflicting optionals a la the *argparse* *ArgumentParser* constructor's *conflict_handler* parameter.
+- *parseargs* does not support abbreviated long optionals.
+- control of how errors are handled. Errors during execution of *parseargs* function calls *always* exits the call-process (note: this will usually be different to the process of the caller as *parseargs* functions that produce errors are designed to be called using *Command Substitution*).
+- reading arguments stored in a file as supported by the *argparse* *ArgumentParser* constructor's *fromfile_prefix_chars* parameter is not supported by *parseargs*.
+- argument values are not typed - so the *argparse* `add_argument` *type* parameter functionality has not been implemented for *parseargs*. All argument values are strings.
+- *parseargs* does not support custom argument actions as *argparse* does with  *Action classes*.
+- explcitly setting (or getting) argument defaults other than when creating a parser or adding an argument specification is not supported by *parseargs*.
+- *parseargs* does not support partial parsing.
+- argument groups are not supported by *parseargs*.
+
+Additionally the way parser argument specifications determine whether an argument is positional or optional differs. Rather than the form of a *name or flags* parameter or attribute value indicating what type of argument it is *parseargs* has separate attributes for positional, short and long optionals:
+
+- *name* provides the name for a positional parameter.
+- *short* specifies a short optional argument character with *no leading hyphen*.
+- *long* specifies a long optional argument string with *no leading hyphens*.
+
+*name* cannot be given for the same argument's specification together with either  *short* or *long*. Both *short* and *long* can be given for the same optional argument's specification.
+
+#### *parseargs* parent parsers
+
+While *parseargs* does not support specifying one or more parent argument  parsers when creating a parser with something akin to the *argparse* *ArgumentParser* constructor's *parent* parameter it is possible to achieve a limited form of the functionality.
+
+A *parseargs* argument parser is a *dict* and *Sh Util* *dicts* are just specially formatted strings. This means *parseargs* argument parsers can be cloned by simply copying them. Hence any *parseargs* argument parser can be used as a parent of another by copying the 'parent' parser to a new 'child' parser. Any changes to the parsers following the copy operation will then be independent of each other. Note that such copies can be made by assigning one *parseargs* argument parser variable to another variable or by passing a *parseargs* argument parser to a *parseargs* argument parser updating function and storing the result in a different variable.
+
+#### *parseargs* sub-command and sub-parser support
+
+*parseargs* supports sub-commands via the *parseargs* specific *sub_command* and *sub_argument* actions and the `parseargs_add_subparser` function.
+
+Unlike the *argparse* design, argument specifications must be explicitly added to the *super* (outer) argument parser with a *sub_command* or *sub_argument* action, whereby sub-parsers can be associated with an argument via their *destination* attribute value (which may have been provided explicitly or derived from an argument specification's *name* or *long* attribute values).
+
+Sub-parsers are normal *parsearg* argument parsers created with `parseargs_new_argument_parser`, populated and then added to the *super* parser with the `parseargs_add_subparser` function, rather than being obtained from some sub-parser creation function then populated. Note that *parseargs* sub-parsers are populated with the usual *parseargs functions: `parseargs_add_argument` and `parseargs_add_sub_parser` (implying it is possible to create argument parsers that are used as sub-sub-parsers and so on).
+
+Unlike *argparse*, any argument and number of arguments can be specified to have a *sub_command* action. However in practice if more than one argument is so specified then it will not be possible to parse a command line properly as once parsing has entered sub-command processing all remaining arguments parsed are assumed to be parsed with the selected sub-parser.
+
+Similarly, any number of *optional* arguments can be specified to have *sub_argument* actions. In this case having multiple optional arguments specified to be parsed with *sub_argument* actions makes sense. This is because arguments parsed with the *sub_argument* action only parse one argument with the selected sub-parser at a time, switching back to the outer, *super* parser once one argument's set of values has been parsed.
+
+#### Intermixed parsing and the meaning of --
+
+*parseargs* parses arguments according to the specifications of an argument parser with the `parseargs_parse_arguments` function. This is sort of a combination of the Python *argparse* `ArgumentParser.parse_args` and `ArgumentParser.parse_intermixed_args` methods in that:
+
+- all arguments are parsed. No partial parsing.
+- positional and optional arguments can be freely intermixed.
+- invalid arguments (e.g. unknown optional argument identifier) or too few positional arguments are errors.
+- extra positional arguments are neither returned nor a hard error but are ignored and produce a warning message on *stderr*.
+- an argument with just the value `--` on its own can be used to terminate argument value parsing and move to parsing the next argument.
+
+More on the last point about the use of `--`: in *argparse* argument parsing `--` can be used to indicate the end of optional arguments and the start of positional arguments.
+
+In *parseargs* argument parsing `--` is used to force the termination of one argument's values so parsing moves on to the next argument. This might be required for example to terminate multiple arguments with open-ended or optional *nargs* attribute values - `*`, `+` or `?`.
+
+For example:
+
+`--maybe_has_argument whose_argument_value_am_i ...`
+
+If the argument specification for `maybe_has_argument` specifies a *nargs* attribute value of *?*, that is the optional argument might or might not have a value, then is `whose_argument_value_am_i` a value provided to the `maybe_has_argument` optional argument so it has 1 argument value or part of the next positional argument and `maybe_has_argument` has no argument value? In fact *parseargs* associates values with the current argument while it is expecting values as indicated by the *nargs* attribute value, or its absense.
+
+This is all fine and dandy for arguments with a fixed number of argument values but as we have seen above is problematic when trying to determine the end of argument values associated with one argument specification when the number of values is not fixed. To get around this limitation `--` can be inserted after the last value associated with one argument specification before the start of the next. So modifying the above example by adding `--` before `whose_argument_value_am_i` thus:
+
+`--maybe_has_argument -- whose_argument_value_am_i ...`
+
+would force `whose_argument_value_am_i` to be associated with the next expected positional argument while `maybe_has_argument` has no provided argument value and so, as it is an optional argument, the value will be provided by the `maybe_has_argument` argument specification's *const* attribute value.
+
+Note that it is an error to find what appears to be an optional argument identifier (i.e. a value starting with `-` that is not `--`) when parsing argument values associated with an argument specification.
+
+
 ## Reference
 
 ### Function synopsis
