@@ -120,7 +120,7 @@ Performed 44 tests / 392 assertions. Passed 44 tests / 392 assertions. Failed 0 
 ```
 ## Running test suites - command line options
 
-A *sh* script that uses uses *sh_test* can be executed in the normal manner:
+A *sh* script that uses *sh_test* can be executed in the normal manner:
 
 - make the script executable
 - execute from commandline etc.
