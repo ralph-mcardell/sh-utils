@@ -184,6 +184,18 @@ Unlike *argparse*, any argument and number of arguments can be specified to have
 
 Similarly, any number of *optional* arguments can be specified to have *sub_argument* actions. In this case having multiple optional arguments specified to be parsed with *sub_argument* actions makes sense. This is because arguments parsed with the *sub_argument* action only parse one argument with the selected sub-parser at a time, switching back to the outer, *super* parser once one argument's set of values has been parsed.
 
+##### Sub-parser argument default values
+
+`parseargs_parse_arguments` applies default values recursively to arguments with *sub_command* and *sub_argument* actions, whosever how it dows this is differs between the two action types.
+
+###### *sub-command* action argument default value application
+
+For an argument having a *sub_command* action defaults values are _only_ applied for the sub-arguments of the selected command's sub-parser. This reflects the intent that the use of *sub_command* action arguments are for a single sub-command and so only argument values relevent for the specific selected sub-command are of interest.
+
+###### *sub-argument* action argument default value application
+
+For arguments having a *sub_argument* action defaults values are applied to the sub-arguments of _all_ sub-parsers associated with the argument. This reflects the initial use case of providing values and options to sub-stages or sub-systems of a task which may all be performed and all require at least a base line set of default option values. The use is similar to *gcc*'s `-X` option, except *parseargs* requires whitespace between the option identitifer and the *sub-argument* id (for *gcc*'s `-X` option the option identitifers would be `preprocessor`,  `assembler`, `linker` etc.).
+
 #### Intermixed parsing and the meaning of --
 
 *parseargs* parses arguments according to the specifications of an argument parser with the `parseargs_parse_arguments` function. This is sort of a combination of the Python *argparse* `ArgumentParser.parse_args` and `ArgumentParser.parse_intermixed_args` methods in that:
@@ -211,7 +223,6 @@ This is all fine and dandy for arguments with a fixed number of argument values 
 would force `whose_argument_value_am_i` to be associated with the next expected positional argument while `maybe_has_argument` has no provided argument value and so, as it is an optional argument, the value will be provided by the `maybe_has_argument` argument specification's *const* attribute value.
 
 Note that it is an error to find what appears to be an optional argument identifier (i.e. a value starting with `-` that is not `--`) when parsing argument values associated with an argument specification.
-
 
 ## Reference
 
