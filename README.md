@@ -6,6 +6,7 @@ This repository contains Linux (and similar) shell script utility libraries. The
 - the `local` utility
 - the `tr` utility
 - the `sed` utility
+- the `echo` utility with non standard `-n` option
 
 The repository has the following structure:
 

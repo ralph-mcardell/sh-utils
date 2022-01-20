@@ -12,8 +12,10 @@ In addition to the POSIX Shell Command Langauge (Revision of IEEE Std 1003.1-200
   - `local` to declare variables local to function calls
   - `tr` utility to translate characters
   - `sed` utility to replace strings
-- `getconf ARG_MAX` to determine limit of maximum possible number of  
-  command-line arguments
+  - `echo` utility with non standard `-n` option
+- `getconf ARG_MAX` to determine limit of maximum possible number of command-line arguments
+- `echo` utility with non standard `-n` option (used directly by *parseargs*)
+
 
 ## Installation
 

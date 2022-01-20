@@ -15,7 +15,7 @@
 # nested in dicts.
 #
 # Uses POSIX/Open Group IEEE Std 1003.1-2017 shell command language facilities
-# plus utility local and commands tr, sed.
+# plus utility local and commands tr, sed and echo -n.
 #
 # As hinted above the implementation is a specially formatted string which
 # uses ASCII separator control code values to separate key from value within

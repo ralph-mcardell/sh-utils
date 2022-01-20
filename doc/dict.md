@@ -11,6 +11,7 @@ In addition to the POSIX Shell Command Langauge (Revision of IEEE Std 1003.1-200
 - `local` to declare variables local to function calls
 - `tr` utility to translate characters
 - `sed` utility to replace strings
+- `echo` utility with non standard `-n` option
 
 ## Installation
 
