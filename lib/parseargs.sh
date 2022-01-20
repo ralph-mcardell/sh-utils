@@ -874,7 +874,6 @@ then
     local expected_number_of_positionals="$(dict_size "${__parseargs_positionals__}")"
 #echo "OPTSTRING:'${optstring}'." >&2
 #echo "Expected number of positional (start args): ${expected_number_of_positionals}" >&2
-    OPTIND=1
     while [ "$#" -gt "0" ]; do
         if [ "${__parseargs_current_positional__}" -gt "${expected_number_of_positionals}" ]; then
           positionals_to_parse=false
@@ -930,6 +929,8 @@ then
     local accumulated_opt=''
     shift 2
     __parseargs_shift_caller_args_by__="0"
+    OPTIND=1
+#echo "__parseargs_optstring__='${__parseargs_optstring__}';  opt=${opt}; OPTARG=${OPTARG}; OPTIND=${OPTIND}" >&2
     while getopts "${__parseargs_optstring__}" opt; do
 #echo "GETOPTS opt=${opt}; OPTARG=${OPTARG}; OPTIND=${OPTIND}; arg_spec_key=${arg_spec_key} args='$*'" >&2
       if [ "${opt}" = "?" ]; then
@@ -960,6 +961,14 @@ then
        if [ -z "${__parseargs_return_value__}" ]; then
           reset_optind=true
           accumulated_opt=''
+        else
+          # In middle of option-flag clump, do not increment caller's arguments shift count
+          # Note: Not all getopt implementations are alike. Some set OPTIND to next index
+          #       for all flags/options in clump, some set OPTIND to 1 for all but last
+          #       which is set to the next index. So we set call_shift_by_increment to zero
+          #       for this case explicitly here even though it will correctly be zero for
+          #       _some_ getopt implementations.
+          call_shift_by_increment=0
         fi
       fi
       if  ${reset_optind}; then
