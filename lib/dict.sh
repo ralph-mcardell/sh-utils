@@ -216,7 +216,6 @@ then
     if [ $# -gt 0 ]; then
       echo "WARNING: incomplete key, value pair passed to dict_declare: ${1} left over." >&2
     fi
-#echo "@@ @@ dict_declare dict: '$(dict_print_raw "${dict}")'" >&2        
     echo -n "${dict}"
   }
 
@@ -260,7 +259,6 @@ then
       dict="${__dict_return_value__}"
       shift 2
     done
-#echo "@@ @@     DICT_SET:    updated size: '$(dict_print_raw "${__dict_return_value__}")'" >&2
     echo -n "${__dict_return_value__}"
   }
 
@@ -311,15 +309,12 @@ then
   #            passed dict with the requested entry removed.
   dict_remove() {
     __dict_abort_if_not_dict__ "${1}" "dict_remove"
-#echo "@@ @@ dict_remove: dict passed to:'$(dict_print_raw "${1}")'" >&2
     __dict_strip_header__ "${1}" "false"
     local dict="${__dict_return_value__}"
-#echo "@@ @@ dict_remove:  stripped dict:'$(dict_print_raw "${dict}")'" >&2
     __dict_decorated_key__ "${2}"
     local dkey="${__dict_return_value__}"
     __dict_prefix_entries__ "${dict}" "${dkey}"
     local prefix="${__dict_return_value__}"
-#echo "@@ @@ dict_remove:         prefix:'$(dict_print_raw "${prefix}")'" >&2
     if [ "${prefix}" = "${dict}" ]; then
       echo -n "${1}"
     else
@@ -327,7 +322,6 @@ then
       local size=$(( ${__dict_return_value__}-1 ))
       __dict_suffix_entries__ "${dict}" "${dkey}"
       local suffix="${__dict_return_value__}"
-#echo "@@ @@ dict_remove:         suffix:'$(dict_print_raw "${suffix}")'" >&2
       dict="${__DICT_HDR_ENTRY_BASE__}${size}${prefix}${suffix}"
       echo -n "${dict}"
     fi
@@ -362,7 +356,6 @@ then
         __dict_prepare_value_for_unnesting__ "${value}"
         value="${__dict_return_value__}"
       fi
-  #    echo "dict:\"${dict}\" record:\"${record}\" key:\"${key}\" value:\"${value}\"" | tr "${__DICT_GS__}${__DICT_RS__}${__DICT_US__}" ']^_' >&2
       ${binaryFn} "${key}" "${value}" "${record_number}" "$@"
       record_number=$((${record_number}+1))
     done
@@ -583,7 +576,6 @@ EOF
   # removal has to be replaced by appending back onto the prefix string
     local prefix="${dict%${__DICT_ENTRY_SEPARATOR__}${decorated_key}*}"
     if [ "${prefix}" != "${dict}" ]; then
-#echo "@@ @@ __dict_prefix_entries__: prefix splits dict: $(dict_print_raw "${prefix}")'" >&2
       prefix="${prefix}${__DICT_ENTRY_SEPARATOR__}"
     fi
     __dict_return_value__="${prefix}"
@@ -624,16 +616,12 @@ EOF
 
   __dict_strip_header__() {
     local dict="${1}"
-#echo "@@ @@ dict passed to __dict_strip_header__:'$(dict_print_raw "${dict}")'" >&2
     local all="${2}"
     local stripped="${__DICT_PATN_HDR_RECORD__}"
     local entries="${dict#${stripped}}"
-#echo "@@ @@ stripped entries before all check:'$(dict_print_raw "${entries}")'" >&2
     if ! "${all}"; then
-#echo "@@ @@ stripped entries -require entry separator at head'" >&2
       entries="${__DICT_ENTRY_SEPARATOR__}${entries}"
     fi
-#echo "@@ @@ stripped entries after all check:'$(dict_print_raw "${entries}")'" >&2
     if [ "${entries}" != "${dict}" ]; then
       __dict_return_value__="${entries}"
     fi
@@ -643,7 +631,6 @@ EOF
     local dict="${1}"
     local size="${dict#${__DICT_HDR_ENTRY_BASE__}}"
     size="${size%%${__DICT_ENTRY_SEPARATOR__}*}"
-#echo "@@ @@ __dict_get_size__: Size : ${size}" >&2
     __dict_return_value__="${size}"
   }
 
@@ -653,7 +640,6 @@ EOF
     __dict_strip_header__ "${1}" "false"
     local dict="${__DICT_HDR_ENTRY_BASE__}${new_size}${__dict_return_value__}"
     __dict_return_value__="${dict}"
-#echo "@@ @@ __dict_update_size__: new_size: ${new_size}; return value: '$(dict_print_raw "${__dict_return_value__}")'" >&2
   }
 
   __dict_add_to_size__() {
@@ -695,10 +681,8 @@ EOF
   }
 
   __dict_set__() {
-#echo "@@ @@ dict passed to __dict_set__:'$(dict_print_raw "${1}")'" >&2
     __dict_strip_header__ "${1}" "false"
     local dict="${__dict_return_value__}"
-#echo "@@ @@ stripped dict passed to __dict_set__:'$(dict_print_raw "${dict}")'" >&2
     __dict_decorated_key__ "${2}"
     local dkey="${__dict_return_value__}"
     local value="${3}"
@@ -713,9 +697,7 @@ EOF
     result="${result}${__dict_return_value__}"
 
     if [ "${prefix}" = "${dict}" ]; then
-#echo "@@ @@ __DICT_SET__: appended entry: $(dict_print_raw "${result}")'" >&2
       __dict_update_size__ "${result}" $(( ${size}+1 ))
-#echo "@@ @@ __DICT_SET__:   updated size: $(dict_print_raw "${__dict_return_value__}")'" >&2
     else
       __dict_suffix_entries__ "${dict}" "${dkey}"
       __dict_return_value__="${result}${__dict_return_value__}"
