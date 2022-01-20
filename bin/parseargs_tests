@@ -2380,11 +2380,11 @@ view_default_help_for_parser_with_short_long_positional_arguments() {
   parser="$(parseargs_add_argument "${parser}" "short" "p" long "prefixes" "nargs" "2")"
   parser="$(parseargs_add_argument "${parser}" "short" "s" "long" "suffixes" "nargs" "3" 'required' 'false')"
   local text="$(parseargs_parse_arguments "${parser}" '-h' )"
-  echo '\n\n---------------------------------------------------------------------------------'
-  echo 'view_default_help_for_parser_with_short_long_positional_arguments output:'
-  echo '\n---------------------------------------------------------------------------------'
-  echo "${text}" 
-  echo '---------------------------------------------------------------------------------\n'
+  printf '\n\n---------------------------------------------------------------------------------\n'
+  printf 'view_default_help_for_parser_with_short_long_positional_arguments output:'
+  printf '\n---------------------------------------------------------------------------------\n'
+  printf "${text}" 
+  printf "\r---------------------------------------------------------------------------------\n\n"
 }
 
 view_all_parts_help_for_parser_with_short_long_positional_arguments() {
@@ -2398,11 +2398,11 @@ view_all_parts_help_for_parser_with_short_long_positional_arguments() {
   parser="$(parseargs_add_argument "${parser}" "short" "p" long "prefixes" "nargs" "2" 'help' 'prefix data from the input resources')"
   parser="$(parseargs_add_argument "${parser}" "short" "s" "long" "suffixes_longname" "nargs" "5" 'help' 'suffix data from the input and output resources plus two auxillary suffixes that are initially and finally appended to all')"
   local text="$(parseargs_parse_arguments "${parser}" '-h' )"
-  echo '---------------------------------------------------------------------------------'
-  echo 'view_all_parts_help_for_parser_with_short_long_positional_arguments output:'
-  echo '\n---------------------------------------------------------------------------------'
-  echo "${text}" 
-  echo '---------------------------------------------------------------------------------\n'
+  printf '\r---------------------------------------------------------------------------------\n'
+  printf 'view_all_parts_help_for_parser_with_short_long_positional_arguments output:'
+  printf '\n---------------------------------------------------------------------------------\n'
+  printf "${text}" 
+  printf '\r---------------------------------------------------------------------------------\n\n'
 }
 
 view_deduced_usuage_help_for_parser_with_sub_commands_and_sub_arguments() {
@@ -2423,26 +2423,26 @@ view_deduced_usuage_help_for_parser_with_sub_commands_and_sub_arguments() {
   parser="$(parseargs_add_sub_parser "${parser}" "stage" "copy" "${sp}" 'cp')"
   parser="$(parseargs_add_sub_parser "${parser}" "stage" "move" "${sp}" 'mv' 'rename' 'lnk' 'ren')"
   local text="$(parseargs_parse_arguments "${parser}" '-h' )"
-  echo '\n\n---------------------------------------------------------------------------------'
-  echo 'view_default_help_for_parser_with_sub_commands output:'
-  echo '\n---------------------------------------------------------------------------------'
-  echo "${text}" 
-  echo '---------------------------------------------------------------------------------\n'
+  printf '\n\n---------------------------------------------------------------------------------\n'
+  printf 'view_default_help_for_parser_with_sub_commands output:'
+  printf '\n---------------------------------------------------------------------------------\n'
+  printf "${text}" 
+  printf '\r---------------------------------------------------------------------------------\n\n'
   text="$(parseargs_parse_arguments "${parser}" '-x' 'mv' '-h' )"
-  echo '\n\n---------------------------------------------------------------------------------'
-  echo 'view_default_help_for_parser_with_sub_commands output (-x mv -h)'
-  echo '\n---------------------------------------------------------------------------------'
-  echo "${text}" 
-  echo '---------------------------------------------------------------------------------\n'
+  printf '\n\n---------------------------------------------------------------------------------\n'
+  printf 'view_default_help_for_parser_with_sub_commands output (-x mv -h)'
+  printf '\n---------------------------------------------------------------------------------\n'
+  printf "${text}" 
+  printf '\r---------------------------------------------------------------------------------\n\n'
 }
 
 
 #set -x
-#TEST view_default_help_for_parser_with_short_long_positional_arguments
-#TEST view_all_parts_help_for_parser_with_short_long_positional_arguments
-#TEST view_deduced_usuage_help_for_parser_with_sub_commands_and_sub_arguments
-#PRINT_TEST_COUNTS
-#exit 0
+TEST view_default_help_for_parser_with_short_long_positional_arguments
+TEST view_all_parts_help_for_parser_with_short_long_positional_arguments
+TEST view_deduced_usuage_help_for_parser_with_sub_commands_and_sub_arguments
+PRINT_TEST_COUNTS
+exit 0
 TEST parsearg_functions_complain_if_parameter_not_a_parseargs_parser
 TEST requesting_a_new_parser_returns_a_valid_parser
 TEST make_arg_parser_with_positional_arguments_and_parse_some_arguments

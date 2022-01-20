@@ -1414,9 +1414,9 @@ then
       help="${help}${__parseargs_return_value__}"
     fi
     if [ -n "${epi}" ]; then
-      help="${help}\n${epi}\n"
+      help="${help}\n${epi}"
     fi
-    __parseargs_return_value__="${help}"
+    __parseargs_return_value__="${help}\n"
   }
 
   __parseargs_op_build_argument_help__() {
