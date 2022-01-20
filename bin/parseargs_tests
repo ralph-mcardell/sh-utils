@@ -393,10 +393,12 @@ make_arg_parser_with_short_optional_flags_and_parse_all_arguments_grouped() {
   local parser="$(parseargs_new_argument_parser)"
   parser="$(parseargs_add_argument "${parser}" "short" "y" destination "yes" "action" "store_true")"
   parser="$(parseargs_add_argument "${parser}" "short" "n" "destination" "no" "action" "store_false")"
+  parser="$(parseargs_add_argument "${parser}" "short" "z" "destination" "dontcare" "action" "store_false")"
   local arguments="$(parseargs_parse_arguments "${parser}")"
-  arguments="$(parseargs_parse_arguments "${parser}" "-yn" )"
+  arguments="$(parseargs_parse_arguments "${parser}" "-ynz" )"
   CHECK "$(dict_get "${arguments}" "yes")"
   CHECK_FALSE "$(dict_get "${arguments}" "no")" 
+  CHECK_FALSE "$(dict_get "${arguments}" "dontcare")" 
 }
 
 make_arg_parser_with_short_optional_flags_and_parse_no_arguments() {
