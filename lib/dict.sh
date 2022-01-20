@@ -545,22 +545,22 @@ EOF
 
   # Details
 
-  __DICT_FS__=$(echo '@' | tr '@' '\034')
-  __DICT_GS__=$(echo '@' | tr '@' '\035')
-  __DICT_RS__=$(echo '@' | tr '@' '\036')
-  __DICT_US__=$(echo '@' | tr '@' '\037')
+  readonly __DICT_FS__=$(echo '@' | tr '@' '\034')
+  readonly __DICT_GS__=$(echo '@' | tr '@' '\035')
+  readonly __DICT_RS__=$(echo '@' | tr '@' '\036')
+  readonly __DICT_US__=$(echo '@' | tr '@' '\037')
 
-  __DICT_RECORD_SEPARATOR__="${__DICT_RS__}"
-  __DICT_FIELD_SEPARATOR__="${__DICT_US__}"
-  __DICT_NESTING_PREFIX__="${__DICT_GS__}"
+  readonly __DICT_RECORD_SEPARATOR__="${__DICT_RS__}"
+  readonly __DICT_FIELD_SEPARATOR__="${__DICT_US__}"
+  readonly __DICT_NESTING_PREFIX__="${__DICT_GS__}"
 
-  __DICT_VERSION__='1.1.0'
-  __DICT_ENTRY_SEPARATOR__="${__DICT_FIELD_SEPARATOR__}${__DICT_RECORD_SEPARATOR__}"
-  __DICT_TYPE_VALUE__="${__DICT_GS__}DiCt${__DICT_GS__}"
-  __DICT_HDR_ENTRY_BASE__="${__DICT_TYPE_VALUE__}${__DICT_ENTRY_SEPARATOR__}${__DICT_VERSION__}${__DICT_FIELD_SEPARATOR__}"
-  __DICT_DECL_HDR_ENTRY__="${__DICT_HDR_ENTRY_BASE__}0"
-  __DICT_DECL_HDR_RECORD__="${__DICT_DECL_HDR_ENTRY__}${__DICT_ENTRY_SEPARATOR__}"
-  __DICT_PATN_HDR_RECORD__="${__DICT_HDR_ENTRY_BASE__}*${__DICT_ENTRY_SEPARATOR__}"
+  readonly __DICT_VERSION__='1.1.0'
+  readonly __DICT_ENTRY_SEPARATOR__="${__DICT_FIELD_SEPARATOR__}${__DICT_RECORD_SEPARATOR__}"
+  readonly __DICT_TYPE_VALUE__="${__DICT_GS__}DiCt${__DICT_GS__}"
+  readonly __DICT_HDR_ENTRY_BASE__="${__DICT_TYPE_VALUE__}${__DICT_ENTRY_SEPARATOR__}${__DICT_VERSION__}${__DICT_FIELD_SEPARATOR__}"
+  readonly __DICT_DECL_HDR_ENTRY__="${__DICT_HDR_ENTRY_BASE__}0"
+  readonly __DICT_DECL_HDR_RECORD__="${__DICT_DECL_HDR_ENTRY__}${__DICT_ENTRY_SEPARATOR__}"
+  readonly __DICT_PATN_HDR_RECORD__="${__DICT_HDR_ENTRY_BASE__}*${__DICT_ENTRY_SEPARATOR__}"
   __dict_return_value__=''
 
   __dict_decorated_key__() {
