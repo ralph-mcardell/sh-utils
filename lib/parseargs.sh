@@ -403,7 +403,14 @@ then
 
   # Details
 
-  readonly __PARSEARGS_MAX_NARGS__="$(( $(getconf ARG_MAX)/2 ))"
+  if [ -n "$(which getconf)" ]; then
+    readonly __PARSEARGS_MAX_NARGS__="$(( $(getconf ARG_MAX)/2 ))"
+  else
+  # If it appears there is no getconf available set MAX_NARGS to 
+  # value a bit below half _POSIX_ARG_MAX  (4096), 
+  # see https://pubs.opengroup.org/onlinepubs/7908799/xsh/limits.h.html
+    readonly __PARSEARGS_MAX_NARGS__="2000" 
+  fi
   __parseargs_return_value__=""
   __parseargs_shift_caller_args_by__="0"
   __parseargs_current_positional__="0"
@@ -867,6 +874,7 @@ then
     local expected_number_of_positionals="$(dict_size "${__parseargs_positionals__}")"
 #echo "OPTSTRING:'${optstring}'." >&2
 #echo "Expected number of positional (start args): ${expected_number_of_positionals}" >&2
+    OPTIND=1
     while [ "$#" -gt "0" ]; do
         if [ "${__parseargs_current_positional__}" -gt "${expected_number_of_positionals}" ]; then
           positionals_to_parse=false
