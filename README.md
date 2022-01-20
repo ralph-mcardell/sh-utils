@@ -7,6 +7,8 @@ This repository contains Linux (and similar) shell script utility libraries. The
 - the `tr` utility
 - the `sed` utility
 - the `echo` utility with non standard `-n` option
+- the `getopt` utility  (*parseargs.sh* only)
+- the `ARG_MAX` configuration variable if `getconf` installed (*parseargs.sh* only)
 
 The repository has the following structure:
 
