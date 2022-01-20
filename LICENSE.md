@@ -6,7 +6,7 @@ This software is under following license:
 
 ### Copyright Notice
 
-Copyright (c) 2021 Ralph. E. McArdell
+Copyright (c) 2022 Ralph. E. McArdell
 
 All rights reserved.
 

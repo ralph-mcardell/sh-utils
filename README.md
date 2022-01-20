@@ -22,4 +22,4 @@ The library modules are:
 See the documents in the `doc` directory for further information.
 
 ---
-Copyright (c) 2021 Ralph. E. McArdell
+Copyright (c) 2022 Ralph. E. McArdell

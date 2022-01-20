@@ -142,4 +142,4 @@ At present there is no way to filter which tests are executed - any test functio
 - `-v`, `--version` : print the *sh_test* version and exit.
 
 ---
-Copyright © 2021 R. E. McArdell
+Copyright © 2022 R. E. McArdell
