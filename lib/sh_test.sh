@@ -163,9 +163,21 @@ TEST() {
   "${__sh_test_testfn__}"
   if ${__sh_test_flag_test_elapsed_times}; then
     local end_seconds="$(date +%s.%N)"
-    elapsed_time="$( echo "${end_seconds} - ${start_seconds}" | bc -q)"
+    # This long winded way to try to subtract one floating point value
+    # from another tries to allow for system that do _not_ porvied the
+    # POSIX bc utility but might provide the dc utility...
+    elapsed_time="\
+$( echo "${end_seconds} - ${start_seconds}" | bc -q 2>/dev/null \
+|| echo "${end_seconds} ${start_seconds} - p" | dc  \
+)"
     echo "ELAPSED TIME: ${elapsed_time} seconds : ${__sh_test_testfn__}"
-    __sh_test_total_time_secs__="$( echo "${__sh_test_total_time_secs__} + ${elapsed_time}" | bc -q)"
+    # This long winded way to try to add 2 floating point values
+    # tries to allow for system that do _not_ porvied the POSIX bc utility
+    # but might provide the dc utility...
+    __sh_test_total_time_secs__="\
+$( echo "${__sh_test_total_time_secs__} + ${elapsed_time}" | bc -q 2>/dev/null \
+|| echo "${__sh_test_total_time_secs__} ${elapsed_time} + p" | dc  \
+)"
   fi
   __sh_test_testfn__="${prev_test}"
   if [ ${__sh_test_asserts_failed__} -gt ${initial_failed_assertions} ]; then
