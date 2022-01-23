@@ -137,7 +137,7 @@ At present there is no way to filter which tests are executed - any test functio
 *sh_test* provides the following options to test *sh* scripts:
 
 - `-s`, `--success` : report successful as well as failed assertions.
-- `-t`, `--timings` : report rough per test and total elapsed timings. This includes time executing *sh_test* functions as well as time executing test function code.
+- `-t`, `--timings` : report rough per test and total elapsed timings. This includes time executing *sh_test* functions as well as time executing test function code. _Note: requires `date +%s.%N` and `bc` or `dc` utilities_.
 - `-h`, `--help`    : print the command line options with description and exit.
 - `-v`, `--version` : print the *sh_test* version and exit.
 
