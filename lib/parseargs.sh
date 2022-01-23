@@ -175,7 +175,8 @@ then
   # 'nargs'         Number of values comprising this argument. Defaults to 1
   #                 argument. 0 implies a flag value. Any other positive integer
   #                 value explicitly given, including 1, results in argument
-  #                 values being stored in a dict. Maximum value is ARG_MAX/2.
+  #                 values being stored in a dict. Maximum value is ARG_MAX/2
+  #                 or 2000 if getopt is not available.
   #                 The following special values are accepted:
   #                   '?' : 0 or 1 argument values may be given. If no value
   #                         is given then a predefined value is substituted.
