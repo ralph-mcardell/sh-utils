@@ -374,7 +374,7 @@ EOF
 __sh_test_print_version__() {
   cat << EOF
 sh-test 0.1
-Copyright © 2021 Ralph E. McArdell.
+Copyright © 2022 Ralph E. McArdell.
 EOF
 }
 
