@@ -142,7 +142,7 @@ then
       fi
     fi
 
-    echo -n "${parser}"
+    printf "%s" "${parser}"
   }
 
   # @brief Add argument specification to a Parseargs parser
@@ -289,7 +289,7 @@ then
   # @returns : The updated argument parser.
   parseargs_add_argument() {
     __parseargs_add_argument__ "$@"
-    echo -n "${__parseargs_return_value__}"
+    printf "%s" "${__parseargs_return_value__}"
   }
 
   # @brief Add sub-parser to a Parseargs parser
@@ -340,7 +340,7 @@ then
       done
       parser="$(dict_set "${parser}" "__sp_aliases__${arg_dest}" "${aliases}")"
     fi
-    echo -n "${parser}"
+    printf "%s" "${parser}"
   }
 
   # @brief Use a Parseargs parser to parse arguments
@@ -396,10 +396,10 @@ then
   # @param 2+   : The arguments to parse.
   parseargs_parse_arguments() {
     __parseargs_parse_arguments__ "$@"
-#echo "arguments before validation/fixup:'${__parseargs_return_value__}'." >&2
+#printf "%s\n" "arguments before validation/fixup:'${__parseargs_return_value__}'." >&2
   __parseargs_validate_and_fixup_arguments__ "${__parseargs_return_value__}"
-#echo "arguments  after validation/fixup:'${__parseargs_return_value__}'." >&2
-    echo -n "${__parseargs_return_value__}"
+#printf "%s\n" "arguments  after validation/fixup:'${__parseargs_return_value__}'." >&2
+    printf "%s" "${__parseargs_return_value__}"
   }
 
   # Details
@@ -417,11 +417,11 @@ then
   __parseargs_current_positional__="0"
 
   __parseargs_warn_continue__() {
-    echo "WARNING: ${1}" >&2
+    printf "%s\n" "WARNING: ${1}" >&2
   }
 
   __parseargs_error_exit__() {
-    echo "ERROR: ${1}" >&2
+    printf "%s\n" "ERROR: ${1}" >&2
     exit 1
   }
   __parseargs_abort_if_not_parser__() {
@@ -443,7 +443,7 @@ then
   }
   
   __parseargs_sanitise_destination__() {
-    echo -n "${1}" | tr "-" "_"
+    printf "%s" "${1}" | tr "-" "_"
   }
 
   __parseargs_is_option_string__() {
@@ -613,7 +613,6 @@ then
           __parseargs_abort_if_have_attribute_value__ "${num_args}" 'nargs'
           num_args="${2}"
           if ! __parseargs_is_valid_nargs_value__ "${num_args}" "${__PARSEARGS_MAX_NARGS__}"; then
-          echo "nargs value '${num_args}' invalid. Must be integer in the range [1, ${__PARSEARGS_MAX_NARGS__}], '?','*' or '+'." >&2
             __parseargs_error_exit__ "nargs value '${num_args}' invalid. Must be integer in the range [1, ${__PARSEARGS_MAX_NARGS__}], '?','*' or '+'."
           fi
           ;;
@@ -698,7 +697,7 @@ then
       fi
       if [ "${num_args}" = '?' ] && ! ${have_default}; then
         local global_default="$(dict_get_simple "${parser}" 'argument_default')"
-#echo "positional argument with nargs of '?' (0|1) with no per-argument default, using parser global default of : '${global_default}'." >&2
+#printf "%s\n" "positional argument with nargs of '?' (0|1) with no per-argument default, using parser global default of : '${global_default}'." >&2
           if [ -n "${global_default}" ]; then
           have_default=true
           argument="$(dict_set_simple "${argument}" "default" "${global_default}")"
@@ -839,7 +838,7 @@ then
       if ! "${have_default}"; then
         local global_default="$(dict_get_simple "${parser}" 'argument_default')"
         if [ -n "${global_default}" ]; then
-  #echo "Argument has no specified default, using default value of: '${global_default}'." >&2
+  #printf "%s\n" "Argument has no specified default, using default value of: '${global_default}'." >&2
           have_default=true
           argument="$(dict_set_simple "${argument}" "default" "${global_default}")"
         fi
@@ -873,8 +872,8 @@ then
     __parseargs_return_value__="$(dict_declare_simple)"
     shift
     local expected_number_of_positionals="$(dict_size "${__parseargs_positionals__}")"
-#echo "OPTSTRING:'${optstring}'." >&2
-#echo "Expected number of positional (start args): ${expected_number_of_positionals}" >&2
+#printf "%s\n" "OPTSTRING:'${optstring}'." >&2
+#printf "%s\n" "Expected number of positional (start args): ${expected_number_of_positionals}" >&2
     while [ "$#" -gt "0" ]; do
         if [ "${__parseargs_current_positional__}" -gt "${expected_number_of_positionals}" ]; then
           positionals_to_parse=false
@@ -882,7 +881,7 @@ then
         __parseargs_parse_argument__ "${__parseargs_return_value__}" "${positionals_to_parse}" '*' "$@"
         shift ${__parseargs_shift_caller_args_by__}
     done
-#echo "Expected number of positional (end args): ${expected_number_of_positionals}, current positional: ${__parseargs_current_positional__}" >&2
+#printf "%s\n" "Expected number of positional (end args): ${expected_number_of_positionals}, current positional: ${__parseargs_current_positional__}" >&2
 }
 
   __parseargs_parse_argument__() {
@@ -890,20 +889,20 @@ then
     local positionals_to_parse="${2}"
     local multiplicity="${3}"
     shift 3
-#echo "PARSING:'$*'." >&2
+#printf "%s\n" "PARSING:'$*'." >&2
     __parseargs_parse_short_options__ "${arguments}" "${multiplicity}" "$@"
     arguments="${__parseargs_return_value__}"
     local short_args_shift_by=${__parseargs_shift_caller_args_by__}
-#echo "  PARSE ARGS ( short opt): shifting by: ${__parseargs_shift_caller_args_by__}; remaining arguments to parse: '$*', arg count:$#" >&2
+#printf "%s\n" "  PARSE ARGS ( short opt): shifting by: ${__parseargs_shift_caller_args_by__}; remaining arguments to parse: '$*', arg count:$#" >&2
     if [ "${multiplicity}" = '*' ] || [ ${__parseargs_shift_caller_args_by__} -eq 0 ]; then
       shift ${__parseargs_shift_caller_args_by__}
       if [ "$#" -gt "0" ]; then
         __parseargs_parse_long_option__ "${arguments}" "$@"
-#echo "  PARSE ARGS (  long opt): shifted by: ${__parseargs_shift_caller_args_by__}; remaining arguments to parse: '$*', arg count:$#" >&2
+#printf "%s\n" "  PARSE ARGS (  long opt): shifted by: ${__parseargs_shift_caller_args_by__}; remaining arguments to parse: '$*', arg count:$#" >&2
         if [ "${__parseargs_shift_caller_args_by__}" -eq "0" ]; then
           if "${positionals_to_parse}"; then
             __parseargs_parse_positional_argument__ "${arguments}" "${__parseargs_current_positional__}" "$@"
-#echo "  PARSE ARGS (positional): shifted by: ${__parseargs_shift_caller_args_by__}; remaining arguments to parse: '$*', arg count:$#" >&2
+#printf "%s\n" "  PARSE ARGS (positional): shifted by: ${__parseargs_shift_caller_args_by__}; remaining arguments to parse: '$*', arg count:$#" >&2
             if [ "${__parseargs_shift_caller_args_by__}" -eq "0" ]; then
               __parseargs_shift_caller_args_by__=1
             else
@@ -931,9 +930,9 @@ then
     shift 2
     __parseargs_shift_caller_args_by__="0"
     OPTIND=1
-#echo "__parseargs_optstring__='${__parseargs_optstring__}';  opt=${opt}; OPTARG=${OPTARG}; OPTIND=${OPTIND}" >&2
+#printf "%s\n" "__parseargs_optstring__='${__parseargs_optstring__}';  opt=${opt}; OPTARG=${OPTARG}; OPTIND=${OPTIND}" >&2
     while getopts "${__parseargs_optstring__}" opt; do
-#echo "GETOPTS opt=${opt}; OPTARG=${OPTARG}; OPTIND=${OPTIND}; arg_spec_key=${arg_spec_key} args='$*'" >&2
+#printf "%s\n" "GETOPTS opt=${opt}; OPTARG=${OPTARG}; OPTIND=${OPTIND}; arg_spec_key=${arg_spec_key} args='$*'" >&2
       if [ "${opt}" = "?" ]; then
         if [ "${OPTARG}" = "-" ]; then
         # found --, long option prefix
@@ -958,7 +957,7 @@ then
       if ! ${reset_optind}; then
         accumulated_opt="${accumulated_opt}${opt}"
         __parseargs_split_string_on_arg_rhs__ "${1}" "${accumulated_opt}"
-#echo "__parseargs_split_string_on_arg_rhs__ '${1}' '${accumulated_opt}' -> '${__parseargs_return_value__}'" >&2
+#printf "%s\n" "__parseargs_split_string_on_arg_rhs__ '${1}' '${accumulated_opt}' -> '${__parseargs_return_value__}'" >&2
        if [ -z "${__parseargs_return_value__}" ]; then
           reset_optind=true
           accumulated_opt=''
@@ -987,12 +986,12 @@ then
       if [ -n "${OPTARG}" ]; then
         set -- "${OPTARG}" "$@"
       fi
-#echo "remaining arg count: $#; caller shift by=${__parseargs_shift_caller_args_by__}; local shift by=${shift_by}" >&2
-#echo "  BEFORE: caller shift by=${__parseargs_shift_caller_args_by__}; local shift by=${shift_by}; args='$*'" >&2
+#printf "%s\n" "remaining arg count: $#; caller shift by=${__parseargs_shift_caller_args_by__}; local shift by=${shift_by}" >&2
+#printf "%s\n" "  BEFORE: caller shift by=${__parseargs_shift_caller_args_by__}; local shift by=${shift_by}; args='$*'" >&2
       __parseargs_process_argument_action__ "${arguments}" "${arg_spec_key}" "const" "Short option -${opt}" "$@"
       arguments="${__parseargs_return_value__}"
       shift_by=$(( ${__parseargs_shift_caller_args_by__}-${shift_by} ))
-#echo "   AFTER: next optind=${next_optind}; caller shift by=${__parseargs_shift_caller_args_by__}; local shift by=${shift_by}; args='$*'" >&2
+#printf "%s\n" "   AFTER: next optind=${next_optind}; caller shift by=${__parseargs_shift_caller_args_by__}; local shift by=${shift_by}; args='$*'" >&2
       if [ "${shift_by}" -gt '0' ]; then
         shift "${shift_by}"
       fi
@@ -1003,7 +1002,7 @@ then
         fi
         OPTIND=1
       fi
-#echo "     END: Caller shift args by: ${__parseargs_shift_caller_args_by__}; remaining arguments: '$*'" >&2        
+#printf "%s\n" "     END: Caller shift args by: ${__parseargs_shift_caller_args_by__}; remaining arguments: '$*'" >&2        
     done
     __parseargs_return_value__="${arguments}"
   }
@@ -1138,11 +1137,11 @@ then
     else
       shift 4
     fi
-#echo "  >>>>>>>>>>>>>>>>>>>>>>>>> SUB PARSE for ${dest} START >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" >&2
-#echo "  >>> Entry sub-arguments: $@ " >&2
+#printf "%s\n" "  >>>>>>>>>>>>>>>>>>>>>>>>> SUB PARSE for ${dest} START >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" >&2
+#printf "%s\n" "  >>> Entry sub-arguments: $@ " >&2
     __parseargs_sub_context_around "${sub_parse_fn}" "${sub_parser}" "$@"
-#echo "  >>> Return sub-arguments: ${__parseargs_return_value__} " >&2          
-#echo "  <<<<<<<<<<<<<<<<<<<<<<<<< SUB PARSE for ${dest} END   <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" >&2
+#printf "%s\n" "  >>> Return sub-arguments: ${__parseargs_return_value__} " >&2          
+#printf "%s\n" "  <<<<<<<<<<<<<<<<<<<<<<<<< SUB PARSE for ${dest} END   <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<" >&2
     if [ -z "${store_parser}" ]; then
       __parseargs_return_value__="$(dict_declare "${sp_id}" "${__parseargs_return_value__}")"
     else
@@ -1156,23 +1155,23 @@ then
     local missing_arg_key="${3}"
     local arg_desc="${4}"
     shift 4
-#echo "> PROCESS ARGS (${arg_desc}; args='$*', count=$#):" >&2
+#printf "%s\n" "> PROCESS ARGS (${arg_desc}; args='$*', count=$#):" >&2
     local attributes="$(dict_get "${__parseargs_arg_specs__}" "${arg_spec_key}")"
     if [ -z "${attributes}" ]; then
       __parseargs_error_exit__ "(internal). ${arg_desc}: no attrubutes specifying this argument."
     fi
     local action="$(dict_get_simple "${attributes}" "action" )"
     local dest="$(dict_get_simple "${attributes}" "destination" )"
-#echo "  dest:${dest}; action:${action} shift by:${__parseargs_shift_caller_args_by__}; attributes:${attributes}; missing_arg_key:${missing_arg_key}" >&2
+#printf "%s\n" "  dest:${dest}; action:${action} shift by:${__parseargs_shift_caller_args_by__}; attributes:${attributes}; missing_arg_key:${missing_arg_key}" >&2
     case "${action}" in
       version)
         local version_text="$(dict_get_simple "${attributes}" "version" )"
-        echo "${version_text}"
+        printf "%s\n" "${version_text}"
         exit 0
         ;;
       help)
         __parseargs_build_help_string__
-        echo "${__parseargs_return_value__}"
+        printf "%s\n" "${__parseargs_return_value__}"
         exit 0
         ;;
       store)
@@ -1257,7 +1256,7 @@ then
         ;;
       esac
     __parseargs_return_value__="$(dict_set "${arguments}" "${dest}" "${__parseargs_return_value__}")"
-#echo ">>> Returned arguments: ${__parseargs_return_value__} " >&2          
+#printf "%s\n" ">>> Returned arguments: ${__parseargs_return_value__} " >&2          
   }
 
   __parseargs_get_arguments__() {
@@ -1300,8 +1299,8 @@ then
     fi
     if [ -z "${nargs}" ]; then
       __parseargs_get_argument__ "${on_missing}" "${missing_arg_value}" "${arg_desc}" "$@"
-#echo "  Returning: shift by:${__parseargs_shift_caller_args_by__}; value:${__parseargs_return_value__}" >&2
-#echo "< ADD ARGS(scalar)" >&2
+#printf "%s\n" "  Returning: shift by:${__parseargs_shift_caller_args_by__}; value:${__parseargs_return_value__}" >&2
+#printf "%s\n" "< ADD ARGS(scalar)" >&2
       return
     fi
 
@@ -1326,8 +1325,8 @@ then
     done
     __parseargs_shift_caller_args_by__="$(( ${stashed_shift_caller_args_by}+${accumulated_shift_count} ))"
     __parseargs_return_value__="${argument_list}"
-#echo "  Returning: shift by:${__parseargs_shift_caller_args_by__}; value:${__parseargs_return_value__}" >&2
-#echo "< ADD ARGS(list ${argument_index}):" >&2
+#printf "%s\n" "  Returning: shift by:${__parseargs_shift_caller_args_by__}; value:${__parseargs_return_value__}" >&2
+#printf "%s\n" "< ADD ARGS(list ${argument_index}):" >&2
   }
 
   __parseargs_get_argument__() {
@@ -1350,13 +1349,13 @@ then
       fi
       if [ "$#" -gt "0" ]; then
         local arg_value="${1}"
-#echo "    Argument found: '${arg_value}'" >&2
+#printf "%s\n" "    Argument found: '${arg_value}'" >&2
         __parseargs_return_value__="${arg_value}"
         __parseargs_shift_caller_args_by__=$(( ${__parseargs_shift_caller_args_by__}+1 ))
         return
       fi
     fi
-#echo "    Argument missing" >&2
+#printf "%s\n" "    Argument missing" >&2
     case "${on_missing}" in
       'value')
         __parseargs_return_value__="${missing_arg_value}"
@@ -1435,7 +1434,7 @@ then
     local saved_return_value="${__parseargs_return_value__}"
     local opt="$(dict_get_simple "${arg_spec}" "short" )"
     local optl="$(dict_get_simple "${arg_spec}" "long" )"
-#echo "arg_desc:'${arg_desc}'  opt: '${opt}'  optl:'${optl}' arg_depiction:'${arg_depiction}' arg_spec:'${arg_spec}'" >&2
+#printf "%s\n" "arg_desc:'${arg_desc}'  opt: '${opt}'  optl:'${optl}' arg_depiction:'${arg_depiction}' arg_spec:'${arg_spec}'" >&2
     local action="$(dict_get_simple "${arg_spec}" "action" )"
     if [ "${action}" = 'sub_command' ] || [ "${action}" = 'sub_argument' ]; then
       local dest="$(dict_get_simple "${arg_spec}" "destination" )"
@@ -1491,7 +1490,7 @@ then
 
   __parseargs_op_help_string_builder_for_sub_arguments__() {
     local help_rec="${2}"
-#echo "Add top-level sub argument/command help for argument '${1}' from data '${help_rec}'" >&2
+#printf "%s\n" "Add top-level sub argument/command help for argument '${1}' from data '${help_rec}'" >&2
     __parseargs_return_value__="${__parseargs_return_value__}\n$(dict_get_simple "${help_rec}" 'head'):\n"
     local desc="$(dict_get_simple "${help_rec}" 'desc')"
     if [ -n "${desc}" ]; then
@@ -1515,7 +1514,7 @@ then
       sp_id_and_aliases_list="${sp_id_and_aliases_list},${sp_id_aliases}"
       sp_id_with_alias_list="${sp_id_with_alias_list} (${sp_id_aliases})"
     fi
-#echo "Build sub argument help for Subparser: (ID'${sp_id}'):(parser:'${subparser}')" >&2
+#printf "%s\n" "Build sub argument help for Subparser: (ID'${sp_id}'):(parser:'${subparser}')" >&2
     local arg_desc="$(dict_get_simple "${subparser}" 'description')"
     __parseargs_help_wrap_and_fill_append__ "${arg_desc}" '' "                         " 25 80 25 20
     arg_desc="${__parseargs_return_value__}"
@@ -1533,7 +1532,7 @@ then
     local sp_alias_id="${1}"
     local sp_id="${2}"
     local aliases="$(dict_get_simple "${__parseargs_return_value__}" "${sp_id}")"
-#echo "Build sub argument aliases data for help: (alias ID'${sp_alias_id}'):(sp_id:'${sp_id}'); sp_is:alias map:'${__parseargs_return_value__}'" >&2
+#printf "%s\n" "Build sub argument aliases data for help: (alias ID'${sp_alias_id}'):(sp_id:'${sp_id}'); sp_is:alias map:'${__parseargs_return_value__}'" >&2
     if [ -z "${aliases}" ]; then
       __parseargs_return_value__="$(dict_set_simple "${__parseargs_return_value__}" "${sp_id}" "${sp_alias_id}")"
     else
@@ -1584,10 +1583,10 @@ then
     arg_help="${__parseargs_return_value__}\n"
   __parseargs_return_value__="${saved_return_value}"
     local arg_types_help="$(dict_get "${__parseargs_return_value__}" "${arg_type}" )"
-#echo "arg_help:'${arg_help}' ${arg_type}:'${arg_types_help}'" >&2
+#printf "%s\n" "arg_help:'${arg_help}' ${arg_type}:'${arg_types_help}'" >&2
     arg_types_help="${arg_types_help% }"
     arg_types_help="${arg_types_help}${arg_help} "
-#echo "${arg_type} (updated):'${arg_types_help}'" >&2
+#printf "%s\n" "${arg_type} (updated):'${arg_types_help}'" >&2
     __parseargs_return_value__="$(dict_set "${__parseargs_return_value__}" "${arg_type}" "${arg_types_help}" )"
     if "${deduce_usage}"; then
       __parseargs_help_make_arg_deduced_usage__ "${usage_type}" "${arg_usage}" "${required}"
@@ -1721,7 +1720,7 @@ __parseargs_help_make_arg_deduced_usage__() {
     local break_col=$(( ${wrap_col}-${start_col} ))
     local word_break_part=''
     while [ $len -gt ${break_col} ]; do
-#echo "out:'${out}'  source_text:'${source_text}'  len:${len}" >&2
+#printf "%s\n" "out:'${out}'  source_text:'${source_text}'  len:${len}" >&2
       __parseargs_break_string_at_index_left__ "${source_text}" ${break_col}
       word_break_part="${__parseargs_return_value__##*' '}"
       if [ ${#word_break_part} -le ${max_word_len} ]; then
@@ -1748,7 +1747,7 @@ __parseargs_help_make_arg_deduced_usage__() {
       break_col=${wrap_col}
     done
     out="${out}${source_text}"
-#echo "out:'${out}'  source_text:'${source_text}'  append_text:'${append_text}'  len:${len}" >&2
+#printf "%s\n" "out:'${out}'  source_text:'${source_text}'  append_text:'${append_text}'  len:${len}" >&2
     if [ -n "${append_text}" ]; then
       if [ ${len} -ge ${append_col} ]; then
         out="${out}\n"
@@ -1769,7 +1768,7 @@ __parseargs_help_make_arg_deduced_usage__() {
 
   __parseargs_check_for_missing_positionals__() {
     local expected_number_of_positionals="${1}"
-#echo "check for missing positional: provided number: ${__parseargs_current_positional__}; expected number:'${expected_number_of_positionals}'." >&2
+#printf "%s\n" "check for missing positional: provided number: ${__parseargs_current_positional__}; expected number:'${expected_number_of_positionals}'." >&2
 
     while [ "${__parseargs_current_positional__}" -ne "${expected_number_of_positionals}" ]; do
       __parseargs_parse_positional_argument__ "${__parseargs_return_value__}" "${__parseargs_current_positional__}"
@@ -1784,7 +1783,7 @@ __parseargs_help_make_arg_deduced_usage__() {
       __parseargs_return_value__="$(dict_declare_simple)"
     else
       local expected_number_of_positionals="$(dict_size "${__parseargs_positionals__}")"
-#echo "arguments before missing positionals check:'${__parseargs_return_value__}'." >&2
+#printf "%s\n" "arguments before missing positionals check:'${__parseargs_return_value__}'." >&2
       __parseargs_check_for_missing_positionals__ "${expected_number_of_positionals}"
     fi
     dict_for_each "${__parseargs_arg_specs__}" \
@@ -1808,10 +1807,10 @@ __parseargs_help_make_arg_deduced_usage__() {
       if [ -z "${arg}" ]; then
         arg="$(dict_declare_simple)"
       fi
-#echo "  >>>>>>>>>>>>>>>>>>>>>>>>> VALIDATE & FIXUP FOR SUB COMMANDS for ${dest} START >>>>>>>>>>>>>>>>>>>>>>>>>" >&2
+#printf "%s\n" "  >>>>>>>>>>>>>>>>>>>>>>>>> VALIDATE & FIXUP FOR SUB COMMANDS for ${dest} START >>>>>>>>>>>>>>>>>>>>>>>>>" >&2
       __parseargs_return_value__="${arg}"
       if [ "${action}" = 'sub_command' ]; then
-#echo "@@@ arg='${arg}'"       >&2
+#printf "%s\n" "@@@ arg='${arg}'"       >&2
         dict_for_each "${arg}" '__parseargs_op_validate_and_fixup_sub_arguments__' 'subcmds' "${dest}"
       else
         local arg_sub_parsers="$(dict_get "${__parseargs_parser__}" "__subparsers__${dest}" )"
@@ -1829,12 +1828,12 @@ __parseargs_help_make_arg_deduced_usage__() {
           __parseargs_error_exit__ "Required option ${optname} was not provided."
         fi
       fi
-#echo "    Returned value: ${__parseargs_return_value__}" >&2
-#echo "  >>>>>>>>>>>>>>>>>>>>>>>>>> VALIDATE & FIXUP FOR SUB COMMANDS for ${dest} END >>>>>>>>>>>>>>>>>>>>>>>>>>" >&2
+#printf "%s\n" "    Returned value: ${__parseargs_return_value__}" >&2
+#printf "%s\n" "  >>>>>>>>>>>>>>>>>>>>>>>>>> VALIDATE & FIXUP FOR SUB COMMANDS for ${dest} END >>>>>>>>>>>>>>>>>>>>>>>>>>" >&2
     elif [ -z "${arg}" ]; then
-#echo "'${dest}':<empty>" >&2
+#printf "%s\n" "'${dest}':<empty>" >&2
       local default="$(dict_get_simple "${arg_spec}" "default")"
-#echo "'${dest}' has default '${default}'" >&2
+#printf "%s\n" "'${dest}' has default '${default}'" >&2
       if [ -n "${default}" ]; then
         arguments="$(dict_set_simple "${arguments}" "${dest}" "${default}")"
       else
@@ -1866,7 +1865,7 @@ __parseargs_help_make_arg_deduced_usage__() {
     __parseargs_current_positional__='0'
     if dict_is_dict "${arg}"; then
       __parseargs_current_positional__="$(dict_get_simple "${arg}" '__sub_curpos__')"
-#echo "      >>>>>>> ARG is DICT !!: __parseargs_current_positional__=${__parseargs_current_positional__}" >&2    
+#printf "%s\n" "      >>>>>>> ARG is DICT !!: __parseargs_current_positional__=${__parseargs_current_positional__}" >&2    
     fi
     __parseargs_set_parse_specs__ "${sub_parser}"
     __parseargs_validate_and_fixup_arguments__ "${arg}"
@@ -1880,7 +1879,7 @@ __parseargs_help_make_arg_deduced_usage__() {
     fi
     local iterating_over="${4}"
 
-#echo "      ==========================>> ITERATING OVER: '${iterating_over}'" >&2
+#printf "%s\n" "      ==========================>> ITERATING OVER: '${iterating_over}'" >&2
     if [ "${iterating_over}" = 'sp' ]; then
       local sub_parser="${2}"
       local arg="$(dict_get "${sub_cmds}" "${sp_id}" )"
@@ -1892,30 +1891,30 @@ __parseargs_help_make_arg_deduced_usage__() {
       fi
       local sub_parser="$(dict_get "${arg_sub_parsers}" "${sp_id}" )"
       local arg="${2}"
-#echo "      ==========================>> Subparser for: '${dest}':'${sp_id}':  '${sub_parser}'" >&2      
+#printf "%s\n" "      ==========================>> Subparser for: '${dest}':'${sp_id}':  '${sub_parser}'" >&2      
     fi
 
     local rm_curpos=true
     if [ -z "${arg}" ]; then
-#echo "      >>>>>>>>>>>>>>>>>>>>>>> NOT removing sub_curpos <<<<<<<<<<<<<<<<<<<<" >&2
+#printf "%s\n" "      >>>>>>>>>>>>>>>>>>>>>>> NOT removing sub_curpos <<<<<<<<<<<<<<<<<<<<" >&2
       rm_curpos=false
     fi
 
-#echo "      >>>>>>>>>>>>>>>>>>>>>>> VALIDATE & FIXUP FOR SUB ARGUMENTS for ${sp_id} START >>>>>>>>>>>>>>>>>>>>>>>" >&2
-#echo "        subparser='${sub_parser}';  arguments='${arg}'" >&2
+#printf "%s\n" "      >>>>>>>>>>>>>>>>>>>>>>> VALIDATE & FIXUP FOR SUB ARGUMENTS for ${sp_id} START >>>>>>>>>>>>>>>>>>>>>>>" >&2
+#printf "%s\n" "        subparser='${sub_parser}';  arguments='${arg}'" >&2
     __parseargs_sub_context_around '__parseargs_sub_parser_validate_and_fixup___' "${sub_parser}" "${arg}"
 
     if [ "$(dict_size "${__parseargs_return_value__}")" -gt 0 ]; then
       if $rm_curpos; then
         __parseargs_return_value__="$(dict_remove "${__parseargs_return_value__}" '__sub_curpos__')"
-#echo "      >>>>>>>>>>>>>>>>>>>>>>> REMOVED sub_curpos <<<<<<<<<<<<<<<<<<<<" >&2
+#printf "%s\n" "      >>>>>>>>>>>>>>>>>>>>>>> REMOVED sub_curpos <<<<<<<<<<<<<<<<<<<<" >&2
       fi
       __parseargs_return_value__="$(dict_set "${sub_cmds}" "${sp_id}" "${__parseargs_return_value__}")"
     else  
       __parseargs_return_value__="${sub_cmds}"
     fi
-#echo "        return value: ${__parseargs_return_value__}" >&2
-#echo "      >>>>>>>>>>>>>>>>>>>>>>> VALIDATE & FIXUP FOR SUB ARGUMENTS for ${sp_id}  END  >>>>>>>>>>>>>>>>>>>>>>>" >&2
+#printf "%s\n" "        return value: ${__parseargs_return_value__}" >&2
+#printf "%s\n" "      >>>>>>>>>>>>>>>>>>>>>>> VALIDATE & FIXUP FOR SUB ARGUMENTS for ${sp_id}  END  >>>>>>>>>>>>>>>>>>>>>>>" >&2
   }
 
   __parseargs_op_check_value_valid_choice__() {
