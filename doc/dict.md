@@ -96,7 +96,7 @@ record="$(dict_declare_simple 'greeting' 'Hello' 'who' 'World')"
 
 # Lookup the values associated with keys greeting and who and echo them to
 # stdout:
-echo "$(dict_get_simple "${record}" 'greeting'), $(dict_get_simple  "${record}" 'who')!"
+printf '%s\n' "$(dict_get_simple "${record}" 'greeting'), $(dict_get_simple  "${record}" 'who')!"
 
 # Set values for keys greeting and who; as these both exist they are updated.
 # Note that the record variable is both used as an input argument and
@@ -107,7 +107,7 @@ record="$(dict_set_simple "${record}" 'greeting' 'Hi' 'who' 'Earth')"
 # store the returned values in variables and output their values:
 greeting="$(dict_get_simple "${record}" 'greeting')"
 who="$(dict_get_simple  "${record}" 'who')"
-echo "${greeting}, ${who}!"
+printf '%s\n' "${greeting}, ${who}!"
 ```
 
 ## Reference
@@ -482,9 +482,9 @@ set_ansi_24bit_colours_string "$(dict_get "${record}" 'foreground')" \
 # Lookup the values associated with keys greeting and who and echo them to
 # stdout along with the ANSI colour setting string. As the looked up values
 # are simple strings dict_get_simple can be used:
-echo -n "${return_value}"
-echo -n "$(dict_get_simple "${record}" 'greeting'), $(dict_get_simple  "${record}" 'who')!"
-echo "${ANSI_CMD_RESET}"
+printf '%s' "${return_value}"
+printf '%s' "$(dict_get_simple "${record}" 'greeting'), $(dict_get_simple  "${record}" 'who')!"
+printf '%s\n' "${ANSI_CMD_RESET}"
 
 # Set values for keys greeting and who; as these both exist they are updated.
 # Note that the record variable is both used as an input argument and
@@ -511,12 +511,12 @@ fore="$(dict_get "${record}" 'foreground')"
 back="$(dict_get "${record}" 'background')"
 set_ansi_24bit_colours_string "${fore}" "${back}"
 
-# Lookup and echo the updated associated values to stdout along with the
-# ANSI colour setting string. This time store the returned values in
-# variables and output their values:
+# Lookup and output the updated associated values to stdout along with
+# the ANSI colour setting string. This time store the returned values
+# in variables and output their values:
 greeting="$(dict_get_simple "${record}" 'greeting')"
 who="$(dict_get_simple  "${record}" 'who')"
-echo "${return_value}${greeting}, ${who}!${ANSI_CMD_RESET}"
+printf '%s\n' "${return_value}${greeting}, ${who}!${ANSI_CMD_RESET}"
 ```
 
 ### Simulating a set
@@ -690,46 +690,46 @@ set_declare 'Kayla' 'Johnny' 'Alexis' 'Bobby' 'Rose' 'Louis' 'Charlotte' 'Elijah
 friends="${set_return_value}"
 set_declare 'Rose' 'Russell' 'Charlotte' 'Vincent' 'Natalie' 'Johnny' 'Brittany' 'Bobby'
 collegues="${set_return_value}"
-echo -n 'My  friends  are: '
+printf '%s' 'My  friends  are: '
 set_print "${friends}"
-echo -n '\nMy collegues are: '
+printf '\n%s' 'My collegues are: '
 set_print "${collegues}"
-echo '\n'
+printf '\n\n'
 
 # Add some new friends using set_add_members:
-echo 'I have new friends Eugene and Diana!'
+printf '%s\n' 'I have new friends Eugene and Diana!'
 set_add_members "${friends}" 'Eugene' 'Diana'
 friends="${set_return_value}"
-echo -n 'My  friends  are now: '
+printf '%s' 'My  friends  are now: '
 set_print "${friends}"
 
 # Add some new collegues contained in a set, added to existing friends
 # using set_union:
 set_declare 'Diana' 'Randy'
 new_collegues="${set_return_value}"
-echo -n '\n\nNew people '
+printf '\n\n%s' 'New people '
 set_print "${new_collegues}"
-echo -n ' have just started on my team at work.'
+printf '%s' ' have just started on my team at work.'
 set_union "${collegues}" "${new_collegues}"
 collegues="${set_return_value}"
-echo -n '\nMy collegues are now: '
+printf '\n%s' 'My collegues are now: '
 set_print "${collegues}"
-echo '\n'
+printf '\n\n'
 
 # Obtain set of all friends and collegues. Some are both and therefore
 # should only appear once. Thus we require the union of friends and collegues:
 set_union "${friends}" "${collegues}"
 all_friends_and_collegues="${set_return_value}"
-echo -n "All my friends and collegues are "
+printf '%s' 'All my friends and collegues are '
 set_print "${all_friends_and_collegues}"
-echo ''
+printf '\n'
 
 # Obtain set of people who are both friend and collegue using set_intersection:
 set_intersection "${friends}" "${collegues}"
 both_friend_and_collegue="${set_return_value}"
-echo -n "My friends who are also collegues are "
+printf '%s' 'My friends who are also collegues are '
 set_print "${both_friend_and_collegue}"
-echo ''
+printf '\n'
 ```
 
 ### Simulating a vector (single dimension array)
@@ -834,8 +834,8 @@ vector_append() {
 # seconds and display a simple graph:
 
 # Declare vector with initial sample value
-echo 'Collecting dirty memory kB samples from /proc/meminfo...'
-ASCII_CR=$(echo '@' | tr '@' '\015')
+printf '%s\n' 'Collecting dirty memory kB samples from /proc/meminfo...'
+ASCII_CR=$(printf '\015')
 sample="$(grep "Dirty" /proc/meminfo | awk -F" " '{print$2}')"
 vector_declare ${sample}
 dirty_mem_kB="${vector_return_value}"
@@ -845,7 +845,7 @@ dirty_mem_kB="${vector_return_value}"
 remaining_samples=29
 max_sample=${sample}
 while [ ${remaining_samples} -gt 0 ]; do
-  echo -n "${ASCII_CR}Samples to go: ${remaining_samples}   "
+  printf '%s' "${ASCII_CR}Samples to go: ${remaining_samples}   "
   sleep 1
   sample="$(grep "Dirty" /proc/meminfo | awk -F" " '{print$2}')"
   if [ ${sample} -gt ${max_sample} ]; then
@@ -855,7 +855,7 @@ while [ ${remaining_samples} -gt 0 ]; do
   dirty_mem_kB="${vector_return_value}"
   remaining_samples=$(( ${remaining_samples}-1 ))
 done
-echo "${ASCII_CR}                                      "
+printf '%s\n' "${ASCII_CR}                                      "
 
 # The graph will be 'drawn' in another vector with each value representing
 # one line of the graph. Sample values extend up the y-axis and samples
@@ -871,7 +871,7 @@ readonly graph_sample_scale_factor=$(( ${max_sample}/${graph_lines} ))
 # 'y-value' of the graph line.
 
 # Define a graph_line_op function that is called for each sample for
-# each line with samply value as parameter 2 and the y-coordinate passed
+# each line with sample value as parameter 2 and the y-coordinate passed
 # as parameter 4 (the ${lines_remaining} argument), running from
 # ${graph_lines}-1 to 0
 graph_line_op() {
@@ -901,14 +901,14 @@ vector_append "${graph}" \
               '*--------------------------------------------------------------'
 graph="${vector_return_value}"
 
-echo "${max_sample}kB"
+printf '%s\n' "${max_sample}kB"
 # Finally output the graph, again using dict_for_each and an operation
-# function that simple echos the line entry value, passed in parameter 2:
-graph_echo_line_op() {
-  echo "${2}"
+# function that simply echos the line entry value, passed in parameter 2:
+graph_print_line_op() {
+  printf '%s\n' "${2}"
 }
 
-dict_for_each "${graph}" graph_echo_line_op
+dict_for_each "${graph}" graph_print_line_op
 
 ```
 
