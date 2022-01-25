@@ -57,7 +57,7 @@ if dict_is_dict "${args}"; then
   # Output the greeting:
   greeting="$(dict_get_simple "${args}" greeting)"
   subject="$(dict_get_simple "${args}" subject)"
-  echo "${greeting} ${subject}!"
+  printf '%s\n' "${greeting}, ${subject}!"
 else # ... otherwise output the text directly as it will be the help text
-  echo "${args}"
+  printf "${args}"
 fi

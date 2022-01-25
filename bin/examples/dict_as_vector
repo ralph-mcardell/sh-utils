@@ -94,8 +94,8 @@ vector_append() {
 # seconds and display a simple graph:
 
 # Declare vector with initial sample value
-echo 'Collecting dirty memory kB samples from /proc/meminfo...'
-ASCII_CR=$(echo '@' | tr '@' '\015')
+printf '%s\n' 'Collecting dirty memory kB samples from /proc/meminfo...'
+ASCII_CR=$(printf '\015')
 sample="$(grep "Dirty" /proc/meminfo | awk -F" " '{print$2}')"
 vector_declare ${sample}
 dirty_mem_kB="${vector_return_value}"
@@ -105,7 +105,7 @@ dirty_mem_kB="${vector_return_value}"
 remaining_samples=29
 max_sample=${sample}
 while [ ${remaining_samples} -gt 0 ]; do
-  echo -n "${ASCII_CR}Samples to go: ${remaining_samples}   "
+  printf '%s' "${ASCII_CR}Samples to go: ${remaining_samples}   "
   sleep 1
   sample="$(grep "Dirty" /proc/meminfo | awk -F" " '{print$2}')"
   if [ ${sample} -gt ${max_sample} ]; then
@@ -115,7 +115,7 @@ while [ ${remaining_samples} -gt 0 ]; do
   dirty_mem_kB="${vector_return_value}"
   remaining_samples=$(( ${remaining_samples}-1 ))
 done
-echo "${ASCII_CR}                                      "
+printf '%s\n' "${ASCII_CR}                                      "
 
 # The graph will be 'drawn' in another vector with each value representing
 # one line of the graph. Sample values extend up the y-axis and samples
@@ -161,11 +161,11 @@ vector_append "${graph}" \
               '*--------------------------------------------------------------'
 graph="${vector_return_value}"
 
-echo "${max_sample}kB"
+printf '%s\n' "${max_sample}kB"
 # Finally output the graph, again using dict_for_each and an operation
 # function that simply echos the line entry value, passed in parameter 2:
-graph_echo_line_op() {
-  echo "${2}"
+graph_print_line_op() {
+  printf '%s\n' "${2}"
 }
 
-dict_for_each "${graph}" graph_echo_line_op
+dict_for_each "${graph}" graph_print_line_op

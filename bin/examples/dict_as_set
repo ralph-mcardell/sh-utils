@@ -140,9 +140,8 @@ set_intersection_op() {
 #   { 'member-1', 'member-2', ..., 'member-N' }
 set_print() {
   # Use backspace character as dict value suffix to backspace over
-  # the dummy '_' set values. It is assumed tr is available but
-  # only a basic echo that does not support -e or \e.
-  local readonly ASCII_BS=$(echo '@' | tr '@' '\010')
+  # the dummy '_' set values. 
+  local readonly ASCII_BS=$(printf '\010')
   local print_spec="$( dict_declare_simple \
                        'dict_prefix' '{ ' \
                        'dict_suffix' ' }' \
@@ -163,43 +162,43 @@ set_declare 'Kayla' 'Johnny' 'Alexis' 'Bobby' 'Rose' 'Louis' 'Charlotte' 'Elijah
 friends="${set_return_value}"
 set_declare 'Rose' 'Russell' 'Charlotte' 'Vincent' 'Natalie' 'Johnny' 'Brittany' 'Bobby'
 collegues="${set_return_value}"
-echo -n 'My  friends  are: '
+printf '%s' 'My  friends  are: '
 set_print "${friends}"
-echo -n '\nMy collegues are: '
+printf '\n%s' 'My collegues are: '
 set_print "${collegues}"
-echo '\n'
+printf '\n\n'
 
 # Add some new friends using set_add_members:
-echo 'I have new friends Eugene and Diana!'
+printf '%s\n' 'I have new friends Eugene and Diana!'
 set_add_members "${friends}" 'Eugene' 'Diana'
 friends="${set_return_value}"
-echo -n 'My  friends  are now: '
+printf '%s' 'My  friends  are now: '
 set_print "${friends}"
 
 # Add some new collegues contained in a set, added to existing friends
 # using set_union:
 set_declare 'Diana' 'Randy'
 new_collegues="${set_return_value}"
-echo -n '\n\nNew people '
+printf '\n\n%s' 'New people '
 set_print "${new_collegues}"
-echo -n ' have just started on my team at work.'
+printf '%s' ' have just started on my team at work.'
 set_union "${collegues}" "${new_collegues}"
 collegues="${set_return_value}"
-echo -n '\nMy collegues are now: '
+printf '\n%s' 'My collegues are now: '
 set_print "${collegues}"
-echo '\n'
+printf '\n\n'
 
 # Obtain set of all friends and collegues. Some are both and therefore
 # should only appear once. Thus we require the union of friends and collegues:
 set_union "${friends}" "${collegues}"
 all_friends_and_collegues="${set_return_value}"
-echo -n "All my friends and collegues are "
+printf '%s' 'All my friends and collegues are '
 set_print "${all_friends_and_collegues}"
-echo ''
+printf '\n'
 
 # Obtain set of people who are both friend and collegue using set_intersection:
 set_intersection "${friends}" "${collegues}"
 both_friend_and_collegue="${set_return_value}"
-echo -n "My friends who are also collegues are "
+printf '%s' 'My friends who are also collegues are '
 set_print "${both_friend_and_collegue}"
-echo ''
+printf '\n'

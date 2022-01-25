@@ -67,12 +67,12 @@ record="$(dict_declare 'greeting' 'Hello' 'who' 'World' \
 set_ansi_24bit_colours_string "$(dict_get "${record}" 'foreground')" \
                               "$(dict_get "${record}" 'background')"
 
-# Lookup the values associated with keys greeting and who and echo them to
+# Lookup the values associated with keys greeting and who and ouput them to
 # stdout along with the ANSI colour setting string. As the looked up values
 # are simple strings dict_get_simple can be used:
-echo -n "${return_value}"
-echo -n "$(dict_get_simple "${record}" 'greeting'), $(dict_get_simple  "${record}" 'who')!"
-echo "${ANSI_CMD_RESET}"
+printf '%s' "${return_value}"
+printf '%s' "$(dict_get_simple "${record}" 'greeting'), $(dict_get_simple  "${record}" 'who')!"
+printf '%s\n' "${ANSI_CMD_RESET}"
 
 # Set values for keys greeting and who; as these both exist they are updated.
 # Note that the record variable is both used as an input argument and
@@ -99,9 +99,9 @@ fore="$(dict_get "${record}" 'foreground')"
 back="$(dict_get "${record}" 'background')"
 set_ansi_24bit_colours_string "${fore}" "${back}"
 
-# Lookup and echo the updated associated values to stdout along with the
-# ANSI colour setting string. This time store the returned values in
-# variables and output their values:
+# Lookup and output the updated associated values to stdout along with
+# the ANSI colour setting string. This time store the returned values
+# in variables and output their values:
 greeting="$(dict_get_simple "${record}" 'greeting')"
 who="$(dict_get_simple  "${record}" 'who')"
-echo "${return_value}${greeting}, ${who}!${ANSI_CMD_RESET}"
+printf '%s\n' "${return_value}${greeting}, ${who}!${ANSI_CMD_RESET}"
