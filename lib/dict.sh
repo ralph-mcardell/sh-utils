@@ -623,10 +623,10 @@ EOF
     local all="${2}"
     local stripped="${__DICT_PATN_HDR_RECORD__}"
     local entries="${dict#${stripped}}"
-    if ! "${all}"; then
-      entries="${__DICT_ENTRY_SEPARATOR__}${entries}"
-    fi
     if [ "${entries}" != "${dict}" ]; then
+      if ! "${all}"; then
+        entries="${__DICT_ENTRY_SEPARATOR__}${entries}"
+      fi
       __dict_return_value__="${entries}"
     fi
   }
