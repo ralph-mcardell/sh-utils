@@ -119,7 +119,7 @@ echo "${greeting}, ${who}!"
 | `dict_declare` `dict_declare_simple`  | declare a *dict* variable, optionally initialised with initial key, value entries. Returns the *dict* value that can be associated with a variable. |
 | `dict_set` `dict_set_simple` | add or update one or more key,value pairs to a previously `dict_declare`'d variable. Returns the updated *dict*. |
 | `dict_get` `dict_get_simple` | retrieve a value associated with a key in a previously `dict_declare`'d variable. Return the value if passed key present or blank if it is not. |
-| `dict_remove` | remove a key,value entry from a *dict*. Returns the updated *dict*.|
+| `dict_remove` | remove key,value entries from a *dict*. Returns the updated *dict*.|
 | `dict_is_dict` | check if a variable's value represents a *dict* type. |
 | `dict_size` `dict_count` | return the integer value of the size of a *dict*, being the number of records. `dict_size` is ~O(1) whereas `dict_count` is ~O(n), hence `dict_size` is intended to be usually used over `dict_count`, which iterates over the entries in a *dict* and returns the count of records iterated over. |
 | `dict_for_each` | iterate over the entries of a *dict* calling a function for each key,value pair. |
@@ -198,9 +198,9 @@ If the retrived value is not a *dict* then `dict_get_simple` can be safely calle
 
 ### `dict_remove`
 
-`dict_remove` is used to remove an entry from an existing *dict* 'object' given the entry's key value.
+`dict_remove` is used to remove entries from an existing *dict* 'object' given entry key values.
 
-The passed key value may not be a *dict* nor contain ASCII US, RS, GS or FS characters.
+The passed key values may not be a *dict* nor contain ASCII US, RS, GS or FS characters.
 
 `dict_remove` is designed to be called using *Command Substitution*.
 
@@ -208,14 +208,14 @@ The passed key value may not be a *dict* nor contain ASCII US, RS, GS or FS char
 
 | Parameter number| Description |
 | --------------- | ----------- |
-| 1    | *dict* value to remove entry from. |
-| 2    | key of entry which is to be removed. |
+| 1    | *dict* value to remove entries from. |
+| 2+   | keys of entries which are to be removed. |
 
 #### Return values
 
 | $? | stdout | fail reasons (error message on stderr) |
 | -- | ------ | ------------ |
-| 0        | *dict* value matching that passed for the first parameter with the entry matching the passed key value removed which will be an exact copy of the passed in *dict* if no matching entry exists in the passed *dict*. |  |
+| 0        | *dict* value matching that passed for the first parameter with the entries matching the passed key values removed which will be an exact copy of the passed in *dict* if no matching entries exist in the passed *dict*. |  |
 | 1 (fail) | empty string | First argument passed to dict_remove is not a dict(ionary) type. |
 
 ### `dict_is_dict`
