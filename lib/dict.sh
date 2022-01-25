@@ -289,42 +289,46 @@ then
     echo -n "${value}"
   }
 
-  # @brief Remove an entry having a matching key form a dict
+  # @brief Remove entries having a matching s form a dict
   #
-  # Passed a dict to update, and the key of the entry to remove.
+  # Passed a dict to update, and keys of the entries to remove.
   #
-  # The key cannot be another dict, and cannot contain ASCII
+  # Key cannot be another dict, and cannot contain ASCII
   # US, RS, GS, FS characters.
   #
-  # The value maybe another dict but otherwise cannot contain
+  # Entry values maybe another dict but otherwise cannot contain
   # ASCII US, RS, GS, FS characters.
   #
-  # Returned the possibly updated dict. The returned dict
-  # value with match the passed dict value if there is no
-  # entry with a matching key.
+  # Returns the possibly updated dict. The returned dict
+  # value will match the passed dict value if there are no
+  # entries with a matching key.
   #
-  # @param 1 : dict value to remove a value from
-  # @param 2 : Key of entry to remove
+  # @param 1 : dict value to remove a values from
+  # @param 2+: Keys of entries to remove
   # @returns : a value either matching the passed dict or the
-  #            passed dict with the requested entry removed.
+  #            passed dict with the requested entries removed.
   dict_remove() {
-    __dict_abort_if_not_dict__ "${1}" "dict_remove"
-    __dict_strip_header__ "${1}" "false"
-    local dict="${__dict_return_value__}"
-    __dict_decorated_key__ "${2}"
-    local dkey="${__dict_return_value__}"
-    __dict_prefix_entries__ "${dict}" "${dkey}"
-    local prefix="${__dict_return_value__}"
-    if [ "${prefix}" = "${dict}" ]; then
-      echo -n "${1}"
-    else
-      __dict_get_size__ "${1}"
-      local size=$(( ${__dict_return_value__}-1 ))
-      __dict_suffix_entries__ "${dict}" "${dkey}"
-      local suffix="${__dict_return_value__}"
-      dict="${__DICT_HDR_ENTRY_BASE__}${size}${prefix}${suffix}"
-      echo -n "${dict}"
-    fi
+    local dict="${1}"
+    __dict_abort_if_not_dict__ "${dict}" "dict_remove"
+    __dict_strip_header__ "${dict}" "false"
+    local stripped_dict="${__dict_return_value__}"
+    shift
+    while [ $# -ne 0 ]; do
+      __dict_decorated_key__ "${1}"
+      local dkey="${__dict_return_value__}"
+      __dict_prefix_entries__ "${stripped_dict}" "${dkey}"
+      local prefix="${__dict_return_value__}"
+      if [ "${prefix}" != "${stripped_dict}" ]; then
+        __dict_get_size__ "${dict}"
+        local size=$(( ${__dict_return_value__}-1 ))
+        __dict_suffix_entries__ "${stripped_dict}" "${dkey}"
+        local suffix="${__dict_return_value__}"
+        stripped_dict="${prefix}${suffix}"
+        dict="${__DICT_HDR_ENTRY_BASE__}${size}${stripped_dict}"
+      fi
+      shift
+    done
+    echo -n "${dict}"
   }
 
   # @brief Iterate over dict calling a function taking each key value

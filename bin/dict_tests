@@ -503,6 +503,32 @@ can_remove_whole_entry_specified_by_key_from_dict() {
   CHECK "$(dict_get "${dict}" "${key3}")C" = "C"
 }
 
+can_remove_multiple_whole_entries_specified_by_key_from_dict_in_one_call() {
+  local expected1='value 1'
+  local expected2='value 2'
+  local expected3='value 3'
+  local key1='key1'
+  local key2='key2'
+  local key3='key3'
+  local dict=$(dict_declare)
+  dict="$(dict_set "${dict}" "${key1}" "${expected1}")"
+  dict="$(dict_set "${dict}" "${key2}" "${expected2}")"
+  dict="$(dict_set "${dict}" "${key3}" "${expected3}")"
+
+  REQUIRE "$(dict_size "${dict}")" -eq "3"
+  REQUIRE "$(dict_count "${dict}")" -eq "3"
+  REQUIRE "$(dict_get "${dict}" "${key1}")A" = "${expected1}A"
+  REQUIRE "$(dict_get "${dict}" "${key2}")B" = "${expected2}B"
+  REQUIRE "$(dict_get "${dict}" "${key3}")C" = "${expected3}C"
+
+  dict="$(dict_remove "${dict}" "${key2}" "${key3}" "${key1}" )"
+  CHECK "$(dict_size "${dict}")" -eq "0"
+  CHECK "$(dict_count "${dict}")" -eq "0"
+  CHECK "$(dict_get "${dict}" "${key1}")A" = "A"
+  CHECK "$(dict_get "${dict}" "${key2}")B" = "B"
+  CHECK "$(dict_get "${dict}" "${key3}")C" = "C"
+}
+
 added_nested_dict_values_can_be_retrieved_correctly() {
   local expected1='value 1'
   local expected2='value 2'
@@ -1335,7 +1361,7 @@ can_json_pretty_print_nested_dict() {
 }
 
 #set -x
-#TEST nested_dict_values_can_be_removed_correctly
+#TEST can_remove_multiple_whole_entries_specified_by_key_from_dict_in_one_call
 #PRINT_TEST_COUNTS
 #exit 0
 
@@ -1361,6 +1387,7 @@ TEST can_add_retrieve_values_with_keys_contained_in_other_keys
 TEST can_add_and_retrieve_entries_correctly_with_key_values_within_values
 TEST can_add_update_and_retrieve_entries_correctly_with_key_values_within_values
 TEST can_remove_whole_entry_specified_by_key_from_dict
+TEST can_remove_multiple_whole_entries_specified_by_key_from_dict_in_one_call
 TEST iterating_over_empty_dict_does_not_call_operation_function
 TEST iterating_over_single_entry_dict_calls_operation_function_once_with_key_and_value
 TEST iterating_over_n_entry_dict_calls_operation_function_n_times_with_each_key_and_value
