@@ -15,7 +15,7 @@
 # nested in dicts.
 #
 # Uses POSIX/Open Group IEEE Std 1003.1-2017 shell command language facilities
-# plus utility local and commands tr, sed and echo -n.
+# plus utility local and commands tr, sed and printf.
 #
 # As hinted above the implementation is a specially formatted string which
 # uses ASCII separator control code values to separate key from value within
@@ -103,8 +103,8 @@ then
     while [ $# -gt 1 ]; do
       __dict_decorated_key__ "${1}"
       if [ "${keys##${__DICT_RS__}*${__DICT_US__}${__dict_return_value__}}" != "${keys}" ]; then
-        echo "ERROR: duplicate key \"${1}\" passed to dict_declare_simple." >&2
-        echo ""
+        printf "%s\n" "ERROR: duplicate key \"${1}\" passed to dict_declare_simple." >&2
+        printf ""
         exit 1
       fi
       local keys="${keys}${__DICT_US__}${__dict_return_value__}"
@@ -116,9 +116,9 @@ then
       shift 2
     done
     if [ $# -gt 0 ]; then
-      echo "WARNING: incomplete key, value pair passed to dict_declare_simple: ${1} left over." >&2
+      printf "%s\n" "WARNING: incomplete key, value pair passed to dict_declare_simple: ${1} left over." >&2
     fi
-    echo -n "${dict}"
+    printf "%s" "${dict}"
   }
 
   # @brief Set - add or update - a key, value entry in a dict
@@ -151,7 +151,7 @@ then
       __dict_set__ "${__dict_return_value__}" "${1}" "${2}"
       shift 2
     done
-    echo -n "${__dict_return_value__}"
+    printf "%s" "${__dict_return_value__}"
   }
 
   # @brief Get a value associated with a key from a dict
@@ -170,7 +170,7 @@ then
   dict_get_simple() {
     __dict_abort_if_not_dict__ "${1}" "dict_get_simple"
     __dict_get__ "$@"
-    echo -n "${__dict_return_value__}"
+    printf "%s" "${__dict_return_value__}"
   }
 
   # @brief 'declare' a dict variable, optionally initialiing with entries
@@ -196,8 +196,8 @@ then
     while [ $# -gt 1 ]; do
       __dict_decorated_key__ "${1}"
       if [ "${keys##${__DICT_RS__}*${__DICT_US__}${__dict_return_value__}}" != "${keys}" ]; then
-        echo "ERROR: duplicate key \"${1}\" passed to dict_declare." >&2
-        echo ""
+        printf "%s\n" "ERROR: duplicate key \"${1}\" passed to dict_declare." >&2
+        printf ""
         exit 1
       fi
       local dkey="${__dict_return_value__}"
@@ -214,9 +214,9 @@ then
       shift 2
     done
     if [ $# -gt 0 ]; then
-      echo "WARNING: incomplete key, value pair passed to dict_declare: ${1} left over." >&2
+      printf "%s\n" "WARNING: incomplete key, value pair passed to dict_declare: ${1} left over." >&2
     fi
-    echo -n "${dict}"
+    printf "%s" "${dict}"
   }
 
   # @brief Set - add or update - a key, value entry in a dict
@@ -259,7 +259,7 @@ then
       dict="${__dict_return_value__}"
       shift 2
     done
-    echo -n "${__dict_return_value__}"
+    printf "%s" "${__dict_return_value__}"
   }
 
   # @brief Get a value associated with a key from a dict
@@ -286,7 +286,7 @@ then
       __dict_prepare_value_for_unnesting__ "${value}"
       value="${__dict_return_value__}"
     fi
-    echo -n "${value}"
+    printf "%s" "${value}"
   }
 
   # @brief Remove entries having a matching s form a dict
@@ -328,7 +328,7 @@ then
       fi
       shift
     done
-    echo -n "${dict}"
+    printf "%s" "${dict}"
   }
 
   # @brief Iterate over dict calling a function taking each key value
@@ -375,7 +375,7 @@ then
   dict_size() {
     __dict_abort_if_not_dict__ "${1}" "dict_size"
     __dict_get_size__ "${1}"
-    echo -n "${__dict_return_value__}"
+    printf "%s" "${__dict_return_value__}"
   }
 
 
@@ -396,7 +396,7 @@ then
     if [ -z "${size}" ]; then
         size="0"
     fi
-    echo -n "${size}"
+    printf "%s" "${size}"
   }
 
   # @brief Output the raw characters of the dict
@@ -420,7 +420,7 @@ then
       if [ $# -ge 2 ]; then
           us_rs_gs_fs_translation="${2}"
       fi
-      echo "${dict}" | tr "${__DICT_US__}${__DICT_RS__}${__DICT_GS__}${__DICT_FS__}" "${us_rs_gs_fs_translation}" 
+      printf "%s\n" "${dict}" | tr "${__DICT_US__}${__DICT_RS__}${__DICT_GS__}${__DICT_FS__}" "${us_rs_gs_fs_translation}" 
   }
 
   # @brief Output the entries of a dict with user-defined decoration
@@ -472,7 +472,7 @@ then
     local pprint_specs="${2}"
     __dict_abort_if_not_dict__ "${1}" "dict_pretty_print"
     if ! dict_is_dict "${pprint_specs}"; then
-      echo "Oops! Print specifications argument #2 passed to dict_pretty_print is not a dict(ionary) type. Quitting current (sub-)shell." >&2
+      printf "%s\n" "Oops! Print specifications argument #2 passed to dict_pretty_print is not a dict(ionary) type. Quitting current (sub-)shell." >&2
       exit 1
     fi
     dict_get_simple "${pprint_specs}" "print_prefix"
@@ -542,10 +542,10 @@ EOF
 
   # Details
 
-  readonly __DICT_FS__=$(echo '@' | tr '@' '\034')
-  readonly __DICT_GS__=$(echo '@' | tr '@' '\035')
-  readonly __DICT_RS__=$(echo '@' | tr '@' '\036')
-  readonly __DICT_US__=$(echo '@' | tr '@' '\037')
+  readonly __DICT_FS__=$(printf '\034')
+  readonly __DICT_GS__=$(printf '\035')
+  readonly __DICT_RS__=$(printf '\036')
+  readonly __DICT_US__=$(printf '\037')
 
   readonly __DICT_RECORD_SEPARATOR__="${__DICT_RS__}"
   readonly __DICT_FIELD_SEPARATOR__="${__DICT_US__}"
@@ -679,7 +679,7 @@ EOF
 
   __dict_abort_if_not_dict__() {
     if ! dict_is_dict "${1}"; then
-      echo "Oops! First argument passed to ${2} is not a dict(ionary) type. Quitting current (sub-)shell." >&2
+      printf "%s\n" "Oops! First argument passed to ${2} is not a dict(ionary) type. Quitting current (sub-)shell." >&2
       exit 1
     fi
   }
@@ -734,29 +734,29 @@ EOF
     local pprint_specs="${4}"
     local record_separator=''
     if [ ${record_number} -gt 1 ]; then
-      record_separator="$(dict_get "${pprint_specs}" "record_separator"; echo "${__DICT_GS__}")"
+      record_separator="$(dict_get "${pprint_specs}" "record_separator"; printf "%s\n" "${__DICT_GS__}")"
       record_separator="${record_separator%${__DICT_GS__}}"
     fi
     if ! dict_is_dict "${value}"; then
-      echo -n "${record_separator}"
+      printf "%s" "${record_separator}"
       dict_get_simple "${pprint_specs}" "record_prefix"
       dict_get_simple "${pprint_specs}" "key_prefix"
-      echo -n "${key}"
+      printf "%s" "${key}"
       dict_get_simple "${pprint_specs}" "key_suffix"
       dict_get_simple "${pprint_specs}" "value_prefix"
-      echo -n "${value}"
+      printf "%s" "${value}"
       dict_get_simple "${pprint_specs}" "value_suffix"
       dict_get_simple "${pprint_specs}" "record_suffix"
     else
-      echo -n "${record_separator}"
+      printf "%s" "${record_separator}"
       dict_get "${pprint_specs}" "record_prefix"
       dict_get "${pprint_specs}" "key_prefix"
-      echo -n ${key}
+      printf "%s" ${key}
       dict_get "${pprint_specs}" "key_suffix"
-      local indent="$(dict_get "${pprint_specs}" "nesting_indent"; echo "${__DICT_GS__}")"
+      local indent="$(dict_get "${pprint_specs}" "nesting_indent"; printf "%s\n" "${__DICT_GS__}")"
       indent="${indent%${__DICT_GS__}}"
       if [ -n "${indent}" ]; then
-          local pprint_specs_indent="$(echo -n "${pprint_specs}" | sed '2,$s'"/^/${indent}/";  echo "${__DICT_GS__}" )"
+          local pprint_specs_indent="$(printf "%s" "${pprint_specs}" | sed '2,$s'"/^/${indent}/";  printf "%s\n" "${__DICT_GS__}" )"
           pprint_specs_indent="${pprint_specs_indent%${__DICT_GS__}}"
       else
           local pprint_specs_indent="${pprint_specs}"
