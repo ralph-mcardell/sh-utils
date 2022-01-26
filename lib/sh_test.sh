@@ -167,16 +167,16 @@ TEST() {
     # from another tries to allow for system that do _not_ porvied the
     # POSIX bc utility but might provide the dc utility...
     elapsed_time="\
-$( echo "${end_seconds} - ${start_seconds}" | bc -q 2>/dev/null \
-|| echo "${end_seconds} ${start_seconds} - p" | dc  \
+$( printf '%s\n' "${end_seconds} - ${start_seconds}" | bc -q 2>/dev/null \
+|| printf '%s\n' "${end_seconds} ${start_seconds} - p" | dc  \
 )"
-    echo "ELAPSED TIME: ${elapsed_time} seconds : ${__sh_test_testfn__}"
+    printf '%s\n' "ELAPSED TIME: ${elapsed_time} seconds : ${__sh_test_testfn__}"
     # This long winded way to try to add 2 floating point values
     # tries to allow for system that do _not_ porvied the POSIX bc utility
     # but might provide the dc utility...
     __sh_test_total_time_secs__="\
-$( echo "${__sh_test_total_time_secs__} + ${elapsed_time}" | bc -q 2>/dev/null \
-|| echo "${__sh_test_total_time_secs__} ${elapsed_time} + p" | dc  \
+$( printf '%s\n' "${__sh_test_total_time_secs__} + ${elapsed_time}" | bc -q 2>/dev/null \
+|| printf '%s\n' "${__sh_test_total_time_secs__} ${elapsed_time} + p" | dc  \
 )"
   fi
   __sh_test_testfn__="${prev_test}"
@@ -234,7 +234,7 @@ __sh_test_print_report__() {
   if ${test_result}; then 
     local test_state="SUCCESS"
   fi
-  echo "${test_state}: ${__sh_test_testfn__} ${test_variant} ${test_expression} is ${test_result}."
+  printf '%s\n' "${test_state}: ${__sh_test_testfn__} ${test_variant} ${test_expression} is ${test_result}."
 }
 
 __sh_test_update_passed__() {
@@ -267,9 +267,9 @@ __sh_test_update_assert_failed__() {
 
 __sh_test_maybe_plural__() {
   if [ ${2} -eq 1 ]; then
-    echo "${1}"
+    printf '%s\n' "${1}"
   else
-    echo "${1}s"
+    printf '%s\n' "${1}s"
   fi
 }
 
@@ -300,10 +300,10 @@ __sh_test_assert__() {
       local result=false
     fi
     if [ $# -gt 3 ]; then
-      echo "WARNING: ${test_variant} passed too many arguments: need 2 or 3, $# provided. Extra ignored." >&2
+      printf '%s\n' "WARNING: ${test_variant} passed too many arguments: need 1, 2 or 3, $# provided. Extra ignored." >&2
     fi
   else
-    echo "ERROR: ${test_variant} passed too few arguments: need 1, 2 or 3, $# provided." >&2
+    printf '%s\n' "ERROR: ${test_variant} passed too few arguments: need 1, 2 or 3, $# provided." >&2
     local result=false
     test_variant="REQUIRE"
   fi
@@ -380,7 +380,7 @@ EOF
 
 __sh_test_set_flags_shift_by__=0
 __sh_test_process_long_commandline_arg__() {
-#    echo "Processing option ${1}..." >&2
+#    printf '%s\n' "Processing option ${1}..." >&2
   local consumedArgs=1
   case ${1} in
     --help)
@@ -422,7 +422,7 @@ __sh_test_set_flags__() {
         shift $((OPTIND-2))
         __sh_test_process_long_commandline_arg__ $@
         if [ ${__sh_test_set_flags_shift_by__} = '0' ]; then
-          echo "Sorry I do not understand command line argument '${1}'. Quitting." >&2
+          printf '%s\n' "Sorry I do not understand command line argument '${1}'. Quitting." >&2
           exit 1
         fi
         shift
